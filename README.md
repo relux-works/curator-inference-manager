@@ -15,4 +15,4 @@ The Curator inference plane. `curator-engine` is an umbrella provider (`curator 
 - Curator discovers it as an umbrella provider on a trust root; Curator itself stays engine-blind.
 - Runtime bindings in the agents-management machine catalog (`runtimes.toml`) reference engine profiles in `engines.toml` by name. The agents-management module models engine kinds and lifecycle plans as values and never starts processes.
 - Callers: task-board preflight calls `ensure` for engine-bound runtimes (a dry run never ensures), and `curator-run` calls it before building the launch. The launch itself is built by the agents-management launch plane.
-- Roadmap: milestone M5 in `skill-project-management/.specs/roadmap/ecosystem-roadmap.md`.
+- Roadmap: milestone M5 in `wiki/roadmap/ecosystem-roadmap.md`.

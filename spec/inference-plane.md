@@ -1,6 +1,6 @@
 # curator-engine: inference plane
 
-Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two drafts already decide about the inference plane and adds no design of its own. The sources are the launch-profiles draft (`skill-project-management/.specs/drafts/launch-profiles.md`, cited as *LP*) and the ecosystem roadmap (`skill-project-management/.specs/roadmap/ecosystem-roadmap.md`, cited as *roadmap*). Every statement cites its source; points the sources leave open are listed in §10. The decision record for this plane will be **Decision 0020** in curator-spec, which is not written yet (LP-D7, LP-D13, roadmap §3 M5).
+Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two drafts already decide about the inference plane and adds no design of its own. The sources are the launch-profiles draft (`skill-project-management/.specs/drafts/launch-profiles.md`, cited as *LP*) and the ecosystem roadmap (`wiki/roadmap/ecosystem-roadmap.md`, cited as *roadmap*). Every statement cites its source; points the sources leave open are listed in §10. The decision record for this plane will be **Decision 0020** in curator-spec, which is not written yet (LP-D7, LP-D13, roadmap §3 M5).
 
 ---
 
