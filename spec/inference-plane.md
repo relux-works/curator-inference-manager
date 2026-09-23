@@ -52,8 +52,8 @@ Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two dr
 
 - task-board preflight calls `ensure` for engine-bound runtimes behind the abort fence; a dry run never ensures (LP-D7).
 - `curator-run` calls `ensure` before `BuildLaunch` (LP-D7).
-- Routing (`model-routing/spec/model-routing.md`, *MR*) may weigh an engine profile's capacity as compatibility and cost. But `curator engine ensure` is the process owner's preflight action, never the router's (MR R11). `engine_ensure_failed` is a distinct failure class in routing feedback (MR R12).
-- Network profiles (`launch-network/spec/network-profiles.md`, *NP*):
+- Routing (`curator-model-router/spec/model-routing.md`, *MR*) may weigh an engine profile's capacity as compatibility and cost. But `curator engine ensure` is the process owner's preflight action, never the router's (MR R11). `engine_ensure_failed` is a distinct failure class in routing feedback (MR R12).
+- Network profiles (`curator-network/spec/network-profiles.md`, *NP*):
   - Local engine endpoints are loopback and must appear in every profile's `bypass_hosts`.
   - SSH-mode engine profiles connect through the engine provider's own channel.
   - Engine networking is outside the network-profiles epic. There, `curator-engine` is a fourth process owner whose processes are engines (NP N2, N12).
