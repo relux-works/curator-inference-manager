@@ -1,6 +1,6 @@
-# curator-engine
+# curator-inference-manager
 
-The Curator inference plane. `curator-engine` is an umbrella provider (`curator engine status|ensure|release|stop`) that owns local inference engines for coding agents: llama.cpp, mlx-lm and mlx-swift. It holds a machine-local engine catalog, reports whether each engine is ready or can be ensured, grants leases, and runs engine lifecycle under host arbitration. It is carved out of the engine broker in the deprecated agents-infra residual.
+The Curator inference plane. `curator-inference-manager` (renamed from curator-engine on 2026-09-24) is an umbrella provider (`curator-inference-manager status|ensure|release|stop`; a short `curator inference` dispatcher command may come later) that owns local inference engines for coding agents: llama.cpp, mlx-lm and mlx-swift. It holds a machine-local engine catalog, reports whether each engine is ready or can be ensured, grants leases, and runs engine lifecycle under host arbitration. It is carved out of the engine broker in the deprecated agents-infra residual.
 
 **Status: DRAFT design. No code yet; nothing here is normative.** Its decision record will be Decision 0020 in curator-spec (not written yet).
 

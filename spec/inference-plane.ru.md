@@ -1,6 +1,6 @@
 > Перевод. Каноничен английский текст: [inference-plane.md](inference-plane.md).
 
-# curator-engine: плоскость инференса
+# curator-inference-manager: плоскость инференса
 
 Статус: **ЧЕРНОВИК**, 2026-09-24. Не нормативный документ. Здесь собрано то, что про плоскость инференса уже решают два черновика; своего дизайна документ не добавляет. Источники: черновик launch profiles (`skill-project-management/.specs/drafts/launch-profiles.md`, ссылки вида *LP*) и роадмап экосистемы (`wiki/roadmap/ecosystem-roadmap.md`, ссылки вида *roadmap*). У каждого утверждения указан источник; то, что источники оставляют открытым, перечислено в §10. Решение по этой плоскости будет записано как **Decision 0020** в curator-spec; оно ещё не написано (LP-D7, LP-D13, roadmap §3 M5).
 
@@ -9,21 +9,21 @@
 ## 1. Место в экосистеме
 
 - Кто чем владеет сейчас: Curator отвечает за контекст и управляемые домашние каталоги (managed homes); `curator-run` отвечает за интерактивные запуски человеком; модуль agents-management (`skill-agents-management`) отвечает за среды выполнения, модели, планы запуска и лимиты; ax отвечает за долговечность сессий; `relux-agents-infra` остаётся устаревшим остатком, который эта работа опустошает (LP §0).
-- Ни один из этих владельцев не может взять на себя движки: границы Curator их исключают, у лаунчера это прямо не цель, контракт модуля не даёт ему запускать процессы, а у ax движки вне области ответственности. Поэтому брокер движков из остатка становится провайдером: пятой плоскостью, **плоскостью инференса**, с зонтичным провайдером `curator-engine` (LP-D7).
+- Ни один из этих владельцев не может взять на себя движки: границы Curator их исключают, у лаунчера это прямо не цель, контракт модуля не даёт ему запускать процессы, а у ax движки вне области ответственности. Поэтому брокер движков из остатка становится провайдером: пятой плоскостью, **плоскостью инференса**, с зонтичным провайдером `curator-inference-manager` (LP-D7).
 - Сейчас в контракте наблюдения `pkg/inferenceengine` модуля записано `ExecutionOwner = agents-infra`, а его `localruntime` читает `agents-infra runtime status` (LP §1, строка модуля `v0.5.16`).
 
 ## 2. Провайдер
 
 | Пункт | Что утверждается | Источник |
 | --- | --- | --- |
-| Команды | `curator engine status\|ensure\|release\|stop [--profile NAME] [--json]` | LP-D7 |
+| Команды | `curator-inference-manager status\|ensure\|release\|stop [--profile NAME] [--json]`; короткая команда `curator inference` через диспетчер может появиться позже | LP-D7 |
 | Обнаружение | устанавливается в корень доверия. Зонтичные провайдеры `curator-<name>` ищутся в корнях доверия (каталог установки, `provider_directories`) и никогда в `~/.local/bin`: это каталог пользовательских прокладок Curator, и найденный там провайдер отклоняется (`subcommand_provider_untrusted`) | LP-D7; LP §1; LP-D16 |
 | Связь с Curator | о Curator знает только то, что нужно для обнаружения; сам Curator про движки не знает ничего | LP-D7 |
 | Какие контракты использует | контракт `pkg/inferenceengine` модуля и формат статуса `localruntime`; в `localruntime` меняется имя одного исполняемого файла | LP-D7 |
 
 ## 3. Профили движков и каталог
 
-- Файл каталога: `$XDG_CONFIG_HOME/curator-engine/engines.toml`, таблица `[engines.<name>]` (LP-D2, LP-D7; LP §6, закрытое решение 1). Он образует пару с каталогом плоскости запуска `$XDG_CONFIG_HOME/agents-management/runtimes.toml`, таблица `[runtimes.<id>]`; «два имени читаются как пара» (LP-D2).
+- Файл каталога: `~/.curator/engines.toml`, таблица `[engines.<name>]` (LP-D2, LP-D7; LP §6, закрытое решение 1). Он образует пару с каталогом плоскости запуска `$XDG_CONFIG_HOME/agents-management/runtimes.toml`, таблица `[runtimes.<id>]`; «два имени читаются как пара» (LP-D2).
 - Профиль движка несёт поля сегодняшнего `[profiles.<name>]` из `model-harness`: `engine`, `model`, `executable`, `argv`, `knobs`, `mode local|ssh`, `stress`, `supervision`, `pinned_distribution` (LP-D7).
 - Привязка среды выполнения ссылается на профиль движка по имени. Например, в предварительном наброске `runtimes.toml` стоит `engine = { plugin = "llama-cpp", profile = "<name>" }` (LP-D2, LP-D7).
 - Клиентская половина сегодняшних профилей для pi (`thinking`, `compat`, `compaction`) сюда не переезжает. Она уходит в управляемый домашний каталог pi и в плагин `pi-native` (LP-D7).
@@ -47,25 +47,25 @@
   - `ready`: движок в состоянии `serving` или `lingering`;
   - `ensurable`: профиль и веса на месте, движок не в карантине, и арбитраж хоста пропустил бы `ensure`.
 - Холодный, но запускаемый (`ensurable`) движок оставляет свою среду выполнения доступной, просто старт чего-то стоит. Среду убирает только «не ensurable»: если бы её убирал и остановленный движок, такой движок никогда нельзя было бы выбрать, а значит, и запустить (LP-D9).
-- Аренды тоже входят в данные блока о движках: «engine status and leases (via `curator-engine`)» (LP-D9).
+- Аренды тоже входят в данные блока о движках: «engine status and leases (via `curator-inference-manager`)» (LP-D9).
 - Остаются в силе правила: допуск решает конфигурация, заявленная оператором; свидетельства вендора только подсказывают порядок; ошибка чтения никогда не считается запасом (LP-D9; LP §5).
 
 ## 6. Кто вызывает
 
 - Предварительная проверка task-board вызывает `ensure` для сред выполнения, привязанных к движку, за барьером прерывания; пробный прогон (dry run) никогда не делает `ensure` (LP-D7).
 - `curator-run` вызывает `ensure` перед `BuildLaunch` (LP-D7).
-- Роутинг (`curator-model-router/spec/model-routing.ru.md`, *MR*) может учитывать ёмкость профиля движка как совместимость и стоимость. Но `curator engine ensure` — это действие предварительной проверки владельца процесса, а не роутера (MR R11). `engine_ensure_failed` — отдельный класс сбоя в обратной связи роутинга (MR R12).
-- Сетевые профили (`curator-network/spec/network-profiles.ru.md`, *NP*):
+- Роутинг (`curator-model-router/spec/model-routing.ru.md`, *MR*) может учитывать ёмкость профиля движка как совместимость и стоимость. Но `curator-inference-manager ensure` — это действие предварительной проверки владельца процесса, а не роутера (MR R11). `engine_ensure_failed` — отдельный класс сбоя в обратной связи роутинга (MR R12).
+- Сетевые профили (`curator-network-profiles/spec/network-profiles.ru.md`, *NP*):
   - Локальные адреса движков — это loopback, и они обязаны стоять в `bypass_hosts` каждого профиля.
   - Профили движков в режиме SSH подключаются через собственный канал провайдера движков.
-  - Сетевая часть движков вне эпика сетевых профилей. Там `curator-engine` считается четвёртым владельцем процессов, чьи процессы — движки (NP N2, N12).
+  - Сетевая часть движков вне эпика сетевых профилей. Там `curator-inference-manager` считается четвёртым владельцем процессов, чьи процессы — движки (NP N2, N12).
 
 ## 7. Локальные модели по общей схеме
 
 - `local-qwen` — первая запись каталога, а не особый путь (LP-D8):
   - проектная половина `{pi-native, local-models, model}`;
   - запись каталога с `transport: config-home` поверх заранее заполненного `models.json`, адресом на loopback и `engine: {mlx-lm, profile}`;
-  - профиль движка живёт в `curator-engine`;
+  - профиль движка живёт в `curator-inference-manager`;
   - запуск идёт через exec-режим `pi-native`, новый `LaunchModeExec` в модуле;
   - доступность берётся из состояния движка.
 - Тот же движок под codex — это вторая запись каталога, с `transport: codex-provider` (LP-D8).
@@ -75,7 +75,7 @@
 
 - Профили движков с `mode = "ssh"`, которые уже есть в `model-harness`, покрывают удалённую машину с llama.cpp. Тогда факт `profile-ssh-forwarding` перестаёт сообщаться как отсутствующий (LP §3).
 - Снимки KV-кэша (LP-D10; LP §4, фаза 5):
-  - Факты `kv-snapshot` (`save`, `restore`, `validity`) принадлежат контракту движков в модуле, а их выполнение — `curator-engine`.
+  - Факты `kv-snapshot` (`save`, `restore`, `validity`) принадлежат контракту движков в модуле, а их выполнение — `curator-inference-manager`.
   - Сейчас единственный примитив — это `/slots/{id}?action=save|restore` у llama.cpp за флагом `--slot-save-path`. У `mlx_lm.server` его нет, а vLLM умеет только кэширование префикса.
   - Ключ снимка: `(profile, weight digest, engine version, session id, prefix digest)`. Первые четыре поля должны совпасть точно, пятое по префиксу; всё остальное считается холодным предзаполнением контекста.
   - Снимки строятся только после замера холодного предзаполнения против восстановленного (LP-D10; roadmap §5).
@@ -85,9 +85,9 @@
 | Шаг | Где | Готово, когда | Источник |
 | --- | --- | --- | --- |
 | Decision 0020: плоскость инференса (пятая плоскость, закрытый контракт CLI/JSON, Curator ничего не знает о движках, ревью безопасности, потому что провайдер запускает процессы) | curator-spec | принято | LP-D7, LP-D13, roadmap §3 M5 |
-| `curator-engine`: профили движков, брокер из остатка agents-infra, `ensure/release/status/stop`, `ready`/`ensurable`, арбитраж хоста; виды движков в модуле; exec-режим `pi-native`; `ensure` в предварительной проверке | curator-engine, skill-agents-management, skill-project-management | локальные модели работают по общей схеме | roadmap §3 M5; LP §4, фаза 4 |
+| `curator-inference-manager`: профили движков, брокер из остатка agents-infra, `ensure/release/status/stop`, `ready`/`ensurable`, арбитраж хоста; виды движков в модуле; exec-режим `pi-native`; `ensure` в предварительной проверке | curator-inference-manager, skill-agents-management, skill-project-management | локальные модели работают по общей схеме | roadmap §3 M5; LP §4, фаза 4 |
 | Вывести из употребления устаревший плагин `pi`, `agents-infra pi spawn`, `pi-infra`, `qwen-infra` | skill-agents-management, relux-agents-infra | их никто не вызывает | roadmap §3 M5 |
-| Снимки KV-кэша | curator-engine, skill-agents-management | построены после замера | LP §4, фаза 5; LP-D10 |
+| Снимки KV-кэша | curator-inference-manager, skill-agents-management | построены после замера | LP §4, фаза 5; LP-D10 |
 
 - Веха M5 идёт после M4, в которой привязки сред выполнения доходят до запуска (roadmap §2).
 - После фазы 4 LP в agents-infra остаётся только состояние конфигурации Codex и Claude и вложения (LP §4, фаза 4).
