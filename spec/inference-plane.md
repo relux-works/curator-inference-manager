@@ -7,7 +7,7 @@ Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two dr
 ## 1. Place in the ecosystem
 
 - Owners today: Curator owns context and managed homes; `curator-run` owns human interactive launches; the agents-management module (`skill-agents-management`) owns runtimes, models, launch plans and limits; ax owns session durability; `relux-agents-infra` is a deprecated residual that this work empties (LP §0).
-- Curator refuses engines by boundary, the launcher by non-goal, the module by contract and ax by scope. So the residual's engine broker becomes a provider: a fifth plane, the **inference plane**, with the umbrella provider `curator-engine` (LP-D7).
+- None of these owners can take engines: Curator's boundary excludes them, the launcher lists them as a non-goal, the module's contract keeps it out of running processes, and ax's scope leaves them out. So the residual's engine broker becomes a provider: a fifth plane, the **inference plane**, with the umbrella provider `curator-engine` (LP-D7).
 - Today the module's `pkg/inferenceengine` observation contract names `ExecutionOwner = agents-infra`, and its `localruntime` reads `agents-infra runtime status` (LP §1, module `v0.5.16` row).
 
 ## 2. The provider
@@ -36,7 +36,7 @@ Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two dr
   - real load and unload observations;
   - host arbitration: a maximum number of resident engines; never drain an engine with active leases; refuse rather than evict a busy engine.
 - Engine kinds become a real axis in the module: `llama-cpp`, `mlx-lm` and `mlx-swift`, with ollama and LM Studio later (LP-D7).
-- The module describes the lifecycle as a value, `EngineLifecyclePlan`, and never starts processes (LP-D7; LP §5 "Never: … exec in the module"). Plans are values, and the process owner is the only one who starts processes (LP §5 invariants).
+- The module describes the lifecycle as a value, `EngineLifecyclePlan`, and never starts processes (LP-D7; LP §5 "Never: … exec in the module"). Plans stay values; only the process owner starts processes (LP §5 invariants).
 - Host arbitration is to be reconciled with board epics `EPIC-260907-23c4jz` and `EPIC-260903-1dcvew` (LP-D7).
 
 ## 5. Availability facts
@@ -44,7 +44,7 @@ Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two dr
 - Engine status enters the single availability block, keyed by `(runtime, managed home)`, as two facts (LP-D9, amended 2026-09-22; LP §6 closed decision 6):
   - `ready`: the engine is `serving` or `lingering`;
   - `ensurable`: the profile and weights are present, the engine is not quarantined, and host arbitration would admit an `ensure`.
-- A cold but ensurable engine leaves its runtime available, with a start cost. Only "not ensurable" removes the runtime; otherwise a stopped engine could never be chosen, and so could never be ensured (LP-D9).
+- A cold but ensurable engine keeps its runtime available, at the cost of a start. Only "not ensurable" removes the runtime: if a stopped engine removed it too, the engine could never be chosen and therefore never ensured (LP-D9).
 - Leases are also among the block's engine inputs: "engine status and leases (via `curator-engine`)" (LP-D9).
 - These rules are kept: operator-declared configuration decides admission; vendor evidence only advises order; a read failure is never counted as headroom (LP-D9; LP §5).
 

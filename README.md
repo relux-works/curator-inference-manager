@@ -9,6 +9,7 @@ The Curator inference plane. `curator-engine` is an umbrella provider (`curator 
 | Path | Content |
 | --- | --- |
 | `spec/inference-plane.md` | draft specification, extracted from the launch-profiles draft and the ecosystem roadmap |
+| `spec/inference-plane.ru.md` | Russian translation of the draft specification (the English file is canonical) |
 
 ## How it fits
 
