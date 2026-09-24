@@ -37,7 +37,7 @@ Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two dr
   - host arbitration: a maximum number of resident engines; never drain an engine with active leases; refuse rather than evict a busy engine.
 - Engine kinds become a real axis in the module: `llama-cpp`, `mlx-lm` and `mlx-swift`, with ollama and LM Studio later (LP-D7).
 - The module describes the lifecycle as a value, `EngineLifecyclePlan`, and never starts processes (LP-D7; LP §5 "Never: … exec in the module"). Plans stay values; only the process owner starts processes (LP §5 invariants).
-- Host arbitration is to be reconciled with board epics `EPIC-260907-23c4jz` and `EPIC-260903-1dcvew` (LP-D7).
+- Host arbitration is to be reconciled with task-board's work on scarce-resource declarations with operation queues and on run-owned host-resource accountability (LP-D7).
 
 ## 5. Availability facts
 
@@ -94,7 +94,7 @@ Status: **DRAFT**, 2026-09-24. Not normative. This document collects what two dr
 ## 10. Open points
 
 1. Decision 0020 is not written. The closed CLI/JSON contract of `status|ensure|release|stop` is defined there, including field names, exit codes and refusal codes (LP-D7, LP-D13).
-2. Host arbitration still has to be reconciled with `EPIC-260907-23c4jz` and `EPIC-260903-1dcvew` (LP-D7).
+2. Host arbitration still has to be reconciled with task-board's work on scarce-resource declarations with operation queues and on run-owned host-resource accountability (LP-D7).
 3. ollama and LM Studio come later as engine kinds (LP-D7).
 4. KV snapshots wait for the cold-versus-restored measurement (LP-D10).
 5. Repository visibility: the roadmap proposes public (roadmap §6). This repository stays private until the operator decides.
