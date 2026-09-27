@@ -1,0 +1,1144 @@
+package infra
+
+import (
+	"errors"
+	"fmt"
+	"net"
+	"net/url"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+	"unicode"
+)
+
+const (
+	maxTimeDurationSeconds              = int64(^uint64(0)>>1) / int64(time.Second)
+	maxSharedRuntimeLeaseStaleSeconds   = maxTimeDurationSeconds / 2
+	sharedRuntimeHandoffGraceSeconds    = int64(2)
+	sharedRuntimeBrokerStartSlopSeconds = int64(30)
+)
+
+type PiPrimarySessionSource struct {
+	Profile         *string
+	PiCompatibility *string
+	YoloMode        *bool
+}
+
+type PiPrimarySessionPolicy struct {
+	Profile         PiPolicyStringValue
+	PiCompatibility PiPolicyStringValue
+	YoloMode        PiPolicyBoolValue
+}
+
+// PiStandaloneSessionSource is deliberately separate from primary-session
+// policy. A project may authorize one unattended worker without changing the
+// interactive Pi trust or tool surface.
+type PiStandaloneSessionSource struct {
+	YoloMode      *bool
+	ToolAllowlist *[]string
+}
+
+type PiStandaloneSessionPolicy struct {
+	YoloMode      PiPolicyBoolValue
+	ToolAllowlist PiPolicyStringListValue
+}
+
+type PiPolicyStringValue struct {
+	Value   string
+	Source  string
+	Present bool
+}
+
+type PiPolicyBoolValue struct {
+	Value   bool
+	Source  string
+	Present bool
+}
+
+type PiPolicyStringListValue struct {
+	Value   []string
+	Source  string
+	Present bool
+}
+
+type PiProfile struct {
+	Provider              string
+	Publisher             string
+	Family                string
+	Model                 string
+	BaseURL               string
+	API                   string
+	Reasoning             bool
+	Input                 []string
+	ContextWindow         int
+	MaxTokens             int
+	CacheBudgetBytes      *int64
+	Thinking              string
+	RequestedCapabilities []string
+	Compaction            *PiCompaction
+	LifecycleLogRetention PiLifecycleLogRetention
+	Compat                PiCompat
+	Runtime               PiRuntime
+	Source                string
+}
+
+// PiLifecycleLogRetention is deliberately all-required. Retention is an
+// admission boundary, so silently filling a missing numeric limit would turn
+// an incomplete policy into authority to create durable evidence.
+type PiLifecycleLogRetention struct {
+	MaxCount                  int `json:"max_count"`
+	MaxBytes                  int `json:"max_bytes"`
+	MaxEnvelopeBytes          int `json:"max_envelope_bytes"`
+	MaxAgeSeconds             int `json:"max_age_seconds"`
+	CreateTimeoutSeconds      int `json:"create_timeout_seconds"`
+	AppendTimeoutSeconds      int `json:"append_timeout_seconds"`
+	CloseTimeoutSeconds       int `json:"close_timeout_seconds"`
+	StatusTimeoutSeconds      int `json:"status_timeout_seconds"`
+	MaintenanceTimeoutSeconds int `json:"maintenance_timeout_seconds"`
+	MaxScanEntries            int `json:"max_scan_entries"`
+	MaxScanControlBytes       int `json:"max_scan_control_bytes"`
+	MaxMutationsPerOperation  int `json:"max_mutations_per_operation"`
+}
+
+type PiCompaction struct {
+	Enabled          bool `json:"enabled"`
+	CompactAtTokens  int  `json:"compactAtTokens"`
+	ReserveTokens    int  `json:"reserveTokens"`
+	KeepRecentTokens int  `json:"keepRecentTokens"`
+}
+
+type PiCompat struct {
+	SupportsDeveloperRole   *bool
+	SupportsReasoningEffort *bool
+	SupportsUsageStreaming  *bool
+	SupportsFinishReason    *bool
+	MaxTokensField          *string
+	ThinkingFormat          *string
+}
+
+type PiRuntime struct {
+	Executable             string
+	Argv                   []string
+	ReadinessPath          string
+	StartupTimeoutSeconds  int
+	ShutdownTimeoutSeconds int
+	DFlash                 *PiDFlash
+	Sharing                *PiRuntimeSharing
+}
+
+type PiRuntimeSharing struct {
+	Mode                         string                     `json:"mode"`
+	LingerSeconds                int                        `json:"linger_seconds"`
+	MaxLeases                    int                        `json:"max_leases"`
+	MaxSegmentBytes              int                        `json:"max_segment_bytes"`
+	MaxSegments                  int                        `json:"max_segments"`
+	HeartbeatIntervalSeconds     int                        `json:"heartbeat_interval_seconds"`
+	LeaseStaleSeconds            int                        `json:"lease_stale_seconds"`
+	BrokerStartTimeoutSeconds    int                        `json:"broker_start_timeout_seconds"`
+	RestartLimit                 int                        `json:"restart_limit"`
+	RestartInitialBackoffSeconds int                        `json:"restart_initial_backoff_seconds"`
+	RestartMaxBackoffSeconds     int                        `json:"restart_max_backoff_seconds"`
+	StableRunSeconds             int                        `json:"stable_run_seconds"`
+	QuarantineSeconds            int                        `json:"quarantine_seconds"`
+	ResourcePressureMode         string                     `json:"resource_pressure_mode"`
+	ResourcePressure             *PiRuntimeResourcePressure `json:"resource_pressure,omitempty"`
+}
+
+type PiRuntimeResourcePressure struct {
+	ObservationPath                string `json:"observation_path"`
+	ObservationTimeoutMilliseconds int    `json:"observation_timeout_milliseconds"`
+	PressureThresholdBytes         int    `json:"pressure_threshold_bytes"`
+	RecoveryThresholdBytes         int    `json:"recovery_threshold_bytes"`
+	EvictionGraceSeconds           int    `json:"eviction_grace_seconds"`
+	PressureAction                 string `json:"pressure_action"`
+	UnknownAction                  string `json:"unknown_action"`
+	BusyAction                     string `json:"busy_action"`
+}
+
+type PiDFlash struct {
+	TargetModel string
+	DraftModel  string
+	TargetArgv  []string
+	DraftArgv   []string
+}
+
+func parsePiConfig(agents map[string]any, path string) (PiPrimarySessionSource, PiStandaloneSessionSource, map[string]PiProfile, error) {
+	pi, present, err := projectConfigTable(agents, "pi", "agents.pi")
+	if err != nil {
+		return PiPrimarySessionSource{}, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, "agents.pi", err)
+	}
+	if !present {
+		return PiPrimarySessionSource{}, PiStandaloneSessionSource{}, map[string]PiProfile{}, nil
+	}
+	if err := rejectUnknownFields(pi, "agents.pi", "primary_session", "standalone_session", "profiles"); err != nil {
+		return PiPrimarySessionSource{}, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, errField(err), err)
+	}
+
+	var primary PiPrimarySessionSource
+	primaryTable, primaryPresent, err := projectConfigTable(pi, "primary_session", piPrimarySessionField)
+	if err != nil {
+		return primary, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, piPrimarySessionField, err)
+	}
+	if primaryPresent {
+		if err := rejectUnknownFields(primaryTable, piPrimarySessionField, "profile", "pi_compatibility", "yolo_mode"); err != nil {
+			return primary, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, errField(err), err)
+		}
+		primary.Profile, err = optionalNonEmptyString(primaryTable, "profile")
+		if err != nil {
+			return primary, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, piPrimarySessionField+".profile", err)
+		}
+		primary.PiCompatibility, err = optionalNonEmptyString(primaryTable, "pi_compatibility")
+		if err != nil {
+			return primary, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, piPrimarySessionField+".pi_compatibility", err)
+		}
+		primary.YoloMode, err = optionalBool(primaryTable, "yolo_mode")
+		if err != nil {
+			return primary, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, piPrimarySessionField+".yolo_mode", err)
+		}
+		if primary.Profile == nil && primary.PiCompatibility == nil && primary.YoloMode == nil {
+			return primary, PiStandaloneSessionSource{}, nil, projectConfigFieldError(path, piPrimarySessionField, errors.New("table must contain at least one supported field"))
+		}
+	}
+
+	var standalone PiStandaloneSessionSource
+	standaloneTable, standalonePresent, err := projectConfigTable(pi, "standalone_session", piStandaloneSessionField)
+	if err != nil {
+		return primary, standalone, nil, projectConfigFieldError(path, piStandaloneSessionField, err)
+	}
+	if standalonePresent {
+		if err := rejectUnknownFields(standaloneTable, piStandaloneSessionField, "yolo_mode", "tool_allowlist"); err != nil {
+			return primary, standalone, nil, projectConfigFieldError(path, errField(err), err)
+		}
+		standalone.YoloMode, err = optionalBool(standaloneTable, "yolo_mode")
+		if err != nil {
+			return primary, standalone, nil, projectConfigFieldError(path, piStandaloneSessionField+".yolo_mode", err)
+		}
+		standalone.ToolAllowlist, err = optionalStringArray(standaloneTable, "tool_allowlist")
+		if err != nil {
+			return primary, standalone, nil, projectConfigFieldError(path, piStandaloneSessionField+".tool_allowlist", err)
+		}
+		if standalone.YoloMode == nil && standalone.ToolAllowlist == nil {
+			return primary, standalone, nil, projectConfigFieldError(path, piStandaloneSessionField, errors.New("table must contain at least one supported field"))
+		}
+	}
+
+	profiles := map[string]PiProfile{}
+	profilesTable, profilesPresent, err := projectConfigTable(pi, "profiles", "agents.pi.profiles")
+	if err != nil {
+		return primary, standalone, nil, projectConfigFieldError(path, "agents.pi.profiles", err)
+	}
+	if !profilesPresent {
+		return primary, standalone, profiles, nil
+	}
+	for name, raw := range profilesTable {
+		if name == "" {
+			return primary, standalone, nil, projectConfigFieldError(path, "agents.pi.profiles", errors.New("profile name must not be empty"))
+		}
+		table, ok := raw.(map[string]any)
+		if !ok {
+			return primary, standalone, nil, projectConfigFieldError(path, "agents.pi.profiles."+name, fmt.Errorf("expected table, got %T", raw))
+		}
+		profile, parseErr := parsePiProfile(table, path, name)
+		if parseErr != nil {
+			return primary, standalone, nil, parseErr
+		}
+		profiles[name] = profile
+	}
+	return primary, standalone, profiles, nil
+}
+
+func parsePiProfile(table map[string]any, path, name string) (PiProfile, error) {
+	field := "agents.pi.profiles." + name
+	if err := rejectUnknownFields(table, field,
+		"provider", "publisher", "family", "model", "base_url", "api", "reasoning", "input", "context_window", "max_tokens", "cache_budget_bytes", "thinking", "requested_capabilities", "compaction", "lifecycle_log_retention", "compat", "runtime"); err != nil {
+		return PiProfile{}, projectConfigFieldError(path, errField(err), err)
+	}
+	var p PiProfile
+	var err error
+	if p.Provider, err = requiredString(table, "provider"); err != nil {
+		return p, projectConfigFieldError(path, field+".provider", err)
+	}
+	if err := validatePiProvider(p.Provider); err != nil {
+		return p, projectConfigFieldError(path, field+".provider", err)
+	}
+	if p.Publisher, err = requiredString(table, "publisher"); err != nil {
+		return p, projectConfigFieldError(path, field+".publisher", err)
+	}
+	if p.Family, err = requiredString(table, "family"); err != nil {
+		return p, projectConfigFieldError(path, field+".family", err)
+	}
+	if p.Model, err = requiredString(table, "model"); err != nil {
+		return p, projectConfigFieldError(path, field+".model", err)
+	}
+	if p.BaseURL, err = requiredString(table, "base_url"); err != nil {
+		return p, projectConfigFieldError(path, field+".base_url", err)
+	}
+	if err := validatePiBaseURL(p.BaseURL); err != nil {
+		return p, projectConfigFieldError(path, field+".base_url", err)
+	}
+	if p.API, err = requiredString(table, "api"); err != nil || p.API != "openai-completions" {
+		if err == nil {
+			err = errors.New("must equal openai-completions")
+		}
+		return p, projectConfigFieldError(path, field+".api", err)
+	}
+	if p.Reasoning, err = requiredBool(table, "reasoning"); err != nil {
+		return p, projectConfigFieldError(path, field+".reasoning", err)
+	}
+	if p.Input, err = requiredStringArray(table, "input"); err != nil || !equalStrings(p.Input, []string{"text"}) {
+		if err == nil {
+			err = errors.New("must equal [\"text\"]")
+		}
+		return p, projectConfigFieldError(path, field+".input", err)
+	}
+	if p.ContextWindow, err = requiredPositiveInt(table, "context_window"); err != nil {
+		return p, projectConfigFieldError(path, field+".context_window", err)
+	}
+	if p.MaxTokens, err = requiredPositiveInt(table, "max_tokens"); err != nil || p.MaxTokens > p.ContextWindow {
+		if err == nil {
+			err = errors.New("must not exceed context_window")
+		}
+		return p, projectConfigFieldError(path, field+".max_tokens", err)
+	}
+	if p.CacheBudgetBytes, err = optionalPositiveInt64(table, "cache_budget_bytes"); err != nil {
+		return p, projectConfigFieldError(path, field+".cache_budget_bytes", err)
+	}
+	if p.Thinking, err = requiredString(table, "thinking"); err != nil {
+		return p, projectConfigFieldError(path, field+".thinking", err)
+	}
+	if !piThinkingLevels[p.Thinking] {
+		return p, projectConfigFieldError(path, field+".thinking", errors.New("must be a documented Pi thinking level"))
+	}
+	if !p.Reasoning && p.Thinking != "off" {
+		return p, projectConfigFieldError(path, field+".reasoning", errors.New("must be true when thinking is not off"))
+	}
+	if p.RequestedCapabilities, err = requiredStringArray(table, "requested_capabilities"); err != nil {
+		return p, projectConfigFieldError(path, field+".requested_capabilities", err)
+	}
+	if raw, ok := table["compaction"]; ok {
+		compactionTable, ok := raw.(map[string]any)
+		if !ok {
+			return p, projectConfigFieldError(path, field+".compaction", fmt.Errorf("expected table, got %T", raw))
+		}
+		compaction, parseErr := parsePiCompaction(compactionTable, field+".compaction", p.ContextWindow, p.MaxTokens)
+		if parseErr != nil {
+			return p, projectConfigFieldError(path, errField(parseErr), parseErr)
+		}
+		p.Compaction = &compaction
+	}
+	retentionTable, present, tableErr := projectConfigTable(table, "lifecycle_log_retention", field+".lifecycle_log_retention")
+	if tableErr != nil || !present {
+		if tableErr == nil {
+			tableErr = errors.New("required table is absent")
+		}
+		return p, projectConfigFieldError(path, field+".lifecycle_log_retention", tableErr)
+	}
+	if p.LifecycleLogRetention, err = parsePiLifecycleLogRetention(retentionTable, field+".lifecycle_log_retention"); err != nil {
+		return p, projectConfigFieldError(path, errField(err), err)
+	}
+	compatTable, present, tableErr := projectConfigTable(table, "compat", field+".compat")
+	if tableErr != nil || !present {
+		if tableErr == nil {
+			tableErr = errors.New("required table is absent")
+		}
+		return p, projectConfigFieldError(path, field+".compat", tableErr)
+	}
+	if p.Compat, err = parsePiCompat(compatTable, field+".compat"); err != nil {
+		return p, projectConfigFieldError(path, errField(err), err)
+	}
+	runtimeTable, present, tableErr := projectConfigTable(table, "runtime", field+".runtime")
+	if tableErr != nil || !present {
+		if tableErr == nil {
+			tableErr = errors.New("required table is absent")
+		}
+		return p, projectConfigFieldError(path, field+".runtime", tableErr)
+	}
+	if p.Runtime, err = parsePiRuntime(runtimeTable, field+".runtime"); err != nil {
+		return p, projectConfigFieldError(path, errField(err), err)
+	}
+	if err := validatePiRuntimeEndpointArgv(p.Runtime.Argv, p.BaseURL); err != nil {
+		return p, projectConfigFieldError(path, field+".runtime.argv", err)
+	}
+	if err := validatePiModelHarnessKVBound(p.ContextWindow, p.BaseURL, p.Runtime); err != nil {
+		return p, projectConfigFieldError(path, field+".runtime.argv", err)
+	}
+	if err := validatePiRuntimeCacheBudgetArgv(p.Runtime.Argv, p.CacheBudgetBytes); err != nil {
+		return p, projectConfigFieldError(path, field+".runtime.argv", err)
+	}
+	wantCaps := []string{"text", "tools"}
+	if p.Runtime.DFlash != nil {
+		wantCaps = []string{"dflash", "text", "tools"}
+	}
+	if !equalStrings(p.RequestedCapabilities, wantCaps) {
+		return p, projectConfigFieldError(path, field+".requested_capabilities", fmt.Errorf("must equal %q", wantCaps))
+	}
+	if p.Runtime.DFlash != nil && p.Runtime.DFlash.TargetModel != p.Model {
+		return p, projectConfigFieldError(path, field+".runtime.dflash.target_model", errors.New("must equal profile model"))
+	}
+	return p, nil
+}
+
+func parsePiLifecycleLogRetention(table map[string]any, field string) (PiLifecycleLogRetention, error) {
+	if err := rejectUnknownFields(table, field,
+		"max_count", "max_bytes", "max_envelope_bytes", "max_age_seconds",
+		"create_timeout_seconds", "append_timeout_seconds", "close_timeout_seconds",
+		"status_timeout_seconds", "maintenance_timeout_seconds", "max_scan_entries",
+		"max_scan_control_bytes", "max_mutations_per_operation"); err != nil {
+		return PiLifecycleLogRetention{}, err
+	}
+	var policy PiLifecycleLogRetention
+	values := []struct {
+		name string
+		dst  *int
+	}{
+		{"max_count", &policy.MaxCount},
+		{"max_bytes", &policy.MaxBytes},
+		{"max_envelope_bytes", &policy.MaxEnvelopeBytes},
+		{"max_age_seconds", &policy.MaxAgeSeconds},
+		{"create_timeout_seconds", &policy.CreateTimeoutSeconds},
+		{"append_timeout_seconds", &policy.AppendTimeoutSeconds},
+		{"close_timeout_seconds", &policy.CloseTimeoutSeconds},
+		{"status_timeout_seconds", &policy.StatusTimeoutSeconds},
+		{"maintenance_timeout_seconds", &policy.MaintenanceTimeoutSeconds},
+		{"max_scan_entries", &policy.MaxScanEntries},
+		{"max_scan_control_bytes", &policy.MaxScanControlBytes},
+		{"max_mutations_per_operation", &policy.MaxMutationsPerOperation},
+	}
+	for _, value := range values {
+		parsed, err := requiredPositiveInt(table, value.name)
+		if err != nil {
+			return policy, fieldError(field+"."+value.name, err)
+		}
+		*value.dst = parsed
+	}
+	for _, timeout := range []struct {
+		name  string
+		value int
+	}{
+		{"create_timeout_seconds", policy.CreateTimeoutSeconds},
+		{"append_timeout_seconds", policy.AppendTimeoutSeconds},
+		{"close_timeout_seconds", policy.CloseTimeoutSeconds},
+		{"status_timeout_seconds", policy.StatusTimeoutSeconds},
+		{"maintenance_timeout_seconds", policy.MaintenanceTimeoutSeconds},
+	} {
+		if int64(timeout.value) > maxTimeDurationSeconds {
+			return policy, fieldError(field+"."+timeout.name, fmt.Errorf("must be at most %d seconds so its effective duration fits time.Duration", maxTimeDurationSeconds))
+		}
+	}
+	minimumEnvelope, ok := checkedPositiveAddMul(policy.MaxBytes, 4096, policy.MaxCount)
+	if !ok {
+		return policy, fieldError(field+".max_envelope_bytes", errors.New("max_bytes + 4096*max_count overflows platform integer"))
+	}
+	if policy.MaxEnvelopeBytes < minimumEnvelope {
+		return policy, fieldError(field+".max_envelope_bytes", fmt.Errorf("must be at least max_bytes + 4096*max_count (%d)", minimumEnvelope))
+	}
+	managedSlots, ok := checkedPositiveAddMul(policy.MaxCount, 1, policy.MaxMutationsPerOperation)
+	if !ok {
+		return policy, fieldError(field+".max_mutations_per_operation", errors.New("max_count + max_mutations_per_operation overflows platform integer"))
+	}
+	requiredEntries, ok := checkedPositiveAddMul(5, 4, managedSlots)
+	if !ok {
+		return policy, fieldError(field+".max_scan_entries", errors.New("5 + 4*(max_count+max_mutations_per_operation) overflows platform integer"))
+	}
+	if policy.MaxScanEntries < requiredEntries {
+		return policy, fieldError(field+".max_scan_entries", fmt.Errorf("must be at least 5 + 4*(max_count+max_mutations_per_operation) (%d)", requiredEntries))
+	}
+	controlDocuments, ok := checkedPositiveAddMul(managedSlots, 1, 4)
+	if !ok {
+		return policy, fieldError(field+".max_scan_control_bytes", errors.New("max_count + max_mutations_per_operation + 4 overflows platform integer"))
+	}
+	requiredControl, ok := checkedPositiveAddMul(0, 4096, controlDocuments)
+	if !ok {
+		return policy, fieldError(field+".max_scan_control_bytes", errors.New("4096*(max_count+max_mutations_per_operation+4) overflows platform integer"))
+	}
+	if policy.MaxScanControlBytes < requiredControl {
+		return policy, fieldError(field+".max_scan_control_bytes", fmt.Errorf("must be at least 4096*(max_count+max_mutations_per_operation+4) (%d)", requiredControl))
+	}
+	return policy, nil
+}
+
+func checkedPositiveAddMul(add, multiplier, value int) (int, bool) {
+	if add < 0 || multiplier < 0 || value < 0 {
+		return 0, false
+	}
+	maxInt := int(^uint(0) >> 1)
+	if value != 0 && multiplier > (maxInt-add)/value {
+		return 0, false
+	}
+	return add + multiplier*value, true
+}
+
+func parsePiCompaction(table map[string]any, field string, contextWindow, maxTokens int) (PiCompaction, error) {
+	if err := rejectUnknownFields(table, field, "enabled", "compact_at_tokens", "reserve_tokens", "keep_recent_tokens"); err != nil {
+		return PiCompaction{}, err
+	}
+	var compaction PiCompaction
+	var err error
+	if compaction.Enabled, err = requiredBool(table, "enabled"); err != nil {
+		return compaction, fieldError(field+".enabled", err)
+	}
+	_, hasCompactAt := table["compact_at_tokens"]
+	_, hasReserve := table["reserve_tokens"]
+	if hasCompactAt == hasReserve {
+		return compaction, fieldError(field, errors.New("exactly one of compact_at_tokens or reserve_tokens is required"))
+	}
+	if hasCompactAt {
+		if compaction.CompactAtTokens, err = requiredPositiveInt(table, "compact_at_tokens"); err != nil {
+			return compaction, fieldError(field+".compact_at_tokens", err)
+		}
+		if compaction.CompactAtTokens >= contextWindow {
+			return compaction, fieldError(field+".compact_at_tokens", errors.New("must be less than context_window"))
+		}
+		compaction.ReserveTokens = contextWindow - compaction.CompactAtTokens
+	} else {
+		if compaction.ReserveTokens, err = requiredPositiveInt(table, "reserve_tokens"); err != nil {
+			return compaction, fieldError(field+".reserve_tokens", err)
+		}
+		if compaction.ReserveTokens >= contextWindow {
+			return compaction, fieldError(field+".reserve_tokens", errors.New("must be less than context_window"))
+		}
+		compaction.CompactAtTokens = contextWindow - compaction.ReserveTokens
+	}
+	if compaction.KeepRecentTokens, err = requiredPositiveInt(table, "keep_recent_tokens"); err != nil {
+		return compaction, fieldError(field+".keep_recent_tokens", err)
+	}
+	if compaction.ReserveTokens < maxTokens {
+		thresholdField := field + ".reserve_tokens"
+		if hasCompactAt {
+			thresholdField = field + ".compact_at_tokens"
+		}
+		return compaction, fieldError(thresholdField, errors.New("must leave at least max_tokens before context_window"))
+	}
+	if compaction.KeepRecentTokens >= compaction.CompactAtTokens {
+		return compaction, fieldError(field+".keep_recent_tokens", errors.New("must be less than compact_at_tokens"))
+	}
+	return compaction, nil
+}
+
+func parsePiCompat(table map[string]any, field string) (PiCompat, error) {
+	if err := rejectUnknownFields(table, field, "supports_developer_role", "supports_reasoning_effort", "supports_usage_in_streaming", "supports_finish_reason", "max_tokens_field", "thinking_format"); err != nil {
+		return PiCompat{}, err
+	}
+	var c PiCompat
+	var err error
+	if c.SupportsDeveloperRole, err = optionalBool(table, "supports_developer_role"); err != nil {
+		return c, fieldError(field+".supports_developer_role", err)
+	}
+	if c.SupportsReasoningEffort, err = optionalBool(table, "supports_reasoning_effort"); err != nil {
+		return c, fieldError(field+".supports_reasoning_effort", err)
+	}
+	if c.SupportsUsageStreaming, err = optionalBool(table, "supports_usage_in_streaming"); err != nil {
+		return c, fieldError(field+".supports_usage_in_streaming", err)
+	}
+	if c.SupportsFinishReason, err = optionalBool(table, "supports_finish_reason"); err != nil {
+		return c, fieldError(field+".supports_finish_reason", err)
+	}
+	if c.MaxTokensField, err = optionalNonEmptyString(table, "max_tokens_field"); err != nil {
+		return c, fieldError(field+".max_tokens_field", err)
+	}
+	if c.ThinkingFormat, err = optionalNonEmptyString(table, "thinking_format"); err != nil {
+		return c, fieldError(field+".thinking_format", err)
+	}
+	return c, nil
+}
+
+func parsePiRuntime(table map[string]any, field string) (PiRuntime, error) {
+	if err := rejectUnknownFields(table, field, "executable", "argv", "readiness_path", "startup_timeout_seconds", "shutdown_timeout_seconds", "dflash", "sharing"); err != nil {
+		return PiRuntime{}, err
+	}
+	var r PiRuntime
+	var err error
+	if r.Executable, err = requiredString(table, "executable"); err != nil {
+		return r, fieldError(field+".executable", err)
+	}
+	if strings.IndexByte(r.Executable, 0) >= 0 || !filepath.IsAbs(r.Executable) {
+		return r, fieldError(field+".executable", errors.New("must be an absolute NUL-free path"))
+	}
+	if r.Argv, err = requiredStringArray(table, "argv"); err != nil || len(r.Argv) == 0 {
+		if err == nil {
+			err = errors.New("must not be empty")
+		}
+		return r, fieldError(field+".argv", err)
+	}
+	for _, token := range r.Argv {
+		if token == "" || strings.IndexByte(token, 0) >= 0 {
+			return r, fieldError(field+".argv", errors.New("tokens must be non-empty and NUL-free"))
+		}
+	}
+	if r.ReadinessPath, err = requiredString(table, "readiness_path"); err != nil || r.ReadinessPath != "/models" {
+		if err == nil {
+			err = errors.New("must equal /models")
+		}
+		return r, fieldError(field+".readiness_path", err)
+	}
+	if r.StartupTimeoutSeconds, err = requiredPositiveDurationSeconds(table, "startup_timeout_seconds", maxTimeDurationSeconds); err != nil {
+		return r, fieldError(field+".startup_timeout_seconds", err)
+	}
+	if r.ShutdownTimeoutSeconds, err = requiredPositiveDurationSeconds(table, "shutdown_timeout_seconds", maxTimeDurationSeconds); err != nil {
+		return r, fieldError(field+".shutdown_timeout_seconds", err)
+	}
+	if raw, ok := table["dflash"]; ok {
+		dt, ok := raw.(map[string]any)
+		if !ok {
+			return r, fieldError(field+".dflash", fmt.Errorf("expected table, got %T", raw))
+		}
+		d, parseErr := parsePiDFlash(dt, field+".dflash", r.Argv)
+		if parseErr != nil {
+			return r, parseErr
+		}
+		r.DFlash = &d
+	}
+	if raw, ok := table["sharing"]; ok {
+		sharingTable, ok := raw.(map[string]any)
+		if !ok {
+			return r, fieldError(field+".sharing", fmt.Errorf("expected table, got %T", raw))
+		}
+		sharing, parseErr := parsePiRuntimeSharing(sharingTable, field+".sharing", r)
+		if parseErr != nil {
+			return r, parseErr
+		}
+		r.Sharing = &sharing
+	}
+	return r, nil
+}
+
+func parsePiRuntimeSharing(table map[string]any, field string, runtime PiRuntime) (PiRuntimeSharing, error) {
+	if err := rejectUnknownFields(table, field, "mode", "linger_seconds", "max_leases", "max_segment_bytes", "max_segments", "heartbeat_interval_seconds", "lease_stale_seconds", "broker_start_timeout_seconds", "restart_limit", "restart_initial_backoff_seconds", "restart_max_backoff_seconds", "stable_run_seconds", "quarantine_seconds", "resource_pressure_mode", "resource_pressure"); err != nil {
+		return PiRuntimeSharing{}, err
+	}
+	var sharing PiRuntimeSharing
+	var err error
+	if sharing.Mode, err = requiredString(table, "mode"); err != nil {
+		return sharing, fieldError(field+".mode", err)
+	}
+	if sharing.Mode != "exclusive" && sharing.Mode != "shared" {
+		return sharing, fieldError(field+".mode", errors.New("must equal exclusive or shared"))
+	}
+	if sharing.LingerSeconds, err = requiredNonNegativeDurationSeconds(table, "linger_seconds", maxTimeDurationSeconds); err != nil {
+		return sharing, fieldError(field+".linger_seconds", err)
+	}
+	maximumLingerSeconds := maxTimeDurationSeconds - int64(runtime.ShutdownTimeoutSeconds) - sharedRuntimeHandoffGraceSeconds
+	if maximumLingerSeconds < 0 {
+		return sharing, fieldError(field+".linger_seconds", fmt.Errorf("cannot fit because runtime shutdown + %d seconds exceeds time.Duration", sharedRuntimeHandoffGraceSeconds))
+	}
+	if int64(sharing.LingerSeconds) > maximumLingerSeconds {
+		return sharing, fieldError(field+".linger_seconds", fmt.Errorf("must be at most %d so linger + runtime shutdown + %d seconds fits time.Duration", maximumLingerSeconds, sharedRuntimeHandoffGraceSeconds))
+	}
+	if sharing.MaxLeases, err = requiredPositiveInt(table, "max_leases"); err != nil {
+		return sharing, fieldError(field+".max_leases", err)
+	}
+	if sharing.MaxSegmentBytes, err = requiredPositiveInt(table, "max_segment_bytes"); err != nil {
+		return sharing, fieldError(field+".max_segment_bytes", err)
+	}
+	if sharing.MaxSegments, err = requiredPositiveInt(table, "max_segments"); err != nil {
+		return sharing, fieldError(field+".max_segments", err)
+	}
+	if sharing.HeartbeatIntervalSeconds, err = requiredPositiveDurationSeconds(table, "heartbeat_interval_seconds", maxTimeDurationSeconds); err != nil {
+		return sharing, fieldError(field+".heartbeat_interval_seconds", err)
+	}
+	if sharing.LeaseStaleSeconds, err = requiredPositiveDurationSeconds(table, "lease_stale_seconds", maxSharedRuntimeLeaseStaleSeconds); err != nil {
+		return sharing, fieldError(field+".lease_stale_seconds", err)
+	}
+	if sharing.HeartbeatIntervalSeconds >= sharing.LeaseStaleSeconds {
+		return sharing, fieldError(field+".heartbeat_interval_seconds", errors.New("must be less than lease_stale_seconds"))
+	}
+	if sharing.BrokerStartTimeoutSeconds, err = requiredPositiveDurationSeconds(table, "broker_start_timeout_seconds", maxTimeDurationSeconds); err != nil {
+		return sharing, fieldError(field+".broker_start_timeout_seconds", err)
+	}
+	minimum := int64(runtime.StartupTimeoutSeconds) + int64(runtime.ShutdownTimeoutSeconds) + sharedRuntimeBrokerStartSlopSeconds
+	if int64(sharing.BrokerStartTimeoutSeconds) < minimum {
+		return sharing, fieldError(field+".broker_start_timeout_seconds", fmt.Errorf("must be at least runtime startup + shutdown + 30 seconds (%d)", minimum))
+	}
+	if sharing.RestartLimit, err = requiredPositiveInt(table, "restart_limit"); err != nil {
+		return sharing, fieldError(field+".restart_limit", err)
+	}
+	if sharing.RestartInitialBackoffSeconds, err = requiredPositiveDurationSeconds(table, "restart_initial_backoff_seconds", maxTimeDurationSeconds); err != nil {
+		return sharing, fieldError(field+".restart_initial_backoff_seconds", err)
+	}
+	if sharing.RestartMaxBackoffSeconds, err = requiredPositiveDurationSeconds(table, "restart_max_backoff_seconds", maxTimeDurationSeconds); err != nil {
+		return sharing, fieldError(field+".restart_max_backoff_seconds", err)
+	}
+	if sharing.RestartMaxBackoffSeconds < sharing.RestartInitialBackoffSeconds {
+		return sharing, fieldError(field+".restart_max_backoff_seconds", errors.New("must be greater than or equal to restart_initial_backoff_seconds"))
+	}
+	if sharing.RestartMaxBackoffSeconds >= sharing.BrokerStartTimeoutSeconds {
+		return sharing, fieldError(field+".restart_max_backoff_seconds", errors.New("must be less than broker_start_timeout_seconds"))
+	}
+	if sharing.StableRunSeconds, err = requiredPositiveDurationSeconds(table, "stable_run_seconds", maxTimeDurationSeconds); err != nil {
+		return sharing, fieldError(field+".stable_run_seconds", err)
+	}
+	if sharing.QuarantineSeconds, err = requiredPositiveDurationSeconds(table, "quarantine_seconds", maxTimeDurationSeconds); err != nil {
+		return sharing, fieldError(field+".quarantine_seconds", err)
+	}
+	if sharing.ResourcePressureMode, err = requiredString(table, "resource_pressure_mode"); err != nil {
+		return sharing, fieldError(field+".resource_pressure_mode", err)
+	}
+	resourceTable, resourcePresent, err := projectConfigTable(table, "resource_pressure", field+".resource_pressure")
+	if err != nil {
+		return sharing, err
+	}
+	switch sharing.ResourcePressureMode {
+	case "disabled":
+		if resourcePresent {
+			return sharing, fieldError(field+".resource_pressure", errors.New("must be absent when resource_pressure_mode is disabled"))
+		}
+	case "provider":
+		if !resourcePresent {
+			return sharing, fieldError(field+".resource_pressure", errors.New("required when resource_pressure_mode is provider"))
+		}
+		resource, parseErr := parsePiRuntimeResourcePressure(resourceTable, field+".resource_pressure")
+		if parseErr != nil {
+			return sharing, parseErr
+		}
+		sharing.ResourcePressure = &resource
+	default:
+		return sharing, fieldError(field+".resource_pressure_mode", errors.New("must equal disabled or provider"))
+	}
+	return sharing, nil
+}
+
+func parsePiRuntimeResourcePressure(table map[string]any, field string) (PiRuntimeResourcePressure, error) {
+	if err := rejectUnknownFields(table, field, "observation_path", "observation_timeout_milliseconds", "pressure_threshold_bytes", "recovery_threshold_bytes", "eviction_grace_seconds", "pressure_action", "unknown_action", "busy_action"); err != nil {
+		return PiRuntimeResourcePressure{}, err
+	}
+	var policy PiRuntimeResourcePressure
+	var err error
+	if policy.ObservationPath, err = requiredString(table, "observation_path"); err != nil {
+		return policy, fieldError(field+".observation_path", err)
+	}
+	if !strings.HasPrefix(policy.ObservationPath, "/") || strings.ContainsAny(policy.ObservationPath, "?#") || filepath.Clean(policy.ObservationPath) != policy.ObservationPath {
+		return policy, fieldError(field+".observation_path", errors.New("must be a clean absolute HTTP path without query or fragment"))
+	}
+	if policy.ObservationTimeoutMilliseconds, err = requiredPositiveInt(table, "observation_timeout_milliseconds"); err != nil {
+		return policy, fieldError(field+".observation_timeout_milliseconds", err)
+	}
+	if policy.ObservationTimeoutMilliseconds > sharedRuntimeResourceObservationMaxTimeoutMilliseconds {
+		return policy, fieldError(field+".observation_timeout_milliseconds", fmt.Errorf("must be at most %d", sharedRuntimeResourceObservationMaxTimeoutMilliseconds))
+	}
+	if policy.PressureThresholdBytes, err = requiredPositiveInt(table, "pressure_threshold_bytes"); err != nil {
+		return policy, fieldError(field+".pressure_threshold_bytes", err)
+	}
+	if policy.RecoveryThresholdBytes, err = requiredPositiveInt(table, "recovery_threshold_bytes"); err != nil {
+		return policy, fieldError(field+".recovery_threshold_bytes", err)
+	}
+	if policy.RecoveryThresholdBytes >= policy.PressureThresholdBytes {
+		return policy, fieldError(field+".recovery_threshold_bytes", errors.New("must be less than pressure_threshold_bytes"))
+	}
+	if policy.EvictionGraceSeconds, err = requiredNonNegativeDurationSeconds(table, "eviction_grace_seconds", maxTimeDurationSeconds); err != nil {
+		return policy, fieldError(field+".eviction_grace_seconds", err)
+	}
+	if policy.PressureAction, err = requiredString(table, "pressure_action"); err != nil {
+		return policy, fieldError(field+".pressure_action", err)
+	}
+	if policy.PressureAction != "refuse-new-drain-idle" {
+		return policy, fieldError(field+".pressure_action", errors.New("must equal refuse-new-drain-idle"))
+	}
+	if policy.UnknownAction, err = requiredString(table, "unknown_action"); err != nil {
+		return policy, fieldError(field+".unknown_action", err)
+	}
+	if policy.UnknownAction != "refuse-new" {
+		return policy, fieldError(field+".unknown_action", errors.New("must equal refuse-new"))
+	}
+	if policy.BusyAction, err = requiredString(table, "busy_action"); err != nil {
+		return policy, fieldError(field+".busy_action", err)
+	}
+	if policy.BusyAction != "observe" {
+		return policy, fieldError(field+".busy_action", errors.New("must equal observe"))
+	}
+	return policy, nil
+}
+
+func parsePiDFlash(table map[string]any, field string, runtimeArgv []string) (PiDFlash, error) {
+	if err := rejectUnknownFields(table, field, "target_model", "draft_model", "target_argv", "draft_argv"); err != nil {
+		return PiDFlash{}, err
+	}
+	var d PiDFlash
+	var err error
+	if d.TargetModel, err = requiredString(table, "target_model"); err != nil {
+		return d, fieldError(field+".target_model", err)
+	}
+	if d.DraftModel, err = requiredString(table, "draft_model"); err != nil {
+		return d, fieldError(field+".draft_model", err)
+	}
+	if d.TargetArgv, err = requiredStringArray(table, "target_argv"); err != nil || len(d.TargetArgv) == 0 {
+		if err == nil {
+			err = errors.New("must not be empty")
+		}
+		return d, fieldError(field+".target_argv", err)
+	}
+	if d.DraftArgv, err = requiredStringArray(table, "draft_argv"); err != nil || len(d.DraftArgv) == 0 {
+		if err == nil {
+			err = errors.New("must not be empty")
+		}
+		return d, fieldError(field+".draft_argv", err)
+	}
+	if d.TargetArgv[len(d.TargetArgv)-1] != d.TargetModel {
+		return d, fieldError(field+".target_argv", errors.New("terminal token must equal target_model"))
+	}
+	if d.DraftArgv[len(d.DraftArgv)-1] != d.DraftModel {
+		return d, fieldError(field+".draft_argv", errors.New("terminal token must equal draft_model"))
+	}
+	ti, tc := exactSubsequence(runtimeArgv, d.TargetArgv)
+	di, dc := exactSubsequence(runtimeArgv, d.DraftArgv)
+	if tc != 1 || dc != 1 {
+		return d, fieldError(field, errors.New("target_argv and draft_argv must each occur exactly once in runtime.argv"))
+	}
+	if ti < di+len(d.DraftArgv) && di < ti+len(d.TargetArgv) {
+		return d, fieldError(field, errors.New("target_argv and draft_argv must not overlap"))
+	}
+	return d, nil
+}
+
+func validatePiBaseURL(raw string) error {
+	_, _, err := piBaseURLEndpoint(raw)
+	return err
+}
+
+func piBaseURLEndpoint(raw string) (string, string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", "", err
+	}
+	if u.Scheme != "http" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "/v1" || u.RawPath != "" {
+		return "", "", errors.New("must be exact http://127.0.0.1:<port>/v1 without user info, query, fragment, or path encoding")
+	}
+	host, port, err := net.SplitHostPort(u.Host)
+	if err != nil || host != "127.0.0.1" {
+		return "", "", errors.New("must use exact IPv4 loopback with an explicit port")
+	}
+	n, err := strconv.Atoi(port)
+	if err != nil || n < 1 || n > 65535 || strconv.Itoa(n) != port {
+		return "", "", errors.New("must use a canonical non-zero explicit port")
+	}
+	if raw != "http://127.0.0.1:"+port+"/v1" {
+		return "", "", errors.New("URL normalization is not permitted")
+	}
+	return host, port, nil
+}
+
+func validatePiRuntimeEndpointArgv(argv []string, baseURL string) error {
+	host, port, err := piBaseURLEndpoint(baseURL)
+	if err != nil {
+		return fmt.Errorf("cannot bind runtime argv to invalid base_url: %w", err)
+	}
+	hostFlags, portFlags := 0, 0
+	for i, token := range argv {
+		switch {
+		case token == "--host":
+			hostFlags++
+			if i+1 >= len(argv) || argv[i+1] != host {
+				return fmt.Errorf("--host must be followed by exact base_url host %q", host)
+			}
+		case strings.HasPrefix(token, "--host="):
+			return errors.New("--host must use one exact spaced token pair")
+		case token == "--port":
+			portFlags++
+			if i+1 >= len(argv) || argv[i+1] != port {
+				return fmt.Errorf("--port must be followed by exact base_url port %q", port)
+			}
+		case strings.HasPrefix(token, "--port="):
+			return errors.New("--port must use one exact spaced token pair")
+		}
+	}
+	if hostFlags != 1 || portFlags != 1 {
+		return fmt.Errorf("must contain exactly one --host %s and one --port %s pair", host, port)
+	}
+	return nil
+}
+
+func validatePiRuntimeCacheBudgetArgv(argv []string, budget *int64) error {
+	if budget == nil {
+		return nil
+	}
+	const sizeFlag = "--prompt-cache-size"
+	var sizeRaw string
+	sizeCount := 0
+	for index := 0; index < len(argv); index++ {
+		switch {
+		case argv[index] == sizeFlag:
+			sizeCount++
+			if index+1 >= len(argv) {
+				return errors.New("cache_budget_bytes requires --prompt-cache-size 1 in runtime.argv")
+			}
+			sizeRaw = argv[index+1]
+			index++
+		case strings.HasPrefix(argv[index], sizeFlag+"="):
+			sizeCount++
+			sizeRaw = strings.TrimPrefix(argv[index], sizeFlag+"=")
+		}
+	}
+	if sizeCount != 1 || sizeRaw != "1" {
+		return fmt.Errorf("cache_budget_bytes requires exactly one %s 1 constraint in runtime.argv", sizeFlag)
+	}
+	const flag = "--prompt-cache-bytes"
+	var raw string
+	count := 0
+	for index := 0; index < len(argv); index++ {
+		switch {
+		case argv[index] == flag:
+			count++
+			if index+1 >= len(argv) {
+				return errors.New("cache_budget_bytes requires --prompt-cache-bytes with a value in runtime.argv")
+			}
+			raw = argv[index+1]
+			index++
+		case strings.HasPrefix(argv[index], flag+"="):
+			count++
+			raw = strings.TrimPrefix(argv[index], flag+"=")
+		}
+	}
+	if count != 1 {
+		return fmt.Errorf("cache_budget_bytes requires exactly one %s constraint in runtime.argv", flag)
+	}
+	actual, err := parsePiByteSize(raw)
+	if err != nil {
+		return fmt.Errorf("%s value %q is invalid: %w", flag, raw, err)
+	}
+	if actual != *budget {
+		return fmt.Errorf("%s constrains %d bytes, but cache_budget_bytes is %d", flag, actual, *budget)
+	}
+	return nil
+}
+
+func parsePiByteSize(raw string) (int64, error) {
+	units := []struct {
+		suffix     string
+		multiplier int64
+	}{
+		{"GiB", 1 << 30}, {"GB", 1 << 30},
+		{"MiB", 1 << 20}, {"MB", 1 << 20},
+		{"KiB", 1 << 10}, {"KB", 1 << 10},
+		{"B", 1},
+	}
+	multiplier := int64(1)
+	number := raw
+	for _, unit := range units {
+		if strings.HasSuffix(raw, unit.suffix) {
+			multiplier = unit.multiplier
+			number = strings.TrimSuffix(raw, unit.suffix)
+			break
+		}
+	}
+	value, err := strconv.ParseInt(number, 10, 64)
+	if err != nil || value <= 0 {
+		return 0, errors.New("must be a positive integer byte size with optional B, KB, MB, GB, KiB, MiB, or GiB suffix")
+	}
+	if value > int64(^uint64(0)>>1)/multiplier {
+		return 0, errors.New("byte size overflows int64")
+	}
+	return value * multiplier, nil
+}
+
+func validatePiProvider(value string) error {
+	if value == "" {
+		return errors.New("must not be empty")
+	}
+	for _, r := range value {
+		if unicode.IsSpace(r) || strings.ContainsRune("/:*?[]\\", r) || strings.ContainsRune("∕⁄／⧸∖＼﹨：∶", r) {
+			return errors.New("contains a separator, glob, whitespace, or Unicode lookalike")
+		}
+	}
+	return nil
+}
+
+type piFieldError struct {
+	field string
+	err   error
+}
+
+func (e *piFieldError) Error() string          { return e.err.Error() }
+func (e *piFieldError) Unwrap() error          { return e.err }
+func fieldError(field string, err error) error { return &piFieldError{field: field, err: err} }
+func errField(err error) string {
+	var fe *piFieldError
+	if errors.As(err, &fe) {
+		return fe.field
+	}
+	return "agents.pi"
+}
+func rejectUnknownFields(table map[string]any, field string, allowed ...string) error {
+	ok := map[string]bool{}
+	for _, key := range allowed {
+		ok[key] = true
+	}
+	var unknown []string
+	for key := range table {
+		if !ok[key] {
+			unknown = append(unknown, key)
+		}
+	}
+	sort.Strings(unknown)
+	if len(unknown) > 0 {
+		return fieldError(field+"."+unknown[0], errors.New("unsupported field"))
+	}
+	return nil
+}
+func requiredString(table map[string]any, key string) (string, error) {
+	p, err := optionalNonEmptyString(table, key)
+	if err != nil {
+		return "", err
+	}
+	if p == nil {
+		return "", errors.New("required field is absent")
+	}
+	return *p, nil
+}
+func optionalNonEmptyString(table map[string]any, key string) (*string, error) {
+	v, ok := table[key]
+	if !ok {
+		return nil, nil
+	}
+	s, ok := v.(string)
+	if !ok {
+		return nil, fmt.Errorf("expected string, got %T", v)
+	}
+	if s == "" {
+		return nil, errors.New("must not be empty")
+	}
+	return &s, nil
+}
+func requiredBool(table map[string]any, key string) (bool, error) {
+	p, err := optionalBool(table, key)
+	if err != nil {
+		return false, err
+	}
+	if p == nil {
+		return false, errors.New("required field is absent")
+	}
+	return *p, nil
+}
+func optionalBool(table map[string]any, key string) (*bool, error) {
+	v, ok := table[key]
+	if !ok {
+		return nil, nil
+	}
+	b, ok := v.(bool)
+	if !ok {
+		return nil, fmt.Errorf("expected boolean, got %T", v)
+	}
+	return &b, nil
+}
+func requiredPositiveInt(table map[string]any, key string) (int, error) {
+	v, ok := table[key]
+	if !ok {
+		return 0, errors.New("required field is absent")
+	}
+	n, ok := v.(int64)
+	if !ok {
+		return 0, fmt.Errorf("expected integer, got %T", v)
+	}
+	if n <= 0 || int64(int(n)) != n {
+		return 0, errors.New("must be a positive platform integer")
+	}
+	return int(n), nil
+}
+
+func optionalPositiveInt64(table map[string]any, key string) (*int64, error) {
+	v, ok := table[key]
+	if !ok {
+		return nil, nil
+	}
+	n, ok := v.(int64)
+	if !ok {
+		return nil, fmt.Errorf("expected integer, got %T", v)
+	}
+	if n <= 0 {
+		return nil, errors.New("must be a positive integer")
+	}
+	return &n, nil
+}
+
+func requiredPositiveDurationSeconds(table map[string]any, key string, maximum int64) (int, error) {
+	n, err := requiredPositiveInt(table, key)
+	if err != nil {
+		return 0, err
+	}
+	if int64(n) > maximum {
+		return 0, fmt.Errorf("must be at most %d seconds so its effective duration fits time.Duration", maximum)
+	}
+	return n, nil
+}
+
+func requiredNonNegativeInt(table map[string]any, key string) (int, error) {
+	v, ok := table[key]
+	if !ok {
+		return 0, errors.New("required field is absent")
+	}
+	n, ok := v.(int64)
+	if !ok {
+		return 0, fmt.Errorf("expected integer, got %T", v)
+	}
+	if n < 0 || int64(int(n)) != n {
+		return 0, errors.New("must be a non-negative platform integer")
+	}
+	return int(n), nil
+}
+
+func requiredNonNegativeDurationSeconds(table map[string]any, key string, maximum int64) (int, error) {
+	n, err := requiredNonNegativeInt(table, key)
+	if err != nil {
+		return 0, err
+	}
+	if int64(n) > maximum {
+		return 0, fmt.Errorf("must be at most %d seconds so its effective duration fits time.Duration", maximum)
+	}
+	return n, nil
+}
+func requiredStringArray(table map[string]any, key string) ([]string, error) {
+	v, ok := table[key]
+	if !ok {
+		return nil, errors.New("required field is absent")
+	}
+	a, ok := v.([]any)
+	if !ok {
+		return nil, fmt.Errorf("expected array of strings, got %T", v)
+	}
+	out := make([]string, len(a))
+	for i, item := range a {
+		s, ok := item.(string)
+		if !ok {
+			return nil, fmt.Errorf("element %d is %T, want string", i, item)
+		}
+		out[i] = s
+	}
+	return out, nil
+}
+
+func optionalStringArray(table map[string]any, key string) (*[]string, error) {
+	if _, ok := table[key]; !ok {
+		return nil, nil
+	}
+	value, err := requiredStringArray(table, key)
+	if err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+func exactSubsequence(haystack, needle []string) (int, int) {
+	first, count := -1, 0
+	if len(needle) == 0 || len(needle) > len(haystack) {
+		return first, count
+	}
+	for i := 0; i+len(needle) <= len(haystack); i++ {
+		if equalStrings(haystack[i:i+len(needle)], needle) {
+			if first < 0 {
+				first = i
+			}
+			count++
+		}
+	}
+	return first, count
+}
