@@ -73,10 +73,6 @@ func (e *SharedRuntimeError) Error() string {
 
 func (e *SharedRuntimeError) Unwrap() error { return e.Err }
 
-func sharedRuntimeError(code string, err error) error {
-	return &SharedRuntimeError{Code: code, Err: err}
-}
-
 func sharedRuntimeReason(code, reason string, err error) error {
 	return &SharedRuntimeError{Code: code, Reason: reason, Err: err}
 }
@@ -256,7 +252,7 @@ func ResolveSharedRuntimePaths(cacheRoot, runtimeKey string) (SharedRuntimePaths
 	if err != nil {
 		return SharedRuntimePaths{}, sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
-	info, err := os.Stat(canonical)
+	info, err := sharedRuntimePathStat(canonical)
 	if err != nil || !info.IsDir() {
 		if err == nil {
 			err = errors.New("cache root is not a directory")
@@ -290,6 +286,8 @@ func ResolveSharedRuntimePaths(cacheRoot, runtimeKey string) (SharedRuntimePaths
 	}
 	return paths, nil
 }
+
+var sharedRuntimePathStat = os.Stat
 
 func CreateSharedRuntimeTree(paths SharedRuntimePaths) error {
 	rootFD, err := unix.Open(paths.CanonicalCacheRoot, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0)
@@ -438,13 +436,13 @@ func writeSharedJSONAtomic(path string, value any) error {
 		return sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
 	temp := "." + base + ".tmp-" + strconv.Itoa(os.Getpid()) + "-" + hex.EncodeToString(nonce[:])
-	fd, err := unix.Openat(dirFD, temp, unix.O_WRONLY|unix.O_CREAT|unix.O_EXCL|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0o600)
+	fd, err := sharedRuntimeJSONAtomicOpenat(dirFD, temp, unix.O_WRONLY|unix.O_CREAT|unix.O_EXCL|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0o600)
 	if err != nil {
 		return sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
 	file := os.NewFile(uintptr(fd), temp)
 	writeErr := error(nil)
-	if n, err := file.Write(data); err != nil || n != len(data) {
+	if n, err := sharedRuntimeJSONAtomicWrite(file, data); err != nil || n != len(data) {
 		if err == nil {
 			err = io.ErrShortWrite
 		}
@@ -464,11 +462,17 @@ func writeSharedJSONAtomic(path string, value any) error {
 		_ = unix.Unlinkat(dirFD, temp, 0)
 		return sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
-	if err := unix.Fsync(dirFD); err != nil {
+	if err := sharedRuntimeJSONAtomicDirSync(dirFD); err != nil {
 		return sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
 	return nil
 }
+
+var (
+	sharedRuntimeJSONAtomicWrite   = func(file *os.File, data []byte) (int, error) { return file.Write(data) }
+	sharedRuntimeJSONAtomicDirSync = unix.Fsync
+	sharedRuntimeJSONAtomicOpenat  = unix.Openat
+)
 
 func removeSharedLeaseMirrors(directory string) error {
 	entries, err := os.ReadDir(directory)

@@ -208,6 +208,9 @@ func reportError(stderr io.Writer, err error) int {
 	if code, ok := infra.SharedRuntimeExitCode(err); ok {
 		return code
 	}
+	if code, ok := infra.EngineCatalogExitCode(err); ok {
+		return code
+	}
 	return 1
 }
 

@@ -7,8 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -86,6 +89,138 @@ func TestSharedRuntimeRestartPolicyIsBoundedStableAndHalfOpen(t *testing.T) {
 	}
 }
 
+func TestEngineCatalogSupervisionMatchesLegacyFixedRestartTiming(t *testing.T) {
+	entry := EngineCatalogEntry{Supervision: &EngineCatalogSupervisionPolicy{
+		FatalOutputSubstrings: []string{"Resource limit (499000) exceeded"},
+		RestartOnFailure:      true, MaxRestarts: 3, RestartWindowSeconds: 3600,
+		RestartDelayMilliseconds: 1500,
+	}}
+	policy := engineCatalogSharing(entry, PiRuntime{StartupTimeoutSeconds: 120})
+	if policy.RestartLimit != 3 || policy.StableRunSeconds != 3600 || policy.RestartInitialBackoffMilliseconds != 1500 || policy.RestartMaxBackoffMilliseconds != 1500 {
+		t.Fatalf("legacy restart policy was not mapped losslessly: %#v", policy)
+	}
+	ledger := newSharedRuntimeRestartLedger("engine", "profile")
+	now := time.Unix(1000, 0).UTC()
+	for restart := 1; restart <= 3; restart++ {
+		decision := sharedRuntimeRecordFailure(&ledger, policy, now)
+		if decision.Quarantined || decision.Backoff != 1500*time.Millisecond {
+			t.Fatalf("legacy restart %d decision=%#v; want fixed 1500ms delay", restart, decision)
+		}
+	}
+	if decision := sharedRuntimeRecordFailure(&ledger, policy, now); !decision.Quarantined || ledger.RestartCount != 4 {
+		t.Fatalf("exhausted legacy restart budget did not quarantine: decision=%#v ledger=%#v", decision, ledger)
+	}
+	sharedRuntimeResetStableRun(&ledger)
+	if decision := sharedRuntimeRecordFailure(&ledger, policy, now); decision.Quarantined || decision.Backoff != 1500*time.Millisecond {
+		t.Fatalf("stable-run reset did not restore the legacy first restart delay: %#v", decision)
+	}
+}
+
+func TestEngineCatalogFatalOutputMarkerKeepsLegacyRestartBudgetWhenRestartOnFailureIsFalse(t *testing.T) {
+	entry := EngineCatalogEntry{Supervision: &EngineCatalogSupervisionPolicy{
+		FatalOutputSubstrings: []string{"RuntimeError: resource limit"},
+		RestartOnFailure:      false, MaxRestarts: 2, RestartWindowSeconds: 300,
+		RestartDelayMilliseconds: 250,
+	}}
+	policy := engineCatalogSharing(entry, PiRuntime{StartupTimeoutSeconds: 120})
+	if policy.RestartLimit != 0 {
+		t.Fatalf("approved restart_on_failure=false mapping changed: restart limit=%d", policy.RestartLimit)
+	}
+	ledger := newSharedRuntimeRestartLedger("engine", "profile")
+	now := time.Unix(1000, 0).UTC()
+	if decision := sharedRuntimeRecordFailure(&ledger, policy, now); !decision.Quarantined {
+		t.Fatalf("ordinary failure restarted despite restart_on_failure=false: %#v", decision)
+	}
+	ledger = newSharedRuntimeRestartLedger("engine", "profile")
+	for restart := 1; restart <= 2; restart++ {
+		decision := sharedRuntimeRecordFailureForCause(&ledger, policy, now, true)
+		if decision.Quarantined || decision.Backoff != 250*time.Millisecond {
+			t.Fatalf("fatal marker restart %d decision=%#v; want legacy fixed delay", restart, decision)
+		}
+	}
+	if decision := sharedRuntimeRecordFailureForCause(&ledger, policy, now, true); !decision.Quarantined || ledger.RestartCount != 3 {
+		t.Fatalf("fatal marker restart budget did not quarantine when exceeded: decision=%#v ledger=%#v", decision, ledger)
+	}
+}
+
+func TestEngineCatalogFatalMarkerBudgetIsWiredThroughBrokerServeCallSites(t *testing.T) {
+	for _, afterMarker := range []bool{false, true} {
+		name := "serving_marker_channel"
+		if afterMarker {
+			name = "exit_after_marker"
+		}
+		t.Run(name, func(t *testing.T) {
+			server, listener, marker := newEngineCatalogBrokerServeFixture(t)
+			t.Cleanup(func() { _ = listener.Close() })
+			for attempt := 1; attempt <= 3; attempt++ {
+				output := newSharedRuntimeOutputWriter(io.Discard, server.resolved.Sharing.FatalOutputSubstrings)
+				_, _ = output.Write([]byte(marker))
+				runtimeWait := &piProcessWait{done: make(chan struct{}), pid: 1, output: output.state}
+				if afterMarker {
+					<-output.state.fatalOutput
+					close(runtimeWait.done)
+				}
+				err := server.serve(runtimeWait, nil)
+				wantCode := "runtime_exited_early"
+				if attempt == 3 {
+					wantCode = "shared_runtime_quarantined"
+				}
+				if got := sharedRuntimeErrorCode(err); got != wantCode {
+					t.Fatalf("attempt %d broker serve code=%q err=%v, want %q", attempt, got, err, wantCode)
+				}
+				if server.ledger.RestartCount != attempt {
+					t.Fatalf("attempt %d restart count=%d", attempt, server.ledger.RestartCount)
+				}
+				if attempt < 3 && server.ledger.QuarantinedUntil != nil {
+					t.Fatalf("fatal marker was quarantined before its legacy budget: %#v", server.ledger)
+				}
+			}
+			if server.ledger.QuarantinedUntil == nil {
+				t.Fatal("fatal marker exceeding the legacy budget did not quarantine")
+			}
+			last := server.ledger.FailureHistory[len(server.ledger.FailureHistory)-1]
+			if delta := server.ledger.QuarantinedUntil.Sub(last.OccurredAt); delta != 30*time.Second {
+				t.Fatalf("catalog quarantine hold=%s, want 30s", delta)
+			}
+		})
+	}
+}
+
+func newEngineCatalogBrokerServeFixture(t *testing.T) (*sharedBrokerServer, *net.UnixListener, string) {
+	t.Helper()
+	project, home, cache := t.TempDir(), t.TempDir(), shortSharedRuntimeCache(t)
+	marker := "engine-catalog-fatal-marker"
+	entry := EngineCatalogEntry{
+		Mode: "local", Engine: "mlx-lm", Model: "Model", Executable: "/bin/echo",
+		Argv: []string{"serve", "--host", "{host}", "--port", "{port}"},
+		Supervision: &EngineCatalogSupervisionPolicy{
+			FatalOutputSubstrings: []string{marker}, RestartOnFailure: false, MaxRestarts: 2,
+			RestartWindowSeconds: 60, RestartDelayMilliseconds: 0,
+		},
+	}
+	writeEngineCatalog(t, home, map[string]EngineCatalogEntry{"marker": entry})
+	resolved, err := resolveSharedProfile(project, home, cache, "marker")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.Sharing.RestartLimit != 0 || resolved.Sharing.fatalOutputRestartFailureThreshold != 3 || resolved.Sharing.QuarantineSeconds != 30 {
+		t.Fatalf("catalog supervision did not reach production-resolved sharing policy: %#v", resolved.Sharing)
+	}
+	if err := CreateSharedRuntimeTree(resolved.Paths); err != nil {
+		t.Fatal(err)
+	}
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: resolved.Paths.RendezvousSocket, Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	readyAt := time.Now().UTC()
+	record := &SharedBrokerRecord{State: "serving", Stage: "composed", ReadyAt: &readyAt}
+	ledger := newSharedRuntimeRestartLedger(resolved.RuntimeKey, resolved.ProfileDigest)
+	server := newSharedBrokerServer(resolved, record, &ledger, listener)
+	server.terminateRuntime = func(int, *piProcessWait, syscall.Signal, time.Duration) error { return nil }
+	return server, listener, marker
+}
+
 func TestSharedRuntimeRestartBackoffClampsBeforeDurationOverflow(t *testing.T) {
 	policy := PiRuntimeSharing{
 		MaxSegmentBytes:              1024,
@@ -129,14 +264,6 @@ func TestSharedRuntimeManualQuarantinePersistsAndRefusesAttempt(t *testing.T) {
 	if err != nil || loaded.ManualQuarantine {
 		t.Fatalf("manual clear=%#v err=%v", loaded, err)
 	}
-}
-
-func sharedRuntimeErrorCode(err error) string {
-	var shared *SharedRuntimeError
-	if errors.As(err, &shared) {
-		return shared.Code
-	}
-	return ""
 }
 
 func TestSharedRuntimeStatusJSONCarriesLifecycleFacts(t *testing.T) {
@@ -306,6 +433,90 @@ func TestSharedRuntimeStatusRefusesMalformedRestartLedgerTimestamps(t *testing.T
 	}
 }
 
+func TestReadSharedRuntimeRestartLedgerRejectsMalformedAndWrongIdentity(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "restart-ledger.json")
+	const runtimeKey = "runtime-key"
+	const profileDigest = "profile-digest"
+	valid := newSharedRuntimeRestartLedger(runtimeKey, profileDigest)
+	validData, err := json.Marshal(valid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, validData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readSharedRuntimeRestartLedger(path, runtimeKey, profileDigest); err != nil {
+		t.Fatalf("valid ledger refused: %v", err)
+	}
+	wrongSchema := valid
+	wrongSchema.Schema = "future-schema"
+	wrongRuntime := valid
+	wrongRuntime.RuntimeKey = "other-runtime"
+	wrongDigest := valid
+	wrongDigest.ProfileDigest = "other-digest"
+	negative := valid
+	negative.RestartCount = -1
+	fixtures := []struct {
+		name string
+		data []byte
+	}{
+		{name: "malformed", data: []byte(`{"schema":`)},
+		{name: "wrong schema", data: marshalSupervisionTestValue(t, wrongSchema)},
+		{name: "wrong runtime key", data: marshalSupervisionTestValue(t, wrongRuntime)},
+		{name: "wrong profile digest", data: marshalSupervisionTestValue(t, wrongDigest)},
+		{name: "negative counter", data: marshalSupervisionTestValue(t, negative)},
+		{name: "unknown member", data: []byte(`{"schema":"agents-infra.pi.shared-runtime.restart-ledger.v1","runtime_key":"runtime-key","profile_digest":"profile-digest","surprise":true}`)},
+		{name: "trailing object", data: append(append([]byte(nil), validData...), []byte(` {}`)...)},
+	}
+	for _, fixture := range fixtures {
+		t.Run(fixture.name, func(t *testing.T) {
+			if err := os.WriteFile(path, fixture.data, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := readSharedRuntimeRestartLedger(path, runtimeKey, profileDigest); sharedRuntimeErrorCode(err) != "shared_runtime_state_unreadable" {
+				t.Fatalf("malformed or mismatched ledger refusal code=%q err=%v", sharedRuntimeErrorCode(err), err)
+			}
+		})
+	}
+	if _, err := readSharedRuntimeRestartLedger(root, runtimeKey, profileDigest); sharedRuntimeErrorCode(err) != "shared_runtime_state_unreadable" {
+		t.Fatalf("unreadable ledger was not refused: code=%q err=%v", sharedRuntimeErrorCode(err), err)
+	}
+}
+
+func marshalSupervisionTestValue(t *testing.T, value any) []byte {
+	t.Helper()
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestDecodeSharedRuntimeStatusRejectsMalformedPayloads(t *testing.T) {
+	for _, data := range [][]byte{
+		[]byte(`{"contract_version":`),
+		[]byte(`{"contract_version":"1"}`),
+		[]byte(`{"contract_version":1,"restart_count":"bad"}`),
+	} {
+		if _, err := DecodeSharedRuntimeStatus(data); sharedRuntimeErrorCode(err) != "shared_runtime_status_undecodable" {
+			t.Fatalf("malformed status admitted: data=%s err=%v", data, err)
+		}
+	}
+}
+
+func TestSharedRuntimeBeginAttemptRefusesActiveAutomaticQuarantine(t *testing.T) {
+	until := time.Unix(500, 0).UTC()
+	ledger := newSharedRuntimeRestartLedger("runtime", "profile")
+	ledger.QuarantinedUntil = &until
+	if err := sharedRuntimeBeginAttempt(&ledger, until.Add(-time.Nanosecond)); sharedRuntimeErrorCode(err) != "shared_runtime_quarantined" {
+		t.Fatalf("active automatic quarantine admitted: %v", err)
+	}
+	if !ledger.QuarantinedUntil.Equal(until) || ledger.HalfOpen {
+		t.Fatalf("refusal mutated active quarantine: %#v", ledger)
+	}
+}
+
 // Production call site: sharedBrokerServer.serve. Runtime death is the event
 // that persists the cross-broker failure count and quarantine decision.
 func TestSharedBrokerServePersistsStableResetAndFailedHalfOpen(t *testing.T) {
@@ -342,6 +553,7 @@ func TestSharedBrokerServePersistsStableResetAndFailedHalfOpen(t *testing.T) {
 				t.Fatal(err)
 			}
 			fixture.server.listener = listener
+			fixture.server.acceptUnix = listener.AcceptUnix
 			runtimeWait := &piProcessWait{done: make(chan struct{}), err: errors.New("fixture runtime died")}
 			close(runtimeWait.done)
 			err = fixture.server.serve(runtimeWait, make(chan os.Signal))

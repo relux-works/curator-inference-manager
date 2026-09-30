@@ -17,6 +17,14 @@ import (
 
 const PiCompatibilityV0842DarwinARM64 = "github-release:earendil-works/pi@v0.84.2:darwin-arm64#sha256-c996e888b7f7dce44bcf24f69176ac646c44139d3916bd49a6b28e5a8c5e3a65"
 
+func sharedRuntimeErrorCode(err error) string {
+	var shared *SharedRuntimeError
+	if errors.As(err, &shared) {
+		return shared.Code
+	}
+	return ""
+}
+
 func validPiProfileTOML(name, runtime string, port int, dflash bool) string {
 	extraCaps := `requested_capabilities = ["text", "tools"]`
 	dflashBlock := ""

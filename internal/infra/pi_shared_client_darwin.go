@@ -107,9 +107,21 @@ func (client *sharedRuntimeLeaseClient) monitor() <-chan error {
 	return result
 }
 
+// sharedRuntimeLaunchOwnership is issued only by a successful broker launch.
+// A child losing election conveys no authority over the elected peer's runtime.
+type sharedRuntimeLaunchOwnership struct {
+	brokerPID       int
+	brokerStartTime ProcessStartTime
+}
+
+func (ownership sharedRuntimeLaunchOwnership) matches(broker SharedBrokerIdentity) bool {
+	return ownership.brokerPID > 0 && ownership.brokerPID == broker.PID && ownership.brokerStartTime == broker.StartTime
+}
+
 type sharedBrokerChild struct {
-	command *exec.Cmd
-	done    chan error
+	command   *exec.Cmd
+	done      chan error
+	ownership sharedRuntimeLaunchOwnership
 }
 
 func (child *sharedBrokerChild) poll() (bool, error) {
@@ -143,7 +155,11 @@ func acquireSharedRuntimeLease(resolved sharedResolvedProfile, state PiStatePath
 		if err := ctx.Err(); err != nil {
 			return nil, piError("pi_deadline_exceeded", err)
 		}
-		lease, err := connectAndAcquireSharedRuntime(resolved, state, runID, client)
+		var ownership sharedRuntimeLaunchOwnership
+		if brokerChild != nil {
+			ownership = brokerChild.ownership
+		}
+		lease, err := connectAndAcquireSharedRuntimeWithOwnership(resolved, state, runID, client, ownership)
 		if err == nil {
 			return lease, nil
 		}
@@ -216,7 +232,7 @@ func acquireSharedRuntimeLease(resolved sharedResolvedProfile, state PiStatePath
 		}
 
 		if brokerChild == nil && !time.Now().Before(nextAttempt) {
-			child, err := startSharedRuntimeBroker(resolved, environ)
+			child, err := sharedRuntimeStartBroker(resolved, environ)
 			if err != nil {
 				return nil, err
 			}
@@ -287,7 +303,11 @@ func isSharedConnectAbsence(err error) bool {
 }
 
 func connectAndAcquireSharedRuntime(resolved sharedResolvedProfile, state PiStatePaths, runID string, httpClient *http.Client) (*sharedRuntimeLeaseClient, error) {
-	attested, err := connectAndAttestSharedRuntime(resolved, state, runID, httpClient, 2*time.Second)
+	return connectAndAcquireSharedRuntimeWithOwnership(resolved, state, runID, httpClient, sharedRuntimeLaunchOwnership{})
+}
+
+func connectAndAcquireSharedRuntimeWithOwnership(resolved sharedResolvedProfile, state PiStatePaths, runID string, httpClient *http.Client, ownership sharedRuntimeLaunchOwnership) (*sharedRuntimeLeaseClient, error) {
+	attested, err := connectAndAttestSharedRuntimeWithOwnership(resolved, state, runID, httpClient, 2*time.Second, ownership)
 	if err != nil {
 		return nil, err
 	}
@@ -298,10 +318,10 @@ func connectAndAcquireSharedRuntime(resolved sharedResolvedProfile, state PiStat
 		}
 	}()
 	clientKey := exactStateKey(state.ProjectStateKey + "\x00" + state.ProfileStateKey + "\x00" + state.RunStateKey)
-	if err := writeSharedWireMessage(attested.connection, sharedWireMessage{Type: "acquire", ClientKey: clientKey, RequestedAt: time.Now().UTC()}); err != nil {
+	if err := sharedRuntimeAcquireWriteMessage(attested.connection, sharedWireMessage{Type: "acquire", ClientKey: clientKey, RequestedAt: time.Now().UTC()}); err != nil {
 		return nil, sharedRuntimeError("broker_unreachable", err)
 	}
-	leaseResponse, err := readSharedWireMessage(attested.reader)
+	leaseResponse, err := sharedRuntimeAcquireReadMessage(attested.reader)
 	if err != nil {
 		return nil, sharedRuntimeError("shared_runtime_unavailable", err)
 	}
@@ -327,6 +347,13 @@ func connectAndAcquireSharedRuntime(resolved sharedResolvedProfile, state PiStat
 // client-side section 7.2 attestation chain. Operator commands deliberately use
 // the same chain as lease acquisition before trusting a reachable broker.
 func connectAndAttestSharedRuntime(resolved sharedResolvedProfile, state PiStatePaths, runID string, httpClient *http.Client, timeout time.Duration) (*sharedAttestedRuntime, error) {
+	return connectAndAttestSharedRuntimeWithOwnership(resolved, state, runID, httpClient, timeout, sharedRuntimeLaunchOwnership{})
+}
+
+func connectAndAttestSharedRuntimeWithOwnership(resolved sharedResolvedProfile, state PiStatePaths, runID string, httpClient *http.Client, timeout time.Duration, ownership sharedRuntimeLaunchOwnership) (*sharedAttestedRuntime, error) {
+	if resolved.NotRunnableCode != "" {
+		return nil, engineCatalogNotRunnableError(resolved)
+	}
 	system := sharedRuntimeAttestationSystem
 	passedGates := make([]SharedRuntimeGateOutcome, 0, 13)
 	passed := func(gate string) {
@@ -355,7 +382,7 @@ func connectAndAttestSharedRuntime(resolved sharedResolvedProfile, state PiState
 		}
 	}()
 	reader := bufio.NewReaderSize(connection, sharedRuntimeMaxFrameBytes+1)
-	if err := connection.SetDeadline(time.Now().Add(timeout)); err != nil {
+	if err := sharedRuntimeAttestationSetDeadline(connection, time.Now().Add(timeout)); err != nil {
 		return nil, sharedRuntimeError("broker_unreachable", err)
 	}
 	uid, peerPID, err := system.peerIdentity(connection)
@@ -393,10 +420,10 @@ func connectAndAttestSharedRuntime(resolved sharedResolvedProfile, state PiState
 		ProjectKey:     state.ProjectStateKey, ProfileKey: state.ProfileStateKey, RunID: runID,
 		ConfiguredSharing: &resolved.Sharing,
 	}
-	if err := writeSharedWireMessage(connection, hello); err != nil {
+	if err := sharedRuntimeAttestationWriteMessage(connection, hello); err != nil {
 		return nil, sharedRuntimeError("broker_unreachable", err)
 	}
-	response, err := readSharedWireMessage(reader)
+	response, err := sharedRuntimeAttestationReadMessage(reader)
 	if err != nil {
 		if errors.Is(err, io.EOF) || errors.Is(err, syscall.ECONNRESET) {
 			return nil, sharedRuntimeError("shared_runtime_unavailable", err)
@@ -446,20 +473,20 @@ func connectAndAttestSharedRuntime(resolved sharedResolvedProfile, state PiState
 		if err == nil {
 			err = errors.New("runtime executable identity differs")
 		}
-		return nil, piError("runtime_executable_invalid", err)
+		return nil, ownership.stopAfterAttestationFailure(connection, reader, *response.Broker, piError("runtime_executable_invalid", err))
 	}
 	passed("runtime_executable")
 	runtimeProcess, err := system.inspectProcess(response.Runtime.PID)
 	if err != nil {
-		return nil, sharedRuntimeError("runtime_identity_mismatch", err)
+		return nil, ownership.stopAfterAttestationFailure(connection, reader, *response.Broker, sharedRuntimeError("runtime_identity_mismatch", err))
 	}
 	wantArgv := append([]string{resolved.Profile.Runtime.Executable}, resolved.Profile.Runtime.Argv...)
 	if runtimeProcess.UID != uint32(os.Geteuid()) || runtimeProcess.StartTime != response.Runtime.StartTime || runtimeProcess.ExecPath != resolved.Profile.Runtime.Executable || !equalStrings(runtimeProcess.Argv, wantArgv) {
-		return nil, sharedRuntimeError("runtime_identity_mismatch", errors.New("kernel runtime identity differs"))
+		return nil, ownership.stopAfterAttestationFailure(connection, reader, *response.Broker, sharedRuntimeError("runtime_identity_mismatch", errors.New("kernel runtime identity differs")))
 	}
 	passed("runtime_process")
 	if !runtimeProcess.live() {
-		return nil, piError("runtime_exited_early", errors.New("runtime is a zombie"))
+		return nil, ownership.stopAfterAttestationFailure(connection, reader, *response.Broker, piError("runtime_exited_early", errors.New("runtime is a zombie")))
 	}
 	passed("runtime_liveness")
 	wantModel := resolved.Profile.Model
@@ -467,7 +494,7 @@ func connectAndAttestSharedRuntime(resolved sharedResolvedProfile, state PiState
 		wantModel = resolved.Profile.Runtime.DFlash.TargetModel
 	}
 	if err := system.checkModel(httpClient, resolved.Profile.BaseURL+resolved.Profile.Runtime.ReadinessPath, wantModel); err != nil {
-		return nil, err
+		return nil, ownership.stopAfterAttestationFailure(connection, reader, *response.Broker, err)
 	}
 	passed("model_discovery")
 	closeOnError = false
@@ -479,6 +506,31 @@ func connectAndAttestSharedRuntime(resolved sharedResolvedProfile, state PiState
 		effective:  *response.EffectiveSharing,
 		gates:      passedGates,
 	}, nil
+}
+
+// Cleanup uses the already attested broker connection and launch identity. It
+// cannot stop a pre-existing peer or a runtime leased by a concurrent client.
+func (ownership sharedRuntimeLaunchOwnership) stopAfterAttestationFailure(connection *net.UnixConn, reader *bufio.Reader, broker SharedBrokerIdentity, cause error) error {
+	if !ownership.matches(broker) {
+		return cause
+	}
+	if err := connection.SetDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		return errors.Join(cause, fmt.Errorf("request broker cleanup after runtime attestation failure: %w", err))
+	}
+	if err := sharedRuntimeAttestationWriteMessage(connection, sharedWireMessage{Type: "stop", Force: false, TimeoutSeconds: 2}); err != nil {
+		return errors.Join(cause, fmt.Errorf("request broker cleanup after runtime attestation failure: %w", err))
+	}
+	response, err := sharedRuntimeAttestationReadMessage(reader)
+	if err != nil {
+		return errors.Join(cause, fmt.Errorf("broker cleanup acknowledgement after runtime attestation failure: %w", err))
+	}
+	if response.Type == "refused" && response.Code == "shared_runtime_leases_active" {
+		return cause
+	}
+	if response.Type != "stopping" {
+		return errors.Join(cause, fmt.Errorf("broker did not stop after runtime attestation failure: %s", response.Type))
+	}
+	return cause
 }
 
 type sharedRuntimeAttestationDependencies struct {
@@ -499,8 +551,19 @@ var sharedRuntimeAttestationSystem = sharedRuntimeAttestationDependencies{
 	checkModel:            checkSharedRuntimeModel,
 }
 
+var sharedRuntimeStartBroker = startSharedRuntimeBroker
+var sharedRuntimeStartOwnExecutableIdentity = ownResolvedExecutableIdentity
+var sharedRuntimeStartOpenDevNull = func() (*os.File, error) { return os.Open(os.DevNull) }
+var sharedRuntimeAcquireWriteMessage = writeSharedWireMessage
+var sharedRuntimeAcquireReadMessage = readSharedWireMessage
+var sharedRuntimeAttestationSetDeadline = func(connection *net.UnixConn, deadline time.Time) error {
+	return connection.SetDeadline(deadline)
+}
+var sharedRuntimeAttestationWriteMessage = writeSharedWireMessage
+var sharedRuntimeAttestationReadMessage = readSharedWireMessage
+
 func startSharedRuntimeBroker(resolved sharedResolvedProfile, environ []string) (*sharedBrokerChild, error) {
-	executable, _, err := ownResolvedExecutableIdentity()
+	executable, _, err := sharedRuntimeStartOwnExecutableIdentity()
 	if err != nil {
 		return nil, sharedRuntimeError("broker_start_failed", err)
 	}
@@ -508,7 +571,7 @@ func startSharedRuntimeBroker(resolved sharedResolvedProfile, environ []string) 
 	if err != nil {
 		return nil, err
 	}
-	devNull, err := os.Open(os.DevNull)
+	devNull, err := sharedRuntimeStartOpenDevNull()
 	if err != nil {
 		_ = logFile.Close()
 		return nil, sharedRuntimeError("broker_start_failed", err)
@@ -533,6 +596,9 @@ func startSharedRuntimeBroker(resolved sharedResolvedProfile, environ []string) 
 	_ = devNull.Close()
 	_ = logFile.Close()
 	child := &sharedBrokerChild{command: command, done: make(chan error, 1)}
+	if observation, err := inspectSharedProcessKernel(command.Process.Pid); err == nil && observation.live() {
+		child.ownership = sharedRuntimeLaunchOwnership{brokerPID: command.Process.Pid, brokerStartTime: observation.StartTime}
+	}
 	go func() { child.done <- command.Wait() }()
 	return child, nil
 }
@@ -582,6 +648,22 @@ func checkSharedRuntimeModel(client *http.Client, endpoint, model string) error 
 			err = errors.New("readiness response is not an OpenAI model list")
 		}
 		return piError("runtime_readiness_invalid", err)
+	}
+	if model == "" {
+		var servedModel string
+		for _, item := range *payload.Data {
+			if item.ID == "" {
+				continue
+			}
+			if servedModel != "" && servedModel != item.ID {
+				return piError("runtime_readiness_invalid", errors.New("readiness response has multiple served model ids and the catalog does not name one"))
+			}
+			servedModel = item.ID
+		}
+		if servedModel == "" {
+			return piError("runtime_model_unavailable", errors.New("readiness response contains no non-empty served model id"))
+		}
+		return nil
 	}
 	for _, item := range *payload.Data {
 		if item.ID == model {

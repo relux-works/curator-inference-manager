@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -114,6 +115,50 @@ broker_start_timeout_seconds = 40
 	if status.Broker.State != "serving" || status.Runtime == nil || status.Runtime.PID != leaseRecord.RuntimePID || status.Runtime.PID != peer.info.RuntimePID || len(status.Leases) != 2 {
 		t.Fatalf("independent lease changed engine identity or was not accounted: %#v", status)
 	}
+
+	originalReleaseWrite := sharedRuntimeReleaseWriteMessage
+	originalReleaseRead := sharedRuntimeReleaseReadMessage
+	t.Cleanup(func() {
+		sharedRuntimeReleaseWriteMessage = originalReleaseWrite
+		sharedRuntimeReleaseReadMessage = originalReleaseRead
+	})
+	sharedRuntimeReleaseWriteMessage = func(io.Writer, sharedWireMessage) error { return os.ErrPermission }
+	sharedRuntimeReleaseReadMessage = func(io.Reader) (sharedWireMessage, error) {
+		return sharedWireMessage{Type: "released", LeaseID: leaseRecord.LeaseID}, nil
+	}
+	err = ReleaseSharedRuntimeLease(options, leaseRecord.LeaseToken)
+	var shared *SharedRuntimeError
+	if !errors.As(err, &shared) || shared.Code != "broker_unreachable" {
+		t.Fatalf("release write refusal returned %v, want broker_unreachable", err)
+	}
+	sharedRuntimeReleaseWriteMessage = func(io.Writer, sharedWireMessage) error { return nil }
+	sharedRuntimeReleaseReadMessage = func(io.Reader) (sharedWireMessage, error) { return sharedWireMessage{}, os.ErrPermission }
+	err = ReleaseSharedRuntimeLease(options, leaseRecord.LeaseToken)
+	if !errors.As(err, &shared) || shared.Code != "broker_unreachable" {
+		t.Fatalf("release read refusal returned %v, want broker_unreachable", err)
+	}
+
+	for _, testCase := range []struct {
+		name     string
+		response sharedWireMessage
+		code     string
+		reason   string
+	}{
+		{name: "broker_refused", response: sharedWireMessage{Type: "refused", Code: "fixture-refused", Reason: "simulated refusal"}, code: "fixture-refused", reason: "simulated refusal"},
+		{name: "unexpected_response_type", response: sharedWireMessage{Type: "unexpected", LeaseID: "lease-fixture"}, code: "protocol_violation", reason: ""},
+		{name: "released_without_lease_id", response: sharedWireMessage{Type: "released"}, code: "protocol_violation", reason: ""},
+	} {
+		t.Run("release_response_"+testCase.name, func(t *testing.T) {
+			sharedRuntimeReleaseReadMessage = func(io.Reader) (sharedWireMessage, error) { return testCase.response, nil }
+			err := ReleaseSharedRuntimeLease(options, leaseRecord.LeaseToken)
+			var releaseError *SharedRuntimeError
+			if !errors.As(err, &releaseError) || releaseError.Code != testCase.code || releaseError.Reason != testCase.reason {
+				t.Fatalf("release response returned %v, want code=%q reason=%q", err, testCase.code, testCase.reason)
+			}
+		})
+	}
+	sharedRuntimeReleaseWriteMessage = originalReleaseWrite
+	sharedRuntimeReleaseReadMessage = originalReleaseRead
 
 	for _, attack := range []struct {
 		name  string

@@ -12,13 +12,98 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
 
 type piProcessWait struct {
-	done chan struct{}
-	err  error
+	done   chan struct{}
+	err    error
+	output *sharedRuntimeOutputState
+	pid    int
+}
+
+var sharedRuntimeReadinessSignal = func(process *os.Process, signal os.Signal) error {
+	return process.Signal(signal)
+}
+var sharedRuntimeProcessGroupSignal = syscall.Kill
+var sharedRuntimeProcessGroupWaitGone = waitProcessGroupGone
+var sharedRuntimeProcessDrain = waitForPiProcessDrain
+var sharedRuntimeProcessNow = time.Now
+var sharedRuntimeProcessSleep = time.Sleep
+
+type sharedRuntimeOutputState struct {
+	mu          sync.Mutex
+	marker      string
+	fatalOutput chan string
+}
+
+type sharedRuntimeOutputWriter struct {
+	mu       sync.Mutex
+	dst      io.Writer
+	markers  []string
+	carry    string
+	carryMax int
+	state    *sharedRuntimeOutputState
+}
+
+func newSharedRuntimeOutputWriter(dst io.Writer, markers []string) *sharedRuntimeOutputWriter {
+	maximum := 0
+	for _, marker := range markers {
+		if len(marker) > maximum {
+			maximum = len(marker)
+		}
+	}
+	return &sharedRuntimeOutputWriter{
+		dst: dst, markers: append([]string(nil), markers...), carryMax: maximum - 1,
+		state: &sharedRuntimeOutputState{fatalOutput: make(chan string, 1)},
+	}
+}
+
+func (writer *sharedRuntimeOutputWriter) Write(data []byte) (int, error) {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	n, err := writer.dst.Write(data)
+	if n > 0 && writer.carryMax >= 0 {
+		window := writer.carry + string(data[:n])
+		for _, marker := range writer.markers {
+			if marker != "" && strings.Contains(window, marker) {
+				writer.state.recordFatalOutput(marker)
+				break
+			}
+		}
+		if len(window) > writer.carryMax {
+			writer.carry = window[len(window)-writer.carryMax:]
+		} else {
+			writer.carry = window
+		}
+	}
+	return n, err
+}
+
+func (state *sharedRuntimeOutputState) recordFatalOutput(marker string) {
+	state.mu.Lock()
+	if state.marker != "" {
+		state.mu.Unlock()
+		return
+	}
+	state.marker = marker
+	state.mu.Unlock()
+	select {
+	case state.fatalOutput <- marker:
+	default:
+	}
+}
+
+func (state *sharedRuntimeOutputState) firstFatalOutput() string {
+	if state == nil {
+		return ""
+	}
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	return state.marker
 }
 
 func preflightPiListener(baseURL string) error {
@@ -38,6 +123,15 @@ func preflightPiListener(baseURL string) error {
 }
 
 func waitPiRuntimeReady(ctx context.Context, client *http.Client, endpoint, model string, child *os.Process, childWait *piProcessWait, timeout time.Duration) error {
+	_, err := waitPiRuntimeReadyAndReportModel(ctx, client, endpoint, model, child, childWait, timeout)
+	return err
+}
+
+// waitPiRuntimeReadyAndReportModel waits for an exact configured model id or,
+// when a remote catalog entry has no local id, discovers the single non-empty
+// id served by its forwarded /v1/models endpoint. The remote profile name is
+// never used as a model-id substitute.
+func waitPiRuntimeReadyAndReportModel(ctx context.Context, client *http.Client, endpoint, model string, child *os.Process, childWait *piProcessWait, timeout time.Duration) (string, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -57,36 +151,38 @@ func waitPiRuntimeReady(ctx context.Context, client *http.Client, endpoint, mode
 	for {
 		select {
 		case <-ctx.Done():
-			return sharedRuntimeError("pi_deadline_exceeded", ctx.Err())
+			return "", sharedRuntimeError("pi_deadline_exceeded", ctx.Err())
 		case <-childWait.done:
-			return sharedRuntimeError("runtime_exited_early", fmt.Errorf("runtime exited before readiness: %v", childWait.err))
+			return "", sharedRuntimeError("runtime_exited_early", fmt.Errorf("runtime exited before readiness: %v", childWait.err))
+		case marker := <-fatalOutputChannel(childWait):
+			return "", sharedRuntimeError("runtime_fatal_output", fmt.Errorf("configured fatal output marker matched (%d bytes)", len(marker)))
 		case <-deadline.C:
-			return sharedRuntimeError("runtime_readiness_timeout", errors.New("runtime readiness timed out"))
+			return "", sharedRuntimeError("runtime_readiness_timeout", errors.New("runtime readiness timed out"))
 		case <-ticker.C:
-			if err := child.Signal(syscall.Signal(0)); err != nil {
-				return sharedRuntimeError("runtime_exited_early", err)
+			if err := sharedRuntimeReadinessSignal(child, syscall.Signal(0)); err != nil {
+				return "", sharedRuntimeError("runtime_exited_early", err)
 			}
 			request, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 			if requestErr != nil {
-				return sharedRuntimeError("runtime_readiness_invalid", requestErr)
+				return "", sharedRuntimeError("runtime_readiness_invalid", requestErr)
 			}
 			response, requestErr := client.Do(request)
 			if requestErr != nil {
 				if ctx.Err() != nil {
-					return sharedRuntimeError("pi_deadline_exceeded", ctx.Err())
+					return "", sharedRuntimeError("pi_deadline_exceeded", ctx.Err())
 				}
 				continue
 			}
 			body, readErr := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 			_ = response.Body.Close()
 			if readErr != nil {
-				return sharedRuntimeError("runtime_readiness_invalid", fmt.Errorf("invalid readiness response: status=%d read=%v", response.StatusCode, readErr))
+				return "", sharedRuntimeError("runtime_readiness_invalid", fmt.Errorf("invalid readiness response: status=%d read=%v", response.StatusCode, readErr))
 			}
 			if response.StatusCode == http.StatusServiceUnavailable {
 				continue
 			}
 			if response.StatusCode != http.StatusOK {
-				return sharedRuntimeError("runtime_readiness_invalid", fmt.Errorf("invalid readiness response: status=%d", response.StatusCode))
+				return "", sharedRuntimeError("runtime_readiness_invalid", fmt.Errorf("invalid readiness response: status=%d", response.StatusCode))
 			}
 			var payload struct {
 				Object string `json:"object"`
@@ -95,16 +191,39 @@ func waitPiRuntimeReady(ctx context.Context, client *http.Client, endpoint, mode
 				} `json:"data"`
 			}
 			if err := json.Unmarshal(body, &payload); err != nil || payload.Object != "list" || payload.Data == nil {
-				return sharedRuntimeError("runtime_readiness_invalid", errors.New("readiness response is not an OpenAI model list"))
+				return "", sharedRuntimeError("runtime_readiness_invalid", errors.New("readiness response is not an OpenAI model list"))
 			}
-			for _, item := range *payload.Data {
-				if item.ID == model {
-					return nil
+			if model != "" {
+				for _, item := range *payload.Data {
+					if item.ID == model {
+						return item.ID, nil
+					}
 				}
+				return "", sharedRuntimeError("runtime_model_unavailable", fmt.Errorf("exact model %q is absent", model))
 			}
-			return sharedRuntimeError("runtime_model_unavailable", fmt.Errorf("exact model %q is absent", model))
+			var servedModel string
+			for _, item := range *payload.Data {
+				if item.ID == "" {
+					continue
+				}
+				if servedModel != "" && servedModel != item.ID {
+					return "", sharedRuntimeError("runtime_readiness_invalid", errors.New("readiness response has multiple served model ids and the catalog does not name one"))
+				}
+				servedModel = item.ID
+			}
+			if servedModel == "" {
+				return "", sharedRuntimeError("runtime_model_unavailable", errors.New("readiness response contains no non-empty served model id"))
+			}
+			return servedModel, nil
 		}
 	}
+}
+
+func fatalOutputChannel(wait *piProcessWait) <-chan string {
+	if wait == nil || wait.output == nil {
+		return nil
+	}
+	return wait.output.fatalOutput
 }
 
 func terminateProcessGroup(pid int, wait *piProcessWait, timeout time.Duration) error {
@@ -112,22 +231,22 @@ func terminateProcessGroup(pid int, wait *piProcessWait, timeout time.Duration) 
 }
 
 func terminateProcessGroupWithSignal(pid int, wait *piProcessWait, first syscall.Signal, timeout time.Duration) error {
-	if err := syscall.Kill(-pid, syscall.Signal(0)); errors.Is(err, syscall.ESRCH) {
-		return waitForPiProcessDrain(wait, time.Second)
+	if err := sharedRuntimeProcessGroupSignal(-pid, syscall.Signal(0)); errors.Is(err, syscall.ESRCH) {
+		return sharedRuntimeProcessDrain(wait, time.Second)
 	}
-	_ = syscall.Kill(-pid, first)
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		if err := syscall.Kill(-pid, syscall.Signal(0)); errors.Is(err, syscall.ESRCH) {
-			return waitForPiProcessDrain(wait, time.Second)
+	_ = sharedRuntimeProcessGroupSignal(-pid, first)
+	deadline := sharedRuntimeProcessNow().Add(timeout)
+	for sharedRuntimeProcessNow().Before(deadline) {
+		if err := sharedRuntimeProcessGroupSignal(-pid, syscall.Signal(0)); errors.Is(err, syscall.ESRCH) {
+			return sharedRuntimeProcessDrain(wait, time.Second)
 		}
-		time.Sleep(20 * time.Millisecond)
+		sharedRuntimeProcessSleep(20 * time.Millisecond)
 	}
-	_ = syscall.Kill(-pid, syscall.SIGKILL)
-	if err := waitProcessGroupGone(pid, time.Second); err != nil {
+	_ = sharedRuntimeProcessGroupSignal(-pid, syscall.SIGKILL)
+	if err := sharedRuntimeProcessGroupWaitGone(pid, time.Second); err != nil {
 		return err
 	}
-	if err := waitForPiProcessDrain(wait, time.Second); err != nil {
+	if err := sharedRuntimeProcessDrain(wait, time.Second); err != nil {
 		return err
 	}
 	return sharedRuntimeError("runtime_shutdown_timeout", errors.New("runtime group required SIGKILL"))
@@ -143,15 +262,15 @@ func waitForPiProcessDrain(wait *piProcessWait, timeout time.Duration) error {
 }
 
 func waitProcessGroupGone(pid int, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
+	deadline := sharedRuntimeProcessNow().Add(timeout)
 	for {
-		err := syscall.Kill(-pid, syscall.Signal(0))
+		err := sharedRuntimeProcessGroupSignal(-pid, syscall.Signal(0))
 		if errors.Is(err, syscall.ESRCH) {
 			return nil
 		}
-		if time.Now().After(deadline) {
+		if sharedRuntimeProcessNow().After(deadline) {
 			return sharedRuntimeError("runtime_shutdown_timeout", errors.New("runtime process group still exists"))
 		}
-		time.Sleep(20 * time.Millisecond)
+		sharedRuntimeProcessSleep(20 * time.Millisecond)
 	}
 }

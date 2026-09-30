@@ -25,6 +25,20 @@ type SharedRuntimeOperatorOptions struct {
 	HTTPClient *http.Client
 }
 
+var sharedRuntimeStatusWriteMessage = writeSharedWireMessage
+var sharedRuntimeStatusReadMessage = readSharedWireMessage
+var sharedRuntimeStopWriteMessage = writeSharedWireMessage
+var sharedRuntimeStopReadMessage = readSharedWireMessage
+var sharedRuntimeStopWaitBrokerGone = waitRecordedBrokerGone
+var sharedRuntimeStopWaitRuntimeGone = waitRecordedRuntimeGone
+var sharedRuntimeStopWaitEndpointFree = waitSharedEndpointFree
+var sharedRuntimeStopTimeRemaining = time.Until
+var sharedRuntimeForceStopNow = time.Now
+var sharedRuntimeForceStopSleep = time.Sleep
+var sharedRuntimeWaitBrokerInspectKernel = inspectSharedProcessKernel
+var sharedRuntimeCandidateProcesses = func() ([]unix.KinfoProc, error) { return unix.SysctlKinfoProcSlice("kern.proc.all") }
+var sharedRuntimeCandidateOwnIdentity = ownResolvedExecutableIdentity
+
 type SharedRuntimeGateOutcome struct {
 	Gate    string `json:"gate"`
 	Outcome string `json:"outcome"`
@@ -70,6 +84,8 @@ type SharedRuntimeSharingStatus struct {
 type SharedRuntimeStatus struct {
 	ContractVersion    int                         `json:"contract_version"`
 	EngineIdentity     SharedRuntimeEngineIdentity `json:"engine_identity"`
+	EngineAvailability string                      `json:"engine_availability,omitempty"`
+	EngineAvailabilityReason string                `json:"engine_availability_reason,omitempty"`
 	RuntimeKey         string                      `json:"runtime_key"`
 	ProfileDigest      string                      `json:"profile_digest"`
 	Endpoint           string                      `json:"endpoint"`
@@ -103,6 +119,9 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 		return SharedRuntimeStatus{}, err
 	}
 	report := newSharedRuntimeStatus(resolved)
+	if resolved.NotRunnableCode != "" {
+		return sharedRuntimeRecordStatus(resolved, report)
+	}
 	ledger, err := readSharedRuntimeRestartLedger(resolved.Paths.RestartLedger, resolved.RuntimeKey, resolved.ProfileDigest)
 	if err != nil {
 		return SharedRuntimeStatus{}, err
@@ -111,10 +130,10 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 	attested, err := connectAndAttestSharedRuntime(resolved, state, "", options.HTTPClient, time.Second)
 	if err == nil {
 		defer attested.close()
-		if err := writeSharedWireMessage(attested.connection, sharedWireMessage{Type: "status"}); err != nil {
+		if err := sharedRuntimeStatusWriteMessage(attested.connection, sharedWireMessage{Type: "status"}); err != nil {
 			return SharedRuntimeStatus{}, sharedRuntimeError("broker_unreachable", err)
 		}
-		message, err := readSharedWireMessage(attested.reader)
+		message, err := sharedRuntimeStatusReadMessage(attested.reader)
 		if err != nil {
 			return SharedRuntimeStatus{}, sharedRuntimeError("broker_unreachable", err)
 		}
@@ -122,6 +141,9 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 			return SharedRuntimeStatus{}, sharedRuntimeError("protocol_violation", errors.New("broker status response is incomplete"))
 		}
 		report.Broker = sharedBrokerStatus(message.State, message.Stage, "attested", *message.Broker)
+		if resolved.CatalogEntry {
+			report.EngineAvailability = "available"
+		}
 		report.Runtime = sharedRuntimeProcessStatus(message.Runtime, "attested")
 		report.Leases = append([]SharedLeaseStatus(nil), message.Leases...)
 		if message.Resources == nil {
@@ -186,10 +208,10 @@ func StopSharedRuntime(options SharedRuntimeOperatorOptions, force bool, timeout
 	attested, connectErr := connectAndAttestSharedRuntime(resolved, state, "", options.HTTPClient, minSharedDuration(timeout, 2*time.Second))
 	if connectErr == nil {
 		defer attested.close()
-		if err := writeSharedWireMessage(attested.connection, sharedWireMessage{Type: "stop", Force: force, TimeoutSeconds: int(timeout.Seconds())}); err != nil {
+		if err := sharedRuntimeStopWriteMessage(attested.connection, sharedWireMessage{Type: "stop", Force: force, TimeoutSeconds: int(timeout.Seconds())}); err != nil {
 			return SharedRuntimeStopResult{}, sharedRuntimeError("broker_unreachable", err)
 		}
-		response, err := readSharedWireMessage(attested.reader)
+		response, err := sharedRuntimeStopReadMessage(attested.reader)
 		if err != nil {
 			return SharedRuntimeStopResult{}, sharedRuntimeError("broker_unreachable", err)
 		}
@@ -201,21 +223,21 @@ func StopSharedRuntime(options SharedRuntimeOperatorOptions, force bool, timeout
 			return SharedRuntimeStopResult{}, sharedRuntimeError("protocol_violation", fmt.Errorf("unexpected stop response %q", response.Type))
 		}
 		deadline := time.Now().Add(timeout)
-		if err := waitRecordedBrokerGone(attested.broker, deadline); err != nil {
+		if err := sharedRuntimeStopWaitBrokerGone(attested.broker, deadline); err != nil {
 			return SharedRuntimeStopResult{}, err
 		}
-		remaining := time.Until(deadline)
+		remaining := sharedRuntimeStopTimeRemaining(deadline)
 		if remaining <= 0 {
 			return SharedRuntimeStopResult{}, sharedRuntimeError("runtime_shutdown_timeout", errors.New("operator stop deadline elapsed before runtime verification"))
 		}
-		if err := waitRecordedRuntimeGone(&attested.runtime, remaining); err != nil {
+		if err := sharedRuntimeStopWaitRuntimeGone(&attested.runtime, remaining); err != nil {
 			return SharedRuntimeStopResult{}, err
 		}
-		remaining = time.Until(deadline)
+		remaining = sharedRuntimeStopTimeRemaining(deadline)
 		if remaining <= 0 {
 			return SharedRuntimeStopResult{}, sharedRuntimeError("runtime_shutdown_timeout", errors.New("operator stop deadline elapsed before endpoint verification"))
 		}
-		if err := waitSharedEndpointFree(resolved.Profile.BaseURL, remaining); err != nil {
+		if err := sharedRuntimeStopWaitEndpointFree(resolved.Profile.BaseURL, remaining); err != nil {
 			return SharedRuntimeStopResult{}, err
 		}
 		return SharedRuntimeStopResult{State: "absent", BrokerPID: attested.broker.PID, RuntimePID: attested.runtime.PID, BrokerTerminated: true, RuntimeTerminated: true}, nil
@@ -242,7 +264,7 @@ func resolveSharedRuntimeOperator(options SharedRuntimeOperatorOptions) (sharedR
 }
 
 func newSharedRuntimeStatus(resolved sharedResolvedProfile) SharedRuntimeStatus {
-	return SharedRuntimeStatus{
+	status := SharedRuntimeStatus{
 		ContractVersion: SharedRuntimeStatusContractVersion,
 		EngineIdentity:  resolved.EngineIdentity,
 		RuntimeKey:      resolved.RuntimeKey, ProfileDigest: resolved.ProfileDigest,
@@ -253,6 +275,11 @@ func newSharedRuntimeStatus(resolved sharedResolvedProfile) SharedRuntimeStatus 
 		Leases:    []SharedLeaseStatus{}, Attestation: []SharedRuntimeGateOutcome{},
 		FailureHistory: []SharedRuntimeFailureEvent{},
 	}
+	if resolved.CatalogEntry {
+		status.EngineAvailability = "unknown"
+		status.EngineAvailabilityReason = resolved.NotRunnableCode
+	}
+	return status
 }
 
 func sharedRuntimeRecordStatus(resolved sharedResolvedProfile, report SharedRuntimeStatus) (SharedRuntimeStatus, error) {
@@ -403,11 +430,11 @@ func probeSharedBrokerLock(paths SharedRuntimePaths) (held bool, acquired *share
 }
 
 func sharedRuntimeBrokerCandidates(resolved sharedResolvedProfile) ([]SharedRuntimeCandidate, error) {
-	processes, err := unix.SysctlKinfoProcSlice("kern.proc.all")
+	processes, err := sharedRuntimeCandidateProcesses()
 	if err != nil {
 		return nil, sharedRuntimeError("broker_identity_unavailable", err)
 	}
-	_, ownIdentity, err := ownResolvedExecutableIdentity()
+	_, ownIdentity, err := sharedRuntimeCandidateOwnIdentity()
 	if err != nil {
 		return nil, sharedRuntimeError("broker_identity_unavailable", err)
 	}
@@ -473,7 +500,7 @@ func sharedRecordedBrokerIsLive(record SharedBrokerIdentity) bool {
 }
 
 func forceStopUnreachableSharedRuntime(resolved sharedResolvedProfile, timeout time.Duration) (SharedRuntimeStopResult, error) {
-	deadline := time.Now().Add(timeout)
+	deadline := sharedRuntimeForceStopNow().Add(timeout)
 	for {
 		record, present, err := readSharedBrokerRecord(resolved.Paths.BrokerState)
 		if err != nil {
@@ -496,14 +523,14 @@ func forceStopUnreachableSharedRuntime(resolved sharedResolvedProfile, timeout t
 		if !held {
 			return SharedRuntimeStopResult{State: "absent"}, nil
 		}
-		if !time.Now().Before(deadline) {
+		if !sharedRuntimeForceStopNow().Before(deadline) {
 			candidates, candidatesErr := sharedRuntimeBrokerCandidates(resolved)
 			if candidatesErr != nil {
 				return SharedRuntimeStopResult{}, candidatesErr
 			}
 			return SharedRuntimeStopResult{}, &SharedRuntimeError{Code: "shared_runtime_owner_unidentifiable", Details: map[string]any{"candidate_holders": candidates, "operator_next_step": "inspect broker.lock with lsof; signal only after human identification"}, Err: errors.New("broker.lock remains held without an owner record")}
 		}
-		time.Sleep(minSharedDuration(100*time.Millisecond, time.Until(deadline)))
+		sharedRuntimeForceStopSleep(minSharedDuration(100*time.Millisecond, deadline.Sub(sharedRuntimeForceStopNow())))
 	}
 }
 
@@ -580,17 +607,17 @@ func stopRecordedSharedRuntimeWithDependencies(resolved sharedResolvedProfile, r
 
 func waitRecordedBrokerGone(record SharedBrokerIdentity, deadline time.Time) error {
 	for {
-		observation, err := inspectSharedProcessKernel(record.PID)
+		observation, err := sharedRuntimeWaitBrokerInspectKernel(record.PID)
 		if sharedProcessGone(err) || (err == nil && (!observation.live() || observation.StartTime != record.StartTime)) {
 			return nil
 		}
 		if err != nil {
 			return sharedRuntimeError("broker_stop_identity_mismatch", err)
 		}
-		if !time.Now().Before(deadline) {
+		if !sharedRuntimeForceStopNow().Before(deadline) {
 			return sharedRuntimeError("runtime_shutdown_timeout", errors.New("broker remained live"))
 		}
-		time.Sleep(minSharedDuration(20*time.Millisecond, time.Until(deadline)))
+		sharedRuntimeForceStopSleep(minSharedDuration(20*time.Millisecond, deadline.Sub(sharedRuntimeForceStopNow())))
 	}
 }
 

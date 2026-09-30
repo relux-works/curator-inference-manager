@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -190,6 +191,162 @@ func TestSharedRuntimeStatusReportRefusesAttestedStatusWithoutResources(t *testi
 		}
 	case <-time.After(time.Second):
 		t.Fatal("fake attested broker did not serve the status response")
+	}
+}
+
+func TestSharedRuntimeStatusReportRefusesIncompleteAttestedStatusAtProductionEntry(t *testing.T) {
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*sharedWireMessage)
+	}{
+		{name: "broker missing", mutate: func(message *sharedWireMessage) { message.Broker = nil }},
+		{name: "runtime missing", mutate: func(message *sharedWireMessage) { message.Runtime = nil }},
+		{name: "effective sharing missing", mutate: func(message *sharedWireMessage) { message.EffectiveSharing = nil }},
+		{name: "status type invalid", mutate: func(message *sharedWireMessage) { message.Type = "busy" }},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newSharedAttestationFixture(t)
+			served := make(chan error, 1)
+			go func() {
+				connection, err := fixture.listener.AcceptUnix()
+				if err != nil {
+					served <- err
+					return
+				}
+				defer func() { _ = connection.Close() }()
+				reader := bufio.NewReaderSize(connection, sharedRuntimeMaxFrameBytes+1)
+				if _, err := readSharedWireMessage(reader); err != nil {
+					served <- err
+					return
+				}
+				effective := fixture.resolved.Sharing
+				if err := writeSharedWireMessage(connection, sharedWireMessage{
+					Type: "hello_ok", ProtocolVersion: SharedRuntimeProtocolVersion,
+					RuntimeKey: fixture.resolved.RuntimeKey, ProfileDigest: fixture.resolved.ProfileDigest,
+					EngineIdentity: &fixture.resolved.EngineIdentity,
+					Broker:         &fixture.broker, Runtime: &fixture.record, EffectiveSharing: &effective,
+				}); err != nil {
+					served <- err
+					return
+				}
+				request, err := readSharedWireMessage(reader)
+				if err != nil || request.Type != "status" {
+					served <- errors.New("production entry did not request broker status")
+					return
+				}
+				resourceFacts := &SharedRuntimeResourceStatus{
+					Schema: SharedRuntimeResourceStatusSchema, State: SharedRuntimeResourceHealthy,
+					Inference: SharedRuntimeInferenceStatus{State: SharedRuntimeInferenceIdle},
+				}
+				message := sharedWireMessage{
+					Type: "status", State: "serving", Stage: fixture.record.Stage,
+					Broker: &fixture.broker, Runtime: &fixture.record, EffectiveSharing: &effective, Resources: resourceFacts,
+				}
+				testCase.mutate(&message)
+				served <- writeSharedWireMessage(connection, message)
+			}()
+
+			var reportErr error
+			var panicValue any
+			func() {
+				defer func() { panicValue = recover() }()
+				_, reportErr = SharedRuntimeStatusReport(SharedRuntimeOperatorOptions{
+					ProjectDir: fixture.resolved.Project, HomeDir: fixture.resolved.HomeDir,
+					CacheRoot: fixture.resolved.Paths.CanonicalCacheRoot, Profile: fixture.resolved.ProfileName,
+				})
+			}()
+			if panicValue != nil {
+				t.Fatalf("incomplete attested status panicked instead of returning protocol_violation: %v", panicValue)
+			}
+			var shared *SharedRuntimeError
+			if !errors.As(reportErr, &shared) || shared.Code != "protocol_violation" {
+				t.Fatalf("incomplete attested status error=%v want protocol_violation", reportErr)
+			}
+			if serveErr := <-served; serveErr != nil {
+				t.Fatalf("status fixture server: %v", serveErr)
+			}
+		})
+	}
+}
+
+func TestSharedRuntimeStatusReportRefusesStatusTransportFailuresAtProductionEntry(t *testing.T) {
+	for _, testCase := range []struct {
+		name     string
+		failRead bool
+	}{
+		{name: "status request write"},
+		{name: "status response read", failRead: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newSharedAttestationFixture(t)
+			requestAttempted := make(chan struct{})
+			served := make(chan error, 1)
+			go func() {
+				connection, err := fixture.listener.AcceptUnix()
+				if err != nil {
+					served <- err
+					return
+				}
+				defer func() { _ = connection.Close() }()
+				reader := bufio.NewReaderSize(connection, sharedRuntimeMaxFrameBytes+1)
+				if _, err := readSharedWireMessage(reader); err != nil {
+					served <- err
+					return
+				}
+				effective := fixture.resolved.Sharing
+				if err := writeSharedWireMessage(connection, sharedWireMessage{
+					Type: "hello_ok", ProtocolVersion: SharedRuntimeProtocolVersion,
+					RuntimeKey: fixture.resolved.RuntimeKey, ProfileDigest: fixture.resolved.ProfileDigest,
+					EngineIdentity: &fixture.resolved.EngineIdentity,
+					Broker:         &fixture.broker, Runtime: &fixture.record, EffectiveSharing: &effective,
+				}); err != nil {
+					served <- err
+					return
+				}
+				if !testCase.failRead {
+					<-requestAttempted
+					served <- nil
+					return
+				}
+				request, err := readSharedWireMessage(reader)
+				if err == nil && request.Type != "status" {
+					err = errors.New("production entry did not request broker status")
+				}
+				served <- err
+			}()
+
+			writeStatus := sharedRuntimeStatusWriteMessage
+			readStatus := sharedRuntimeStatusReadMessage
+			t.Cleanup(func() {
+				sharedRuntimeStatusWriteMessage = writeStatus
+				sharedRuntimeStatusReadMessage = readStatus
+			})
+			if testCase.failRead {
+				sharedRuntimeStatusReadMessage = func(reader io.Reader) (sharedWireMessage, error) {
+					close(requestAttempted)
+					return sharedWireMessage{}, os.ErrPermission
+				}
+			} else {
+				sharedRuntimeStatusWriteMessage = func(writer io.Writer, message sharedWireMessage) error {
+					if message.Type == "status" {
+						close(requestAttempted)
+						return os.ErrPermission
+					}
+					return writeStatus(writer, message)
+				}
+			}
+
+			_, err := SharedRuntimeStatusReport(SharedRuntimeOperatorOptions{
+				ProjectDir: fixture.resolved.Project, HomeDir: fixture.resolved.HomeDir,
+				CacheRoot: fixture.resolved.Paths.CanonicalCacheRoot, Profile: fixture.resolved.ProfileName,
+			})
+			if sharedRuntimeErrorCode(err) != "broker_unreachable" || !errors.Is(err, os.ErrPermission) {
+				t.Fatalf("status transport refusal code=%q err=%v want broker_unreachable", sharedRuntimeErrorCode(err), err)
+			}
+			if serveErr := <-served; serveErr != nil {
+				t.Fatalf("status transport fixture server: %v", serveErr)
+			}
+		})
 	}
 }
 
@@ -656,6 +813,7 @@ func TestSharedBrokerProductionStatusCannotBypassLatchedPressureRecovery(t *test
 		t.Fatal(err)
 	}
 	fixture.server.listener = listener
+	fixture.server.acceptUnix = listener.AcceptUnix
 	runtimeWait := &piProcessWait{done: make(chan struct{})}
 	signals := make(chan os.Signal, 1)
 	serveDone := make(chan error, 1)
@@ -1166,6 +1324,7 @@ func TestSharedBrokerPressureDrainPreservesLeaseThenEvictsAfterFinalRelease(t *t
 		t.Fatal(err)
 	}
 	fixture.server.listener = listener
+	fixture.server.acceptUnix = listener.AcceptUnix
 	runtimeWait := &piProcessWait{done: make(chan struct{})}
 	signals := make(chan os.Signal)
 	done := make(chan error, 1)

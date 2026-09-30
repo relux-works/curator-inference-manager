@@ -14,17 +14,7 @@ import (
 
 const projectConfigFileName = "project-config.toml"
 
-type sharedResolvedProfile struct {
-	Project        string
-	HomeDir        string
-	ProfileName    string
-	EngineIdentity SharedRuntimeEngineIdentity
-	Profile        PiProfile
-	Sharing        PiRuntimeSharing
-	RuntimeKey     string
-	ProfileDigest  string
-	Paths          SharedRuntimePaths
-}
+var readLegacyPiIdentityConfigFile = os.ReadFile
 
 func resolveSharedProfile(projectDir, homeDir, cacheRoot, profileName string) (sharedResolvedProfile, error) {
 	project, err := CanonicalProjectDir(projectDir)
@@ -37,49 +27,41 @@ func resolveSharedProfile(projectDir, homeDir, cacheRoot, profileName string) (s
 			return sharedResolvedProfile{}, err
 		}
 	}
-	globalConfig := filepath.Join(homeDir, ".agents", ".configs", projectConfigFileName)
-	profiles := map[string]PiProfile{}
-	selectedProfile := ""
-	for _, ancestor := range ancestorDirsRootFirst(project) {
-		path := filepath.Join(ancestor, ".agents", ".configs", projectConfigFileName)
-		if samePath(path, globalConfig) {
-			continue
-		}
-		data, readErr := os.ReadFile(path)
-		if errors.Is(readErr, os.ErrNotExist) {
-			continue
-		}
-		if readErr != nil {
-			return sharedResolvedProfile{}, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("read project config: %w", readErr))
-		}
-		var document map[string]any
-		if parseErr := toml.Unmarshal(data, &document); parseErr != nil {
-			return sharedResolvedProfile{}, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("parse TOML: %w", parseErr))
-		}
-		agents, present, tableErr := projectConfigTable(document, "agents", "agents")
-		if tableErr != nil {
-			return sharedResolvedProfile{}, sharedRuntimeError("invalid_project_configuration", projectConfigFieldError(path, "agents", tableErr))
-		}
-		if !present {
-			continue
-		}
-		primary, _, configured, parseErr := parsePiConfig(agents, path)
-		if parseErr != nil {
-			return sharedResolvedProfile{}, sharedRuntimeError("invalid_project_configuration", parseErr)
-		}
-		if primary.Profile != nil {
-			selectedProfile = *primary.Profile
-		}
-		for name, profile := range configured {
-			profile.Source = path
-			profiles[name] = profile
-		}
-	}
+	var profiles map[string]PiProfile
 	if profileName == "" {
+		var selectedProfile string
+		profiles, selectedProfile, err = readPiProfiles(project, homeDir)
+		if err != nil {
+			return sharedResolvedProfile{}, err
+		}
 		profileName = selectedProfile
 	}
 	if profileName == "" {
 		return sharedResolvedProfile{}, sharedRuntimeError("shared_runtime_not_configured", errors.New("no managed Pi profile is selected"))
+	}
+	catalogFile, pathErr := engineCatalogPath(homeDir)
+	if pathErr != nil {
+		return sharedResolvedProfile{}, pathErr
+	}
+	entry, state, catalogErr := ReadEngineCatalogEntry(catalogFile, profileName)
+	if catalogErr != nil {
+		return sharedResolvedProfile{}, catalogErr
+	}
+	if state == EngineCatalogPresent {
+		legacy, present, profileErr := readPiIdentity(project, homeDir, profileName)
+		if profileErr != nil {
+			return sharedResolvedProfile{}, profileErr
+		}
+		if present && !catalogPiIdentityAndArgvAgree(profileName, entry, legacy) {
+			return sharedResolvedProfile{}, engineCatalogConflict("resolution.identity_argv", errors.New("catalog and legacy Pi profile disagree on model identity or executable/argv"))
+		}
+		return resolveCatalogProfile(project, homeDir, cacheRoot, profileName, entry, catalogFile)
+	}
+	if profiles == nil {
+		profiles, _, err = readPiProfiles(project, homeDir)
+		if err != nil {
+			return sharedResolvedProfile{}, err
+		}
 	}
 	profile, ok := profiles[profileName]
 	if !ok {
@@ -94,16 +76,161 @@ func resolveSharedProfile(projectDir, homeDir, cacheRoot, profileName string) (s
 		return sharedResolvedProfile{}, err
 	}
 	return sharedResolvedProfile{
-		Project:        project,
-		HomeDir:        homeDir,
-		ProfileName:    profileName,
+		Project: project, HomeDir: homeDir, ProfileName: profileName,
 		EngineIdentity: SharedRuntimeEngineIdentity{Name: profileName, Key: runtimeKey},
-		Profile:        profile,
-		Sharing:        *profile.Runtime.Sharing,
-		RuntimeKey:     runtimeKey,
-		ProfileDigest:  profileDigest,
-		Paths:          paths,
+		Profile:        profile, Sharing: *profile.Runtime.Sharing,
+		RuntimeKey: runtimeKey, ProfileDigest: profileDigest, Paths: paths,
 	}, nil
+}
+
+func readPiProfiles(project, homeDir string) (map[string]PiProfile, string, error) {
+	globalConfig := filepath.Join(homeDir, ".agents", ".configs", projectConfigFileName)
+	profiles := map[string]PiProfile{}
+	selectedProfile := ""
+	for _, ancestor := range ancestorDirsRootFirst(project) {
+		path := filepath.Join(ancestor, ".agents", ".configs", projectConfigFileName)
+		if samePath(path, globalConfig) {
+			continue
+		}
+		data, readErr := os.ReadFile(path)
+		if errors.Is(readErr, os.ErrNotExist) {
+			continue
+		}
+		if readErr != nil {
+			return nil, "", sharedRuntimeError("invalid_project_configuration", fmt.Errorf("read project config: %w", readErr))
+		}
+		var document map[string]any
+		if parseErr := toml.Unmarshal(data, &document); parseErr != nil {
+			return nil, "", sharedRuntimeError("invalid_project_configuration", fmt.Errorf("parse TOML: %w", parseErr))
+		}
+		agents, present, tableErr := projectConfigTable(document, "agents", "agents")
+		if tableErr != nil {
+			return nil, "", sharedRuntimeError("invalid_project_configuration", projectConfigFieldError(path, "agents", tableErr))
+		}
+		if !present {
+			continue
+		}
+		primary, _, configured, parseErr := parsePiConfig(agents, path)
+		if parseErr != nil {
+			return nil, "", sharedRuntimeError("invalid_project_configuration", parseErr)
+		}
+		if primary.Profile != nil {
+			selectedProfile = *primary.Profile
+		}
+		for name, profile := range configured {
+			profile.Source = path
+			profiles[name] = profile
+		}
+	}
+	return profiles, selectedProfile, nil
+}
+
+type legacyPiIdentity struct {
+	Model      string
+	Executable string
+	Argv       []string
+}
+
+func readPiIdentity(project, homeDir, name string) (legacyPiIdentity, bool, error) {
+	globalConfig := filepath.Join(homeDir, ".agents", ".configs", projectConfigFileName)
+	var selected legacyPiIdentity
+	present := false
+	for _, ancestor := range ancestorDirsRootFirst(project) {
+		path := filepath.Join(ancestor, ".agents", ".configs", projectConfigFileName)
+		if samePath(path, globalConfig) {
+			continue
+		}
+		data, err := readLegacyPiIdentityConfigFile(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("read project config for compatibility check: %w", err))
+		}
+		var document map[string]any
+		if err := toml.Unmarshal(data, &document); err != nil {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("parse project config for compatibility check: %w", err))
+		}
+		agents, agentsPresent, err := projectConfigTable(document, "agents", "agents")
+		if err != nil || !agentsPresent {
+			if err != nil {
+				return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", err)
+			}
+			continue
+		}
+		pi, piPresent, err := projectConfigTable(agents, "pi", "agents.pi")
+		if err != nil || !piPresent {
+			if err != nil {
+				return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", err)
+			}
+			continue
+		}
+		profiles, profilesPresent, err := projectConfigTable(pi, "profiles", "agents.pi.profiles")
+		if err != nil || !profilesPresent {
+			if err != nil {
+				return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", err)
+			}
+			continue
+		}
+		raw, exists := profiles[name]
+		if !exists {
+			continue
+		}
+		profile, ok := raw.(map[string]any)
+		if !ok {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("agents.pi.profiles.%s must be a table", name))
+		}
+		model, ok := profile["model"].(string)
+		if !ok {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("agents.pi.profiles.%s.model must be a string", name))
+		}
+		if model == "" {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("agents.pi.profiles.%s.model must not be empty", name))
+		}
+		runtimeTable, runtimePresent, err := projectConfigTable(profile, "runtime", "agents.pi.profiles."+name+".runtime")
+		if err != nil {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", err)
+		}
+		if !runtimePresent {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", errors.New("runtime table is absent"))
+		}
+		executable, ok := runtimeTable["executable"].(string)
+		if !ok {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("agents.pi.profiles.%s.runtime.executable must be a string", name))
+		}
+		rawArgv, ok := runtimeTable["argv"].([]any)
+		if !ok {
+			return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("agents.pi.profiles.%s.runtime.argv must be an array", name))
+		}
+		argv := make([]string, len(rawArgv))
+		for index, rawToken := range rawArgv {
+			token, ok := rawToken.(string)
+			if !ok {
+				return legacyPiIdentity{}, false, sharedRuntimeError("invalid_project_configuration", fmt.Errorf("agents.pi.profiles.%s.runtime.argv[%d] must be a string", name, index))
+			}
+			argv[index] = token
+		}
+		selected = legacyPiIdentity{Model: model, Executable: executable, Argv: argv}
+		present = true
+	}
+	return selected, present, nil
+}
+
+func catalogPiIdentityAndArgvAgree(name string, entry EngineCatalogEntry, legacy legacyPiIdentity) bool {
+	port := catalogEndpointPort(name, entry)
+	model := entry.Model
+	if model == "" {
+		model, _ = engineCatalogServedModelID(entry)
+	}
+	argv := engineCatalogIdentityArgv(entry, port)
+	executable := entry.Executable
+	if entry.Mode == "ssh" {
+		executable = entry.SSHExecutable
+		if executable == "" {
+			executable = "/usr/bin/ssh"
+		}
+	}
+	return model == legacy.Model && executable == legacy.Executable && equalStrings(argv, legacy.Argv)
 }
 
 func CanonicalProjectDir(projectDir string) (string, error) {

@@ -17,6 +17,8 @@ import (
 
 const sharedLogArchiveTimestampLayout = "20060102T150405.000000000Z"
 
+var sharedRuntimeLogFileStat = func(file *os.File) (os.FileInfo, error) { return file.Stat() }
+
 type sharedFilesystemLogSink struct {
 	path string
 }
@@ -26,7 +28,7 @@ func (sink *sharedFilesystemLogSink) Open(_ time.Time) (io.WriteCloser, int64, e
 	if err != nil {
 		return nil, 0, err
 	}
-	info, err := file.Stat()
+	info, err := sharedRuntimeLogFileStat(file)
 	if err != nil {
 		_ = file.Close()
 		return nil, 0, sharedRuntimeError("shared_runtime_state_path_invalid", err)

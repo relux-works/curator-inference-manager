@@ -540,6 +540,19 @@ func TestSharedRuntimeLauncherRejectsAuthorizationChannelGuardBypassesAtProducti
 	}
 }
 
+// Production call site: RunSharedRuntimeLauncher checks descriptor 3 before
+// resolving a profile or reading authorization evidence. A socket pair is not
+// an acceptable substitute for the required FIFO authorization channel.
+func TestRunSharedRuntimeLauncherRejectsNonFIFODescriptor(t *testing.T) {
+	fixture := newSharedLauncherFixture(t)
+	reader, writer := sharedLauncherSocketPair(t)
+	run := startSharedLauncherRunWithFiles(t, fixture, fixture.resolved.RuntimeKey, reader, writer)
+	if err := run.sendAuthorization(rawSharedLauncherFrame(t, validSharedLauncherFrame(fixture, run.command.Process.Pid))); err != nil {
+		t.Fatal(err)
+	}
+	requireSharedLauncherRefusal(t, fixture, run, "runtime_launch_unauthorized", "no_authorization_descriptor")
+}
+
 func startSharedLauncherRunWithEnvAndRuntimeKey(t *testing.T, fixture sharedLauncherFixture, runtimeKey string, extraEnv ...string) *sharedLauncherRun {
 	t.Helper()
 	readEnd, writeEnd, err := os.Pipe()

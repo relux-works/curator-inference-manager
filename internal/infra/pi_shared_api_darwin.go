@@ -9,12 +9,18 @@ import (
 	"time"
 )
 
+var sharedRuntimeReleaseWriteMessage = writeSharedWireMessage
+var sharedRuntimeReleaseReadMessage = readSharedWireMessage
+
 // AcquireSharedRuntimeLease starts the extracted broker when needed and returns
 // only after the broker has granted a process-bound lease.
 func AcquireSharedRuntimeLease(ctx context.Context, options SharedRuntimeOperatorOptions, runID string, environ []string) (*SharedRuntimeLease, error) {
 	resolved, state, err := resolveSharedRuntimeOperator(options)
 	if err != nil {
 		return nil, err
+	}
+	if resolved.NotRunnableCode != "" {
+		return nil, engineCatalogNotRunnableError(resolved)
 	}
 	if err := CreateSharedRuntimeTree(resolved.Paths); err != nil {
 		return nil, err
@@ -48,10 +54,10 @@ func ReleaseSharedRuntimeLease(options SharedRuntimeOperatorOptions, token strin
 		return err
 	}
 	defer attested.close()
-	if err := writeSharedWireMessage(attested.connection, sharedWireMessage{Type: "release", LeaseToken: token}); err != nil {
+	if err := sharedRuntimeReleaseWriteMessage(attested.connection, sharedWireMessage{Type: "release", LeaseToken: token}); err != nil {
 		return sharedRuntimeError("broker_unreachable", err)
 	}
-	response, err := readSharedWireMessage(attested.reader)
+	response, err := sharedRuntimeReleaseReadMessage(attested.reader)
 	if err != nil {
 		return sharedRuntimeError("broker_unreachable", err)
 	}

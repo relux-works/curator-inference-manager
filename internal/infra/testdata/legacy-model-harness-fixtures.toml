@@ -1,0 +1,135 @@
+# Sanitized legacy model-harness profile fixtures sourced from relux-agents-infra
+# revision d7d7278:
+# - articles/260831_local-qwen-runtime-comparison-study/artifacts/llamacpp-pair/benchmark.toml
+# - articles/260831_local-qwen-runtime-comparison-study/artifacts/mlx-swift-pair/benchmark.toml
+# - tools/mlx-swift-runtime-prototype/examples/model-harness.benchmark.toml
+# - tools/mlx-swift-runtime-prototype/examples/model-harness.prototype.toml
+# - tools/agents-infra/internal/modelharness/config_test.go and engine_knobs_test.go
+# The qwen project-config template contributes the retained default model id
+# used by qwen-default-engine below. Machine-specific absolute paths are
+# replaced with stable /opt/fixture paths. Field names and values otherwise
+# come from those checked-in legacy configs and acceptance fixtures.
+
+[profiles.qwen-benchmark-python]
+mode = "local"
+# engine omitted intentionally: legacy resolution defaults this to mlx-lm.
+executable = "/opt/fixture/mlx_lm-kv76800.server"
+argv = [
+  "--model", "/opt/fixture/models/Qwen3.8-27B-Uncensored-MLX-8bit",
+  "--host", "{host}",
+  "--port", "{port}",
+  "--prompt-cache-size", "1",
+  "--prompt-cache-bytes", "8GB",
+  "--prefill-step-size", "2048",
+  "--max-kv-size", "76800",
+  "--chat-template-args", "{\"reasoning_effort\": \"medium\"}",
+]
+
+[profiles.qwen-benchmark-swift]
+mode = "local"
+executable = "/opt/fixture/mlx-swift-runtime-prototype"
+argv = [
+  "serve",
+  "--model", "/opt/fixture/models/Qwen3.8-27B-Uncensored-MLX-8bit",
+  "--host", "{host}",
+  "--port", "{port}",
+  "--reasoning-effort", "medium",
+  "--default-max-tokens", "2048",
+  "--model-factory", "text-only",
+  "--prefill-step-size", "2048",
+]
+
+[profiles.qwen-benchmark-llamacpp]
+mode = "local"
+executable = "/opt/fixture/llama-server"
+argv = [
+  "--model", "/opt/fixture/models/Qwen3.8-27B-Uncensored.gguf",
+  "--host", "{host}",
+  "--port", "{port}",
+  "--ctx-size", "76800",
+  "--ubatch-size", "2048",
+  "--reasoning-effort", "medium",
+  "--no-webui",
+  "--spec-type", "none",
+]
+
+[profiles.qwen-default-engine]
+mode = "local"
+model = "Qwen3.8-27B-MLX-8bit"
+executable = "/opt/fixture/mlx_lm.server"
+argv = ["serve", "--host", "{host}", "--port", "{port}"]
+
+[profiles.qwen-default-engine.knobs]
+kv_context_tokens = "76800"
+prefill_chunk_tokens = "2048"
+reasoning_effort = "medium"
+
+[profiles.mlx-lm-unbounded]
+mode = "local"
+engine = "mlx-lm"
+executable = "/opt/fixture/mlx_lm.server"
+argv = ["serve", "--host", "{host}", "--port", "{port}"]
+
+[profiles.mlx-lm-unbounded.knobs]
+kv_context_tokens = "unbounded"
+
+[profiles.mlx-swift-knobs]
+mode = "local"
+engine = "mlx-swift"
+model = "org/example-qwen-mlx-swift"
+executable = "/opt/fixture/mlx-swift-runtime-prototype"
+argv = ["serve", "--host", "{host}", "--port", "{port}"]
+
+[profiles.mlx-swift-knobs.knobs]
+kv_context_tokens = "32768"
+prefill_chunk_tokens = "2048"
+reasoning_effort = "xhigh"
+
+[profiles.llama-cpp-knobs]
+mode = "local"
+engine = "llama-cpp"
+model = "/opt/fixture/models/Qwen3.8-27B-Uncensored.gguf"
+executable = "/opt/fixture/llama-server"
+argv = ["serve", "--host", "{host}", "--port", "{port}"]
+
+[profiles.llama-cpp-knobs.knobs]
+kv_context_tokens = "8192"
+prefill_chunk_tokens = "2048"
+reasoning_effort = "low"
+speculative_decoding = "off"
+
+[profiles.qwen-policy-fixture]
+mode = "local"
+engine = "mlx-lm"
+model = "Qwen3.8-27B-mlx-8bit"
+executable = "/opt/fixture/mlx_lm.server"
+argv = ["serve", "--host", "{host}", "--port", "{port}"]
+
+[profiles.qwen-policy-fixture.stress]
+prompt_tokens = 50000
+max_output_tokens = 1
+startup_timeout_seconds = 120
+request_timeout_seconds = 600
+sample_interval_milliseconds = 250
+
+[profiles.qwen-policy-fixture.supervision]
+fatal_output_substrings = ["Resource limit (499000) exceeded", "Exception in thread"]
+restart_on_failure = true
+max_restarts = 3
+restart_window_seconds = 3600
+restart_delay_milliseconds = 1500
+
+[profiles.qwen-policy-fixture.pinned_distribution]
+package = "mlx_lm"
+site_packages = "/opt/fixture/site-packages"
+commit = "45a472f2d0cda166b7ffe1a80fe50dd9621f4303"
+
+[profiles.qwen-remote]
+mode = "ssh"
+ssh_executable = "/usr/bin/ssh"
+ssh_target = "dedicated-mac"
+remote_executable = "/opt/fixture/bin/model-harness"
+remote_config = "/opt/fixture/config/model-harness.toml"
+remote_profile = "qwen-tiny"
+remote_host = "127.0.0.1"
+remote_port = 18012

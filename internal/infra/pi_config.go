@@ -129,21 +129,29 @@ type PiRuntime struct {
 }
 
 type PiRuntimeSharing struct {
-	Mode                         string                     `json:"mode"`
-	LingerSeconds                int                        `json:"linger_seconds"`
-	MaxLeases                    int                        `json:"max_leases"`
-	MaxSegmentBytes              int                        `json:"max_segment_bytes"`
-	MaxSegments                  int                        `json:"max_segments"`
-	HeartbeatIntervalSeconds     int                        `json:"heartbeat_interval_seconds"`
-	LeaseStaleSeconds            int                        `json:"lease_stale_seconds"`
-	BrokerStartTimeoutSeconds    int                        `json:"broker_start_timeout_seconds"`
-	RestartLimit                 int                        `json:"restart_limit"`
-	RestartInitialBackoffSeconds int                        `json:"restart_initial_backoff_seconds"`
-	RestartMaxBackoffSeconds     int                        `json:"restart_max_backoff_seconds"`
-	StableRunSeconds             int                        `json:"stable_run_seconds"`
-	QuarantineSeconds            int                        `json:"quarantine_seconds"`
-	ResourcePressureMode         string                     `json:"resource_pressure_mode"`
-	ResourcePressure             *PiRuntimeResourcePressure `json:"resource_pressure,omitempty"`
+	Mode                               string                     `json:"mode"`
+	LingerSeconds                      int                        `json:"linger_seconds"`
+	MaxLeases                          int                        `json:"max_leases"`
+	MaxSegmentBytes                    int                        `json:"max_segment_bytes"`
+	MaxSegments                        int                        `json:"max_segments"`
+	HeartbeatIntervalSeconds           int                        `json:"heartbeat_interval_seconds"`
+	LeaseStaleSeconds                  int                        `json:"lease_stale_seconds"`
+	BrokerStartTimeoutSeconds          int                        `json:"broker_start_timeout_seconds"`
+	RestartLimit                       int                        `json:"restart_limit"`
+	RestartInitialBackoffSeconds       int                        `json:"restart_initial_backoff_seconds"`
+	RestartMaxBackoffSeconds           int                        `json:"restart_max_backoff_seconds"`
+	RestartInitialBackoffMilliseconds  int                        `json:"restart_initial_backoff_milliseconds,omitempty"`
+	RestartMaxBackoffMilliseconds      int                        `json:"restart_max_backoff_milliseconds,omitempty"`
+	StableRunSeconds                   int                        `json:"stable_run_seconds"`
+	QuarantineSeconds                  int                        `json:"quarantine_seconds"`
+	ResourcePressureMode               string                     `json:"resource_pressure_mode"`
+	ResourcePressure                   *PiRuntimeResourcePressure `json:"resource_pressure,omitempty"`
+	FatalOutputSubstrings              []string                   `json:"fatal_output_substrings,omitempty"`
+	restartInitialBackoff              time.Duration              `json:"-"`
+	restartMaxBackoff                  time.Duration              `json:"-"`
+	restartBackoffSet                  bool                       `json:"-"`
+	restartFailureThreshold            int                        `json:"-"`
+	fatalOutputRestartFailureThreshold int                        `json:"-"`
 }
 
 type PiRuntimeResourcePressure struct {

@@ -187,15 +187,19 @@ func requireSharedAttestationCode(t *testing.T, err error, code string) {
 }
 
 func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *testing.T) {
+	validModelClient := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"object":"list","data":[{"id":"Model"}]}`)), Header: make(http.Header)}, nil
+	})}
 	wrongModelClient := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"object":"list","data":[{"id":"Wrong"}]}`)), Header: make(http.Header)}, nil
 	})}
 	tests := []struct {
-		name           string
-		code           string
-		mutateSystem   func(*sharedRuntimeAttestationDependencies, sharedAttestationFixture)
-		mutateResponse func(*sharedWireMessage)
-		httpClient     *http.Client
+		name              string
+		code              string
+		mutateSystem      func(*sharedRuntimeAttestationDependencies, sharedAttestationFixture)
+		mutateSystemError func(*sharedRuntimeAttestationDependencies, sharedAttestationFixture)
+		mutateResponse    func(*sharedWireMessage)
+		httpClient        *http.Client
 	}{
 		{
 			name: "peer uid root narrowing", code: "broker_peer_untrusted",
@@ -204,6 +208,44 @@ func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *
 				system.peerIdentity = func(connection *net.UnixConn) (uint32, int, error) {
 					_, pid, err := original(connection)
 					return 0, pid, err
+				}
+			},
+		},
+		{
+			name: "peer identity error with valid witness", code: "broker_peer_untrusted",
+			mutateSystemError: func(system *sharedRuntimeAttestationDependencies, fixture sharedAttestationFixture) {
+				system.peerIdentity = func(*net.UnixConn) (uint32, int, error) {
+					return fixture.broker.UID, fixture.broker.PID, os.ErrPermission
+				}
+			},
+		},
+		{
+			name: "process inspection error with live witness", code: "broker_identity_unavailable",
+			mutateSystemError: func(system *sharedRuntimeAttestationDependencies, fixture sharedAttestationFixture) {
+				original := system.inspectProcess
+				system.inspectProcess = func(pid int) (sharedProcessObservation, error) {
+					observation, err := original(pid)
+					if pid == fixture.broker.PID {
+						observation = sharedProcessObservation{PID: pid, UID: fixture.broker.UID, PStat: 0, StartTime: fixture.broker.StartTime}
+						return observation, os.ErrPermission
+					}
+					return observation, err
+				}
+			},
+		},
+		{
+			name: "own executable identity error with matching witness", code: "broker_identity_unavailable",
+			mutateSystemError: func(system *sharedRuntimeAttestationDependencies, _ sharedAttestationFixture) {
+				system.ownExecutableIdentity = func() (string, FileIdentity, error) {
+					return "/bin/true", FileIdentity{Dev: 1, Ino: 2}, os.ErrPermission
+				}
+			},
+		},
+		{
+			name: "peer executable identity error with matching witness", code: "broker_identity_unavailable",
+			mutateSystemError: func(system *sharedRuntimeAttestationDependencies, fixture sharedAttestationFixture) {
+				system.processExecIdentity = func(sharedProcessObservation) (FileIdentity, error) {
+					return fixture.broker.ExecutableIdentity, os.ErrPermission
 				}
 			},
 		},
@@ -253,6 +295,20 @@ func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *
 			mutateResponse: func(response *sharedWireMessage) {
 				response.Broker.StartTime = ProcessStartTime{}
 			},
+		},
+		{
+			name: "announced broker pid mismatch with matching start time", code: "broker_identity_mismatch",
+			mutateResponse: func(response *sharedWireMessage) {
+				response.Broker.PID++
+			},
+		},
+		{
+			name: "missing announced broker", code: "protocol_violation",
+			mutateResponse: func(response *sharedWireMessage) { response.Broker = nil },
+		},
+		{
+			name: "missing announced runtime", code: "protocol_violation",
+			mutateResponse: func(response *sharedWireMessage) { response.Runtime = nil },
 		},
 		{
 			name: "future protocol version range narrowing", code: "broker_protocol_version_mismatch",
@@ -311,6 +367,16 @@ func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *
 			},
 		},
 		{
+			name: "runtime file identity error with matching witness", code: "runtime_executable_invalid",
+			mutateSystemError: func(system *sharedRuntimeAttestationDependencies, fixture sharedAttestationFixture) {
+				identity, err := fileIdentity(fixture.resolved.Profile.Runtime.Executable)
+				if err != nil {
+					t.Fatal(err)
+				}
+				system.fileIdentity = func(string) (FileIdentity, error) { return identity, os.ErrPermission }
+			},
+		},
+		{
 			name: "runtime process uid root narrowing", code: "runtime_identity_mismatch",
 			mutateSystem: func(system *sharedRuntimeAttestationDependencies, fixture sharedAttestationFixture) {
 				original := system.inspectProcess
@@ -318,6 +384,19 @@ func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *
 					observation, err := original(pid)
 					if pid == fixture.runtime.Process.Pid {
 						observation.UID = 0
+					}
+					return observation, err
+				}
+			},
+		},
+		{
+			name: "runtime process inspection error with matching witness", code: "runtime_identity_mismatch",
+			mutateSystemError: func(system *sharedRuntimeAttestationDependencies, fixture sharedAttestationFixture) {
+				original := system.inspectProcess
+				system.inspectProcess = func(pid int) (sharedProcessObservation, error) {
+					observation, err := original(pid)
+					if pid == fixture.runtime.Process.Pid {
+						return observation, os.ErrPermission
 					}
 					return observation, err
 				}
@@ -381,6 +460,17 @@ func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *
 				response.EffectiveSharing = nil
 			},
 		},
+		{
+			name: "hello refusal", code: "fixture-refused",
+			mutateResponse: func(response *sharedWireMessage) {
+				response.Type = "refused"
+				response.Code = "fixture-refused"
+			},
+		},
+		{
+			name: "unexpected hello response type", code: "protocol_violation",
+			mutateResponse: func(response *sharedWireMessage) { response.Type = "unexpected" },
+		},
 		{name: "model discovery", code: "runtime_model_unavailable", httpClient: wrongModelClient},
 	}
 
@@ -394,13 +484,23 @@ func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *
 				sharedRuntimeAttestationSystem = mutated
 				t.Cleanup(func() { sharedRuntimeAttestationSystem = originalSystem })
 			}
+			if testCase.mutateSystemError != nil {
+				mutated := sharedRuntimeAttestationSystem
+				testCase.mutateSystemError(&mutated, fixture)
+				sharedRuntimeAttestationSystem = mutated
+				t.Cleanup(func() { sharedRuntimeAttestationSystem = originalSystem })
+			}
 			served := fixture.answerOnce(t, testCase.mutateResponse)
 			var attested *sharedAttestedRuntime
 			var err error
 			var recovered any
+			httpClient := testCase.httpClient
+			if httpClient == nil {
+				httpClient = validModelClient
+			}
 			func() {
 				defer func() { recovered = recover() }()
-				attested, err = connectAndAttestSharedRuntime(fixture.resolved, fixture.state, "RUN-attestation", testCase.httpClient, time.Second)
+				attested, err = connectAndAttestSharedRuntime(fixture.resolved, fixture.state, "RUN-attestation", httpClient, time.Second)
 			}()
 			if recovered != nil {
 				t.Fatalf("attestation gate panicked instead of refusing: %v", recovered)
@@ -423,6 +523,9 @@ func TestConnectAndAttestSharedRuntimeExactProtocolVersionReportsOnlyThePassedGa
 	served := fixture.answerOnce(t, nil)
 	attested, err := connectAndAttestSharedRuntime(fixture.resolved, fixture.state, "RUN-attestation", nil, time.Second)
 	if err != nil {
+		if sharedRuntimeErrorCode(err) == "broker_unreachable" {
+			t.Fatalf("network unix must yield *net.UnixConn on the attestation path: %v", err)
+		}
 		t.Fatal(err)
 	}
 	defer attested.close()

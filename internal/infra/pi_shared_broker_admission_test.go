@@ -5,16 +5,35 @@ package infra
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
 )
+
+type sharedFailOnReadReader struct {
+	reads  int
+	failOn int
+}
+
+func (reader *sharedFailOnReadReader) Read(data []byte) (int, error) {
+	reader.reads++
+	if reader.reads == reader.failOn {
+		return 0, os.ErrPermission
+	}
+	for index := range data {
+		data[index] = 0x5a
+	}
+	return len(data), nil
+}
 
 type sharedBrokerAdmissionFixture struct {
 	server      *sharedBrokerServer
@@ -80,6 +99,7 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 		name         string
 		code         string
 		mutateSystem func(*sharedBrokerAdmissionDependencies)
+		mutateError  func(*sharedBrokerAdmissionDependencies, sharedBrokerAdmissionFixture)
 		mutateHello  func(*sharedWireMessage)
 	}{
 		{
@@ -89,6 +109,14 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 				system.peerIdentity = func(connection *net.UnixConn) (uint32, int, error) {
 					_, pid, err := original(connection)
 					return 0, pid, err
+				}
+			},
+		},
+		{
+			name: "peer identity error with valid witness", code: "broker_peer_untrusted",
+			mutateError: func(system *sharedBrokerAdmissionDependencies, fixture sharedBrokerAdmissionFixture) {
+				system.peerIdentity = func(*net.UnixConn) (uint32, int, error) {
+					return uint32(os.Geteuid()), fixture.observation.PID, os.ErrPermission
 				}
 			},
 		},
@@ -105,6 +133,18 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 					observation.PStat = darwinProcessStateZombie
 					return observation, err
 				}
+			},
+		},
+		{
+			name: "client process inspection error with live witness", code: "broker_identity_unavailable",
+			mutateError: func(system *sharedBrokerAdmissionDependencies, fixture sharedBrokerAdmissionFixture) {
+				system.inspectProcess = func(int) (sharedProcessObservation, error) { return fixture.observation, os.ErrPermission }
+			},
+		},
+		{
+			name: "client executable identity error with matching witness", code: "broker_identity_unavailable",
+			mutateError: func(system *sharedBrokerAdmissionDependencies, fixture sharedBrokerAdmissionFixture) {
+				system.processExecIdentity = func(sharedProcessObservation) (FileIdentity, error) { return fixture.identity, os.ErrPermission }
 			},
 		},
 		{
@@ -183,6 +223,9 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 			if testCase.mutateSystem != nil {
 				testCase.mutateSystem(&fixture.server.admission)
 			}
+			if testCase.mutateError != nil {
+				testCase.mutateError(&fixture.server.admission, fixture)
+			}
 			if testCase.mutateHello != nil {
 				testCase.mutateHello(&fixture.hello)
 			}
@@ -215,7 +258,147 @@ func TestSharedBrokerAcquireLeaseRefusesDrainingBeforeGrant(t *testing.T) {
 	}
 }
 
+func TestSharedBrokerAcquireLeaseRefusesNonceAndTokenReadFailures(t *testing.T) {
+	for _, testCase := range []struct {
+		name   string
+		failOn int
+	}{
+		{name: "lease nonce", failOn: 1},
+		{name: "bearer token after nonce", failOn: 2},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newSharedBrokerAdmissionFixture(t)
+			originalReader := sharedBrokerRandomReader
+			sharedBrokerRandomReader = &sharedFailOnReadReader{failOn: testCase.failOn}
+			t.Cleanup(func() { sharedBrokerRandomReader = originalReader })
+			lease, err := fixture.server.acquireLease(
+				sharedWireMessage{Type: "acquire", ClientKey: "random-failure"},
+				fixture.hello,
+				fixture.observation,
+			)
+			if sharedRuntimeErrorCode(err) != "shared_runtime_state_path_invalid" {
+				t.Fatalf("random generation failure returned lease=%#v err=%v", lease, err)
+			}
+			if lease != nil {
+				t.Fatalf("random generation failure returned lease=%#v", lease)
+			}
+			if count, _ := fixture.server.leaseFacts(); count != 0 {
+				t.Fatalf("random generation failure retained %d leases", count)
+			}
+		})
+	}
+}
+
+// Production call site: sharedBrokerServer.handleConnection -> acquireLease.
+// Each subtest narrows a distinct admission gate and requires the broker to
+// refuse before it grants or duplicates a lease.
+func TestSharedBrokerAcquireLeaseRefusesPolicyPressureSupersededGenerationAndLeaseLimit(t *testing.T) {
+	t.Run("mismatched resource policy", func(t *testing.T) {
+		fixture := newSharedBrokerAdmissionFixture(t)
+		policy := testSharedRuntimeResourcePolicy()
+		fixture.server.resolved.Sharing.ResourcePressureMode = "provider"
+		fixture.server.resolved.Sharing.ResourcePressure = &policy
+		effective := fixture.server.resolved.Sharing
+		fixture.server.record.Sharing = &effective
+		fixture.hello.ConfiguredSharing = nil
+		var observations int
+		fixture.server.resources.observe = func(context.Context, *http.Client, string, string, PiRuntimeResourcePressure) (sharedRuntimeProviderResourceObservation, error) {
+			observations++
+			return observedSharedRuntimeResources(700, "idle"), nil
+		}
+		response := sendProductionAcquire(t, &fixture, "mismatched-policy")
+		if response.Type != "refused" || response.Code != "shared_runtime_resource_policy_mismatch" {
+			t.Fatalf("policy mismatch response=%#v", response)
+		}
+		if observations != 0 {
+			t.Fatalf("policy mismatch reached provider observation %d times", observations)
+		}
+	})
+
+	t.Run("refused resource admission", func(t *testing.T) {
+		fixture := newSharedBrokerAdmissionFixture(t)
+		fixture.server.resolved.Profile.Model = "Qwen-test"
+		configureSharedBrokerResourceFixture(&fixture, observedSharedRuntimeResources(1000, "busy"))
+		response := sendProductionAcquire(t, &fixture, "pressured-resource")
+		if response.Type != "refused" || response.Code != "shared_runtime_resource_pressure" {
+			t.Fatalf("pressured admission response=%#v", response)
+		}
+		if count, _ := fixture.server.leaseFacts(); count != 0 {
+			t.Fatalf("pressured admission retained %d leases", count)
+		}
+	})
+
+	t.Run("superseded observation", func(t *testing.T) {
+		fixture := newSharedBrokerAdmissionFixture(t)
+		fixture.server.resolved.Profile.Model = "Qwen-test"
+		configureSharedBrokerResourceFixture(&fixture, observedSharedRuntimeResources(700, "idle"))
+		fixture.server.resources.beforeLeaseReservation = func(uint64) {
+			fixture.server.mu.Lock()
+			fixture.server.resourceAdmissionGeneration++
+			fixture.server.mu.Unlock()
+		}
+		response := sendProductionAcquire(t, &fixture, "superseded-resource")
+		if response.Type != "refused" || response.Code != "shared_runtime_resource_unknown" || response.Resources == nil || response.Resources.Reason != "resource_observation_stale" {
+			t.Fatalf("superseded observation response=%#v", response)
+		}
+		if count, _ := fixture.server.leaseFacts(); count != 0 {
+			t.Fatalf("superseded admission retained %d leases", count)
+		}
+	})
+
+	t.Run("lease limit", func(t *testing.T) {
+		fixture := newSharedBrokerAdmissionFixture(t)
+		fixture.server.resolved.Sharing.MaxLeases = 1
+		configured := fixture.server.resolved.Sharing
+		fixture.hello.ConfiguredSharing = &configured
+		fixture.server.mu.Lock()
+		fixture.server.leases["existing-lease"] = &SharedLeaseRecord{LeaseID: "existing-lease"}
+		fixture.server.mu.Unlock()
+		response := sendProductionAcquire(t, &fixture, "over-limit")
+		if response.Type != "refused" || response.Code != "shared_runtime_lease_limit" {
+			t.Fatalf("lease limit response=%#v", response)
+		}
+		if count, _ := fixture.server.leaseFacts(); count != 1 {
+			t.Fatalf("lease limit changed the existing lease set to %d leases", count)
+		}
+	})
+}
+
+func sendProductionAcquire(t *testing.T, fixture *sharedBrokerAdmissionFixture, clientKey string) sharedWireMessage {
+	t.Helper()
+	connection, reader, done := startSharedBrokerFixtureConnection(t, fixture)
+	if err := writeSharedWireMessage(connection, sharedWireMessage{Type: "acquire", ClientKey: clientKey}); err != nil {
+		t.Fatal(err)
+	}
+	response, err := readSharedWireMessage(reader)
+	_ = connection.Close()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("broker connection did not finish after acquisition response")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response
+}
+
 func TestSharedBrokerProductionConnectionRejectsWireFrameBoundWidening(t *testing.T) {
+	response := testSharedBrokerProductionConnectionRejectsWireFrameBoundWidening(t)
+	if response.Type != "refused" || response.Code != "protocol_violation" {
+		t.Fatalf("oversize hello response=%#v", response)
+	}
+}
+
+func TestReadSharedWireMessageProductionBrokerConnectionRejectsOversizedFrame(t *testing.T) {
+	response := testSharedBrokerProductionConnectionRejectsWireFrameBoundWidening(t)
+	if response.Type != "refused" || response.Code != "protocol_violation" {
+		t.Fatalf("production oversized frame response=%#v", response)
+	}
+}
+
+func testSharedBrokerProductionConnectionRejectsWireFrameBoundWidening(t *testing.T) sharedWireMessage {
+	t.Helper()
 	fixture := newSharedBrokerAdmissionFixture(t)
 	serverConnection, clientConnection := sharedBrokerUnixConnectionPair(t)
 	wrapped := &sharedBrokerConnection{
@@ -247,12 +430,10 @@ func TestSharedBrokerProductionConnectionRejectsWireFrameBoundWidening(t *testin
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
-	if response.Type != "refused" || response.Code != "protocol_violation" {
-		t.Fatalf("oversize hello response=%#v", response)
-	}
 	if leaseCount, _ := fixture.server.leaseFacts(); leaseCount != 0 {
 		t.Fatalf("oversize hello was granted %d leases", leaseCount)
 	}
+	return response
 }
 
 // Production call site: sharedBrokerServer.handleConnection. Closing the real
@@ -364,6 +545,9 @@ func TestRunSharedRuntimeBrokerRefusesRecomputedRuntimeKeyAtProductionEntry(t *t
 	output, err := command.CombinedOutput()
 	if err == nil || !bytes.Contains(output, []byte(`"code":"shared_runtime_identity_mismatch"`)) {
 		t.Fatalf("broker recomputed-key gate err=%v output=%s", err, output)
+	}
+	if !strings.Contains(string(output), "shared_runtime_identity_mismatch") {
+		t.Fatalf("production broker did not retain the shared_runtime_identity_mismatch refusal code: %s", output)
 	}
 	for _, path := range []string{wrongPaths.BrokerState, wrongPaths.RendezvousSocket} {
 		if _, statErr := os.Stat(path); !errors.Is(statErr, os.ErrNotExist) {

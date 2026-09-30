@@ -11,9 +11,11 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -1103,6 +1105,137 @@ func TestSharedRuntimeForceStopAbsentCleansStaleLeaseMirrors(t *testing.T) {
 	}
 }
 
+func TestStartUnauthorizedRuntimeCapturesFatalOutputThroughProductionLaunchPath(t *testing.T) {
+	project, home, cache := t.TempDir(), t.TempDir(), shortSharedRuntimeCache(t)
+	entry := EngineCatalogEntry{
+		Mode: "local", Engine: "mlx-lm", Model: "Model", Executable: "/bin/sh",
+		Argv: []string{"-c", "printf '%s\\n' 'fatal-marker-fixture' >&2; exec /bin/sleep 30", "{host}", "{port}"},
+		Supervision: &EngineCatalogSupervisionPolicy{
+			FatalOutputSubstrings: []string{"fatal-marker-fixture"},
+			RestartOnFailure:      true, MaxRestarts: 2, RestartWindowSeconds: 60,
+			RestartDelayMilliseconds: 250,
+		},
+	}
+	catalogPath := writeEngineCatalog(t, home, map[string]EngineCatalogEntry{"marker": entry})
+	resolved, err := resolveSharedProfile(project, home, cache, "marker")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CreateSharedRuntimeTree(resolved.Paths); err != nil {
+		t.Fatalf("create normal broker runtime tree: %v", err)
+	}
+	command, runtimeWait, authorization, err := startUnauthorizedRuntime(resolved, os.Environ())
+	if err != nil {
+		t.Fatalf("start unauthorized runtime: %v", err)
+	}
+	defer func() {
+		_ = authorization.Close()
+		_ = terminateProcessGroup(command.Process.Pid, runtimeWait, time.Second)
+	}()
+	if _, err := waitForSharedProcessIdentity(command.Process.Pid, 2*time.Second); err != nil {
+		t.Fatal(err)
+	}
+	execPlanDigest := SharedRuntimeExecPlanDigest(resolved.Profile, resolved.Paths.RuntimeCWD)
+	frame := sharedRuntimeAuthorizationFrame{
+		Schema: sharedRuntimeAuthSchema, ProtocolVersion: SharedRuntimeProtocolVersion,
+		RuntimeKey: resolved.RuntimeKey, LauncherPID: command.Process.Pid,
+		ExecPlanDigest: execPlanDigest,
+	}
+	if err := writeAuthorizationFrame(authorization, frame); err != nil {
+		t.Fatal(err)
+	}
+	if err := authorization.Close(); err != nil {
+		t.Fatal(err)
+	}
+	err = waitPiRuntimeReady(context.Background(), nil, resolved.Profile.BaseURL+resolved.Profile.Runtime.ReadinessPath,
+		resolved.Profile.Model, command.Process, runtimeWait, 5*time.Second)
+	if sharedRuntimeErrorCode(err) != "runtime_fatal_output" {
+		t.Fatalf("production launch path did not surface configured marker: %v", err)
+	}
+	if runtimeWait.output.firstFatalOutput() != entry.Supervision.FatalOutputSubstrings[0] {
+		t.Fatalf("production launch path captured marker=%q", runtimeWait.output.firstFatalOutput())
+	}
+	if resolved.Profile.Source != catalogPath {
+		t.Fatalf("test did not exercise the selected catalog entry: source=%q want=%q", resolved.Profile.Source, catalogPath)
+	}
+}
+
+func TestRunSharedRuntimeBrokerCatalogFatalMarkerBudgetAtPreReadinessDefer(t *testing.T) {
+	root, err := os.MkdirTemp("/tmp", "catalog-marker-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(root) })
+	project, home := filepath.Join(root, "project"), filepath.Join(root, "home")
+	cache, err := os.MkdirTemp("/tmp", "c-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(cache) })
+	for _, directory := range []string{project, home, cache} {
+		if err := os.MkdirAll(directory, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	marker := "catalog-pre-readiness-fatal-marker"
+	entry := EngineCatalogEntry{
+		Mode: "local", Engine: "mlx-lm", Model: "Model", Executable: "/bin/sh",
+		Argv: []string{"-c", "printf '%s\\n' '" + marker + "' >&2; exit 1", "{host}", "{port}"},
+		Supervision: &EngineCatalogSupervisionPolicy{
+			FatalOutputSubstrings: []string{marker}, RestartOnFailure: false, MaxRestarts: 2,
+			RestartWindowSeconds: 60, RestartDelayMilliseconds: 0,
+		},
+	}
+	writeEngineCatalog(t, home, map[string]EngineCatalogEntry{"marker": entry})
+	resolved, err := resolveSharedProfile(project, home, cache, "marker")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CreateSharedRuntimeTree(resolved.Paths); err != nil {
+		t.Fatal(err)
+	}
+	replaceBrokerSystem(t, func(system *sharedRuntimeBrokerSystem) {
+		system.getSessionID = func(int) (int, error) { return os.Getpid(), nil }
+	})
+	options := SharedRuntimeBrokerOptions{
+		RuntimeKey: resolved.RuntimeKey, ProfileProject: project, ProfileName: "marker",
+		HomeDir: home, CacheRoot: cache, Environ: append(os.Environ(), "HOME="+home),
+	}
+	for attempt := 1; attempt <= 3; attempt++ {
+		err := RunSharedRuntimeBroker(options)
+		wantCode := "runtime_fatal_output"
+		if attempt == 3 {
+			wantCode = "shared_runtime_quarantined"
+		}
+		gotCode := sharedRuntimeErrorCode(err)
+		if gotCode == "runtime_exited_early" && attempt < 3 {
+			// Either readiness select arm may observe the already-recorded marker;
+			// the pre-readiness defer below is the behavior under test.
+		} else if gotCode != wantCode {
+			t.Fatalf("pre-readiness broker attempt %d code=%q err=%v, want %q", attempt, gotCode, err, wantCode)
+		}
+		ledger, ledgerErr := readSharedRuntimeRestartLedger(resolved.Paths.RestartLedger, resolved.RuntimeKey, resolved.ProfileDigest)
+		if ledgerErr != nil {
+			t.Fatalf("read catalog restart ledger after attempt %d: %v", attempt, ledgerErr)
+		}
+		if ledger.RestartCount != attempt {
+			t.Fatalf("pre-readiness attempt %d restart count=%d", attempt, ledger.RestartCount)
+		}
+		if attempt < 3 && ledger.QuarantinedUntil != nil {
+			t.Fatalf("catalog fatal marker was quarantined before legacy marker budget: %#v", ledger)
+		}
+		if attempt == 3 {
+			if ledger.QuarantinedUntil == nil {
+				t.Fatal("pre-readiness fatal marker exceeding legacy budget did not quarantine")
+			}
+			last := ledger.FailureHistory[len(ledger.FailureHistory)-1]
+			if delta := ledger.QuarantinedUntil.Sub(last.OccurredAt); delta != 30*time.Second {
+				t.Fatalf("pre-readiness catalog quarantine hold=%s, want 30s", delta)
+			}
+		}
+	}
+}
+
 func newSharedIntegrationProfile(t *testing.T) (project, home, cache string, resolved sharedResolvedProfile) {
 	return newSharedIntegrationProfileAtPort(t, 18011)
 }
@@ -1151,6 +1284,115 @@ func TestSharedRuntimeAcquisitionHonorsCancelledContextWithoutElection(t *testin
 	for _, path := range []string{resolved.Paths.BrokerState, resolved.Paths.RendezvousSocket, resolved.Paths.BrokerLog} {
 		if _, statErr := os.Stat(path); !errors.Is(statErr, os.ErrNotExist) {
 			t.Fatalf("cancelled acquisition started a broker side effect at %s: %v", path, statErr)
+		}
+	}
+}
+
+func TestCatalogClientAttestationFailureStopsLaunchedRuntime(t *testing.T) {
+	root, err := os.MkdirTemp("/tmp", "c-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(root) })
+	project := filepath.Join(root, "p")
+	home := filepath.Join(root, "h")
+	cache := filepath.Join(home, "Library", "Caches")
+	for _, directory := range []string{project, cache} {
+		if err := os.MkdirAll(directory, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fakeRuntime := buildSharedFakeRuntime(t, root)
+	pidFile := filepath.Join(root, "runtime.pid")
+	entry := EngineCatalogEntry{
+		Mode: "local", Engine: "mlx-lm", ServedModelID: "catalog-test-model", Model: "catalog-test-model",
+		Executable: fakeRuntime,
+		Argv:       []string{"serve", "--host", "{host}", "--port", "{port}", "--pid-file", pidFile},
+	}
+	catalog, err := MarshalEngineCatalog(EngineCatalogDocument{
+		SchemaVersion: EngineCatalogSchemaVersion,
+		Engines:       map[string]EngineCatalogEntry{"catalog-attestation": entry},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalogPath := filepath.Join(home, ".curator", "engines.toml")
+	if err := os.MkdirAll(filepath.Dir(catalogPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(catalogPath, catalog, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := resolveSharedProfile(project, home, cache, "catalog-attestation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CreateSharedRuntimeTree(resolved.Paths); err != nil {
+		t.Fatal(err)
+	}
+	state, err := ResolvePiStatePaths(cache, resolved.Project, resolved.ProfileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CreatePiStateTree(state); err != nil {
+		t.Fatal(err)
+	}
+	options := SharedRuntimeOperatorOptions{ProjectDir: project, HomeDir: home, CacheRoot: cache, Profile: "catalog-attestation"}
+	t.Cleanup(func() { _, _ = StopSharedRuntime(options, true, 3*time.Second) })
+	originalSystem := sharedRuntimeAttestationSystem
+	mutatedSystem := originalSystem
+	mutatedSystem.checkModel = func(*http.Client, string, string) error {
+		return sharedRuntimeError("catalog_test_attestation_failure", errors.New("injected client attestation refusal"))
+	}
+	sharedRuntimeAttestationSystem = mutatedSystem
+	defer func() { sharedRuntimeAttestationSystem = originalSystem }()
+
+	_, err = acquireSharedRuntimeLease(resolved, state, "RUN-catalog-attestation-failure", os.Environ(), nil, context.Background())
+	if sharedRuntimeErrorCode(err) != "catalog_test_attestation_failure" {
+		t.Fatalf("client attestation failure was not returned after cleanup request: %v", err)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	var runtimePID int
+	for time.Now().Before(deadline) {
+		if data, readErr := os.ReadFile(pidFile); readErr == nil {
+			runtimePID, err = strconv.Atoi(strings.TrimSpace(string(data)))
+			if err != nil {
+				t.Fatalf("decode fake runtime pid: %v", err)
+			}
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if runtimePID <= 0 {
+		t.Fatal("broker did not launch the catalog runtime before client attestation failed")
+	}
+	deadline = time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		observation, inspectErr := inspectSharedProcessKernel(runtimePID)
+		if sharedProcessGone(inspectErr) || inspectErr == nil && !observation.live() {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if observation, inspectErr := inspectSharedProcessKernel(runtimePID); !sharedProcessGone(inspectErr) && (inspectErr != nil || observation.live()) {
+		t.Fatalf("runtime PID %d remained live after client attestation refusal: observation=%#v err=%v", runtimePID, observation, inspectErr)
+	}
+	if record, present, readErr := readSharedBrokerRecord(resolved.Paths.BrokerState); readErr != nil {
+		t.Fatalf("read broker record after client attestation refusal: %v", readErr)
+	} else if present {
+		brokerGone := false
+		deadline = time.Now().Add(5 * time.Second)
+		for time.Now().Before(deadline) {
+			observation, inspectErr := inspectSharedProcessKernel(record.Broker.PID)
+			if sharedProcessGone(inspectErr) || inspectErr == nil && !observation.live() {
+				brokerGone = true
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		if !brokerGone {
+			observation, inspectErr := inspectSharedProcessKernel(record.Broker.PID)
+			t.Fatalf("broker PID %d remained live after its runtime attestation failed: observation=%#v err=%v", record.Broker.PID, observation, inspectErr)
 		}
 	}
 }
@@ -1426,6 +1668,61 @@ func TestSharedRuntimeForceStopRejectsRecordedBrokerIdentityNarrowingBeforeSigna
 		mutateRecord func(*SharedBrokerIdentity)
 		mutateSystem func(*sharedRuntimeOperatorDependencies, int)
 	}{
+		{
+			name:         "process inspection error with matching identity",
+			mutateRecord: func(*SharedBrokerIdentity) {},
+			mutateSystem: func(system *sharedRuntimeOperatorDependencies, pid int) {
+				original := system.inspectProcess
+				system.inspectProcess = func(candidatePID int) (sharedProcessObservation, error) {
+					observation, err := original(candidatePID)
+					if candidatePID == pid {
+						return observation, os.ErrPermission
+					}
+					return observation, err
+				}
+			},
+		},
+		{
+			name:         "zombie broker process",
+			mutateRecord: func(*SharedBrokerIdentity) {},
+			mutateSystem: func(system *sharedRuntimeOperatorDependencies, pid int) {
+				original := system.inspectProcess
+				system.inspectProcess = func(candidatePID int) (sharedProcessObservation, error) {
+					observation, err := original(candidatePID)
+					if candidatePID == pid {
+						observation.PStat = darwinProcessStateZombie
+					}
+					return observation, err
+				}
+			},
+		},
+		{
+			name:         "own executable identity error with matching identity",
+			mutateRecord: func(*SharedBrokerIdentity) {},
+			mutateSystem: func(system *sharedRuntimeOperatorDependencies, _ int) {
+				_, identity, err := ownResolvedExecutableIdentity()
+				if err != nil {
+					return
+				}
+				system.ownExecutableIdentity = func() (string, FileIdentity, error) {
+					return os.Args[0], identity, os.ErrPermission
+				}
+			},
+		},
+		{
+			name:         "process executable identity error with matching identity",
+			mutateRecord: func(*SharedBrokerIdentity) {},
+			mutateSystem: func(system *sharedRuntimeOperatorDependencies, pid int) {
+				original := system.processExecIdentity
+				system.processExecIdentity = func(observation sharedProcessObservation) (FileIdentity, error) {
+					identity, err := original(observation)
+					if observation.PID == pid {
+						return identity, os.ErrPermission
+					}
+					return identity, err
+				}
+			},
+		},
 		{
 			name: "pid reuse start time",
 			mutateRecord: func(identity *SharedBrokerIdentity) {

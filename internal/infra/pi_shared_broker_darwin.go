@@ -37,6 +37,37 @@ type SharedRuntimeBrokerOptions struct {
 	Signals        <-chan os.Signal
 }
 
+// The broker uses these OS boundaries through one package-private value so
+// failure paths can be exercised at the production entry point. Production
+// callers use the real implementations below.
+type sharedRuntimeBrokerSystem struct {
+	getSessionID             func(int) (int, error)
+	inspectProcess           func(int) (sharedProcessObservation, error)
+	ownExecutableIdentity    func() (string, FileIdentity, error)
+	waitForProcessIdentity   func(int, time.Duration) (sharedProcessObservation, error)
+	fileIdentity             func(string) (FileIdentity, error)
+	writeAuthorizationFrame  func(io.Writer, sharedRuntimeAuthorizationFrame) error
+	closeAuthorizationWriter func(*os.File) error
+	listenRendezvous         func(string, *net.UnixAddr) (*net.UnixListener, error)
+	chmodPath                func(string, os.FileMode) error
+	startUnauthorizedRuntime func(sharedResolvedProfile, []string) (*exec.Cmd, *piProcessWait, *os.File, error)
+}
+
+var brokerSystem = sharedRuntimeBrokerSystem{
+	getSessionID:             unix.Getsid,
+	inspectProcess:           inspectSharedProcess,
+	ownExecutableIdentity:    ownResolvedExecutableIdentity,
+	waitForProcessIdentity:   waitForSharedProcessIdentity,
+	fileIdentity:             fileIdentity,
+	writeAuthorizationFrame:  writeAuthorizationFrame,
+	closeAuthorizationWriter: func(file *os.File) error { return file.Close() },
+	listenRendezvous:         net.ListenUnix,
+	chmodPath:                os.Chmod,
+	startUnauthorizedRuntime: startUnauthorizedRuntime,
+}
+
+var sharedBrokerRandomReader io.Reader = rand.Reader
+
 type sharedWireMessage struct {
 	Type                string                       `json:"type"`
 	Code                string                       `json:"code,omitempty"`
@@ -110,13 +141,14 @@ func (lock *sharedBrokerLock) Close() error {
 }
 
 func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
+	system := brokerSystem
 	// B1 is intentionally the first operation in this entry point.
-	sessionID, err := unix.Getsid(0)
-	if err != nil || sessionID != os.Getpid() {
-		if err == nil {
-			err = fmt.Errorf("getsid(0)=%d getpid()=%d", sessionID, os.Getpid())
-		}
+	sessionID, err := system.getSessionID(0)
+	if err != nil {
 		return sharedRuntimeError("broker_not_session_leader", err)
+	}
+	if sessionID != os.Getpid() {
+		return sharedRuntimeError("broker_not_session_leader", fmt.Errorf("getsid(0)=%d getpid()=%d", sessionID, os.Getpid()))
 	}
 
 	paths, err := ResolveSharedRuntimePaths(options.CacheRoot, options.RuntimeKey)
@@ -133,11 +165,11 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 	if err != nil {
 		return err
 	}
-	self, err := inspectSharedProcess(os.Getpid())
+	self, err := system.inspectProcess(os.Getpid())
 	if err != nil {
 		return sharedRuntimeError("broker_identity_unavailable", err)
 	}
-	_, selfFile, err := ownResolvedExecutableIdentity()
+	_, selfFile, err := system.ownExecutableIdentity()
 	if err != nil {
 		return sharedRuntimeError("broker_identity_unavailable", err)
 	}
@@ -223,19 +255,17 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 		<-timer.C
 	}
 	if err := preflightPiListener(resolved.Profile.BaseURL); err != nil {
-		var launch *PiLaunchError
-		if errors.As(err, &launch) {
-			return sharedRuntimeError(launch.Code, err)
-		}
 		return err
 	}
 
 	runtimeReady := false
+	var runtimeWait *piProcessWait
 	defer func() {
 		if result == nil || runtimeReady {
 			return
 		}
-		decision := sharedRuntimeRecordFailure(&ledger, resolved.Sharing, time.Now().UTC())
+		fatalOutput := runtimeWait != nil && runtimeWait.output.firstFatalOutput() != ""
+		decision := sharedRuntimeRecordFailureForCause(&ledger, resolved.Sharing, time.Now().UTC(), fatalOutput)
 		if ledgerErr := writeSharedRuntimeRestartLedger(paths.RestartLedger, ledger); ledgerErr != nil {
 			result = ledgerErr
 			return
@@ -244,10 +274,11 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 			result = &SharedRuntimeError{Code: "shared_runtime_quarantined", Details: map[string]any{"restart_count": ledger.RestartCount, "quarantined_until": ledger.QuarantinedUntil}, Err: result}
 		}
 	}()
-	runtimeCommand, runtimeWait, authorizationWriter, err := startUnauthorizedRuntime(resolved, options.Environ)
+	runtimeCommand, startedWait, authorizationWriter, err := system.startUnauthorizedRuntime(resolved, options.Environ)
 	if err != nil {
 		return err
 	}
+	runtimeWait = startedWait
 	runtimeOwned = true
 	runtimeReaped = false
 	cleanupRuntime := func() error {
@@ -263,14 +294,14 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 		}
 	}()
 
-	launcherObservation, err := waitForSharedProcessIdentity(runtimeCommand.Process.Pid, 2*time.Second)
+	launcherObservation, err := system.waitForProcessIdentity(runtimeCommand.Process.Pid, 2*time.Second)
 	if err != nil {
-		_ = authorizationWriter.Close()
+		_ = system.closeAuthorizationWriter(authorizationWriter)
 		return sharedRuntimeError("runtime_start_failed", err)
 	}
-	runtimeFile, err := fileIdentity(resolved.Profile.Runtime.Executable)
+	runtimeFile, err := system.fileIdentity(resolved.Profile.Runtime.Executable)
 	if err != nil {
-		_ = authorizationWriter.Close()
+		_ = system.closeAuthorizationWriter(authorizationWriter)
 		return piError("runtime_executable_invalid", err)
 	}
 	execPlanDigest := SharedRuntimeExecPlanDigest(resolved.Profile, resolved.Paths.RuntimeCWD)
@@ -283,7 +314,7 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 		ExecutableIdentity: runtimeFile, ExecPlanDigest: execPlanDigest, Stage: "authorizing",
 	}
 	if err := writeSharedJSONAtomic(paths.BrokerState, record); err != nil {
-		_ = authorizationWriter.Close()
+		_ = system.closeAuthorizationWriter(authorizationWriter)
 		return err
 	}
 	frame := sharedRuntimeAuthorizationFrame{
@@ -291,19 +322,23 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 		RuntimeKey: resolved.RuntimeKey, LauncherPID: runtimeCommand.Process.Pid,
 		ExecPlanDigest: execPlanDigest,
 	}
-	if err := writeAuthorizationFrame(authorizationWriter, frame); err != nil {
-		_ = authorizationWriter.Close()
+	if err := system.writeAuthorizationFrame(authorizationWriter, frame); err != nil {
+		_ = system.closeAuthorizationWriter(authorizationWriter)
 		return sharedRuntimeError("protocol_violation", err)
 	}
-	if err := authorizationWriter.Close(); err != nil {
+	if err := system.closeAuthorizationWriter(authorizationWriter); err != nil {
 		return sharedRuntimeError("protocol_violation", err)
 	}
 	wantModel := resolved.Profile.Model
 	if resolved.Profile.Runtime.DFlash != nil {
 		wantModel = resolved.Profile.Runtime.DFlash.TargetModel
 	}
-	if err := waitPiRuntimeReady(context.Background(), options.HTTPClient, resolved.Profile.BaseURL+resolved.Profile.Runtime.ReadinessPath, wantModel, runtimeCommand.Process, runtimeWait, time.Duration(resolved.Profile.Runtime.StartupTimeoutSeconds)*time.Second); err != nil {
+	servedModel, err := waitPiRuntimeReadyAndReportModel(context.Background(), options.HTTPClient, resolved.Profile.BaseURL+resolved.Profile.Runtime.ReadinessPath, wantModel, runtimeCommand.Process, runtimeWait, time.Duration(resolved.Profile.Runtime.StartupTimeoutSeconds)*time.Second)
+	if err != nil {
 		return err
+	}
+	if resolved.CatalogEntry && resolved.Profile.Model == "" {
+		resolved.Profile.Model = servedModel
 	}
 	readyAt := time.Now().UTC()
 	runtimeReady = true
@@ -317,11 +352,11 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 	if err := writeSharedJSONAtomic(paths.BrokerState, record); err != nil {
 		return err
 	}
-	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: paths.RendezvousSocket, Net: "unix"})
+	listener, err := system.listenRendezvous("unix", &net.UnixAddr{Name: paths.RendezvousSocket, Net: "unix"})
 	if err != nil {
 		return sharedRuntimeError("broker_rendezvous_bind_conflict", err)
 	}
-	if err := os.Chmod(paths.RendezvousSocket, 0o600); err != nil {
+	if err := system.chmodPath(paths.RendezvousSocket, 0o600); err != nil {
 		_ = listener.Close()
 		return sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
@@ -356,17 +391,35 @@ func startUnauthorizedRuntime(resolved sharedResolvedProfile, environ []string) 
 }
 
 func startUnauthorizedRuntimeWithDependencies(resolved sharedResolvedProfile, environ []string, clock sharedLogClock, startCommand func(*exec.Cmd) error) (*exec.Cmd, *piProcessWait, *os.File, error) {
-	readEnd, writeEnd, err := os.Pipe()
+	return startUnauthorizedRuntimeWithSystem(resolved, environ, clock, startCommand, defaultUnauthorizedRuntimeSystem())
+}
+
+type sharedUnauthorizedRuntimeSystem struct {
+	createPipe            func() (*os.File, *os.File, error)
+	ownExecutableIdentity func() (string, FileIdentity, error)
+	openLog               func(string, int, int, sharedLogClock) (*sharedRotatingLogWriter, error)
+}
+
+func defaultUnauthorizedRuntimeSystem() sharedUnauthorizedRuntimeSystem {
+	return sharedUnauthorizedRuntimeSystem{
+		createPipe:            os.Pipe,
+		ownExecutableIdentity: ownResolvedExecutableIdentity,
+		openLog:               openSharedRotatingLog,
+	}
+}
+
+func startUnauthorizedRuntimeWithSystem(resolved sharedResolvedProfile, environ []string, clock sharedLogClock, startCommand func(*exec.Cmd) error, system sharedUnauthorizedRuntimeSystem) (*exec.Cmd, *piProcessWait, *os.File, error) {
+	readEnd, writeEnd, err := system.createPipe()
 	if err != nil {
 		return nil, nil, nil, sharedRuntimeError("runtime_start_failed", err)
 	}
-	executable, _, err := ownResolvedExecutableIdentity()
+	executable, _, err := system.ownExecutableIdentity()
 	if err != nil {
 		_ = readEnd.Close()
 		_ = writeEnd.Close()
 		return nil, nil, nil, sharedRuntimeError("runtime_start_failed", err)
 	}
-	logFile, err := openSharedRotatingLog(resolved.Paths.RuntimeLog, resolved.Sharing.MaxSegmentBytes, resolved.Sharing.MaxSegments, clock)
+	logFile, err := system.openLog(resolved.Paths.RuntimeLog, resolved.Sharing.MaxSegmentBytes, resolved.Sharing.MaxSegments, clock)
 	if err != nil {
 		_ = readEnd.Close()
 		_ = writeEnd.Close()
@@ -384,8 +437,9 @@ func startUnauthorizedRuntimeWithDependencies(resolved sharedResolvedProfile, en
 	}
 	command.Env = scrubSharedRuntimeEnvironment(environ)
 	command.Stdin = nil
-	command.Stdout = logFile
-	command.Stderr = logFile
+	output := newSharedRuntimeOutputWriter(logFile, resolved.Sharing.FatalOutputSubstrings)
+	command.Stdout = output
+	command.Stderr = output
 	command.ExtraFiles = []*os.File{readEnd}
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := startCommand(command); err != nil {
@@ -395,7 +449,10 @@ func startUnauthorizedRuntimeWithDependencies(resolved sharedResolvedProfile, en
 		return nil, nil, nil, sharedRuntimeError("runtime_start_failed", err)
 	}
 	_ = readEnd.Close()
-	return command, waitForPiProcessAndClose(command, logFile), writeEnd, nil
+	wait := waitForPiProcessAndClose(command, logFile)
+	wait.output = output.state
+	wait.pid = command.Process.Pid
+	return command, wait, writeEnd, nil
 }
 
 func waitForPiProcessAndClose(command *exec.Cmd, closer io.Closer) *piProcessWait {
@@ -456,6 +513,9 @@ var sharedRuntimeReclaimSystem = sharedRuntimeReclaimDependencies{
 	waitEndpointFree: waitSharedEndpointFree,
 }
 
+var sharedRuntimeWaitRecordedInspectKernel = inspectSharedProcessKernel
+var sharedRuntimeWaitEndpointPreflight = preflightPiListener
+
 func reclaimSharedRuntime(runtimeRecord *SharedRuntimeProcessRecord, shutdownTimeoutSeconds int) error {
 	if runtimeRecord == nil {
 		return nil
@@ -507,7 +567,7 @@ func reclaimSharedRuntime(runtimeRecord *SharedRuntimeProcessRecord, shutdownTim
 func waitRecordedRuntimeGone(runtimeRecord *SharedRuntimeProcessRecord, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
-		observation, err := inspectSharedProcessKernel(runtimeRecord.PID)
+		observation, err := sharedRuntimeWaitRecordedInspectKernel(runtimeRecord.PID)
 		if sharedProcessGone(err) || (err == nil && !observation.live()) || (err == nil && observation.StartTime != runtimeRecord.StartTime) {
 			return nil
 		}
@@ -524,7 +584,7 @@ func waitRecordedRuntimeGone(runtimeRecord *SharedRuntimeProcessRecord, timeout 
 func waitSharedEndpointFree(endpoint string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
-		if err := preflightPiListener(endpoint); err == nil {
+		if err := sharedRuntimeWaitEndpointPreflight(endpoint); err == nil {
 			return nil
 		}
 		if time.Now().After(deadline) {
@@ -606,6 +666,8 @@ type sharedBrokerServer struct {
 	record                      *SharedBrokerRecord
 	ledger                      *SharedRuntimeRestartLedger
 	listener                    *net.UnixListener
+	acceptUnix                  func() (*net.UnixConn, error)
+	terminateRuntime            func(int, *piProcessWait, syscall.Signal, time.Duration) error
 	mu                          sync.Mutex
 	state                       string
 	connections                 map[*sharedBrokerConnection]bool
@@ -630,6 +692,7 @@ var sharedFirstLeaseGraceDuration = func(sharing PiRuntimeSharing) time.Duration
 func newSharedBrokerServer(resolved sharedResolvedProfile, record *SharedBrokerRecord, ledger *SharedRuntimeRestartLedger, listener *net.UnixListener) *sharedBrokerServer {
 	return &sharedBrokerServer{
 		resolved: resolved, record: record, ledger: ledger, listener: listener, state: "serving",
+		acceptUnix: listener.AcceptUnix, terminateRuntime: terminateProcessGroupWithSignal,
 		connections: map[*sharedBrokerConnection]bool{}, leases: map[string]*SharedLeaseRecord{},
 		events: make(chan sharedBrokerEvent, 32), readyAt: dereferenceReadyAt(record.ReadyAt),
 		admission: sharedBrokerAdmissionSystem,
@@ -649,7 +712,7 @@ func (server *sharedBrokerServer) serve(runtimeWait *piProcessWait, signals <-ch
 	acceptErrors := make(chan error, 1)
 	go func() {
 		for {
-			connection, err := server.listener.AcceptUnix()
+			connection, err := server.acceptUnix()
 			if err != nil {
 				acceptErrors <- err
 				return
@@ -701,6 +764,26 @@ func (server *sharedBrokerServer) serve(runtimeWait *piProcessWait, signals <-ch
 		pressureEvictionChannel = pressureEviction.C
 	}
 	defer stopPressureEviction()
+	recordRuntimeFailure := func(fatalOutput bool) error {
+		if time.Since(server.readyAt) >= time.Duration(server.resolved.Sharing.StableRunSeconds)*time.Second {
+			sharedRuntimeResetStableRun(server.ledger)
+		}
+		decision := sharedRuntimeRecordFailureForCause(server.ledger, server.resolved.Sharing, time.Now().UTC(), fatalOutput)
+		if err := writeSharedRuntimeRestartLedger(server.resolved.Paths.RestartLedger, *server.ledger); err != nil {
+			return err
+		}
+		runtimeErr := errors.New("runtime exited while broker served")
+		if runtimeWait.err != nil {
+			runtimeErr = fmt.Errorf("runtime exited while broker served: %v", runtimeWait.err)
+		}
+		if fatalOutput {
+			runtimeErr = errors.New("runtime emitted a configured fatal output marker")
+		}
+		if decision.Quarantined {
+			return &SharedRuntimeError{Code: "shared_runtime_quarantined", Details: map[string]any{"restart_count": server.ledger.RestartCount, "quarantined_until": server.ledger.QuarantinedUntil}, Err: runtimeErr}
+		}
+		return sharedRuntimeError("runtime_exited_early", runtimeErr)
+	}
 	for {
 		select {
 		case connection := <-accepts:
@@ -715,18 +798,15 @@ func (server *sharedBrokerServer) serve(runtimeWait *piProcessWait, signals <-ch
 			}
 			return sharedRuntimeError("broker_unreachable", err)
 		case <-runtimeWait.done:
-			if time.Since(server.readyAt) >= time.Duration(server.resolved.Sharing.StableRunSeconds)*time.Second {
-				sharedRuntimeResetStableRun(server.ledger)
+			return recordRuntimeFailure(runtimeWait.output.firstFatalOutput() != "")
+		case <-fatalOutputChannel(runtimeWait):
+			if runtimeWait.pid <= 0 {
+				return sharedRuntimeError("runtime_fatal_output", errors.New("runtime process identity is unavailable after a fatal output marker"))
 			}
-			decision := sharedRuntimeRecordFailure(server.ledger, server.resolved.Sharing, time.Now().UTC())
-			if err := writeSharedRuntimeRestartLedger(server.resolved.Paths.RestartLedger, *server.ledger); err != nil {
+			if err := server.terminateRuntime(runtimeWait.pid, runtimeWait, syscall.SIGKILL, 0); err != nil {
 				return err
 			}
-			runtimeErr := fmt.Errorf("runtime exited while broker served: %v", runtimeWait.err)
-			if decision.Quarantined {
-				return &SharedRuntimeError{Code: "shared_runtime_quarantined", Details: map[string]any{"restart_count": server.ledger.RestartCount, "quarantined_until": server.ledger.QuarantinedUntil}, Err: runtimeErr}
-			}
-			return sharedRuntimeError("runtime_exited_early", runtimeErr)
+			return recordRuntimeFailure(true)
 		case <-stableRunChannel:
 			sharedRuntimeResetStableRun(server.ledger)
 			if err := writeSharedRuntimeRestartLedger(server.resolved.Paths.RestartLedger, *server.ledger); err != nil {
@@ -740,6 +820,14 @@ func (server *sharedBrokerServer) serve(runtimeWait *piProcessWait, signals <-ch
 			switch event.kind {
 			case "stop":
 				server.mu.Lock()
+				// Recheck at the lifecycle boundary: a lease may have been
+				// granted after the non-forced stop request was acknowledged.
+				if !event.force && len(server.leases) > 0 {
+					server.mu.Unlock()
+					break
+				}
+				server.state = "draining"
+				server.record.State = "draining"
 				server.forced = event.force
 				server.mu.Unlock()
 				server.setDraining()
@@ -1120,12 +1208,12 @@ func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage,
 		}, Err: errors.New("effective shared runtime lease limit reached")}
 	}
 	var nonce [16]byte
-	if _, err := rand.Read(nonce[:]); err != nil {
+	if _, err := io.ReadFull(sharedBrokerRandomReader, nonce[:]); err != nil {
 		server.mu.Unlock()
 		return nil, sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
 	var token [32]byte
-	if _, err := rand.Read(token[:]); err != nil {
+	if _, err := io.ReadFull(sharedBrokerRandomReader, token[:]); err != nil {
 		server.mu.Unlock()
 		return nil, sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}

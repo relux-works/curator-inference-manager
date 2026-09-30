@@ -150,9 +150,20 @@ func sharedRuntimeResetStableRun(ledger *SharedRuntimeRestartLedger) {
 }
 
 func sharedRuntimeRecordFailure(ledger *SharedRuntimeRestartLedger, policy PiRuntimeSharing, now time.Time) sharedRuntimeRestartDecision {
+	return sharedRuntimeRecordFailureForCause(ledger, policy, now, false)
+}
+
+func sharedRuntimeRecordFailureForCause(ledger *SharedRuntimeRestartLedger, policy PiRuntimeSharing, now time.Time, fatalOutput bool) sharedRuntimeRestartDecision {
 	ledger.RestartCount++
 	occurredAt := now.UTC()
-	if ledger.HalfOpen || ledger.RestartCount >= policy.RestartLimit {
+	restartThreshold := policy.restartFailureThreshold
+	if restartThreshold == 0 {
+		restartThreshold = policy.RestartLimit
+	}
+	if fatalOutput && policy.fatalOutputRestartFailureThreshold > 0 {
+		restartThreshold = policy.fatalOutputRestartFailureThreshold
+	}
+	if ledger.HalfOpen || ledger.RestartCount >= restartThreshold {
 		until := occurredAt.Add(time.Duration(policy.QuarantineSeconds) * time.Second)
 		ledger.QuarantinedUntil = &until
 		ledger.HalfOpen = false
@@ -165,6 +176,10 @@ func sharedRuntimeRecordFailure(ledger *SharedRuntimeRestartLedger, policy PiRun
 	}
 	delay := time.Duration(policy.RestartInitialBackoffSeconds) * time.Second
 	maximum := time.Duration(policy.RestartMaxBackoffSeconds) * time.Second
+	if policy.restartBackoffSet {
+		delay = policy.restartInitialBackoff
+		maximum = policy.restartMaxBackoff
+	}
 	for count := 1; count < ledger.RestartCount && delay < maximum; count++ {
 		if delay > maximum-delay {
 			delay = maximum

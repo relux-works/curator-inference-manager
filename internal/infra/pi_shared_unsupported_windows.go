@@ -160,6 +160,7 @@ type SharedRuntimeSharingStatus struct {
 type SharedRuntimeStatus struct {
 	ContractVersion    int                         `json:"contract_version"`
 	EngineIdentity     SharedRuntimeEngineIdentity `json:"engine_identity"`
+	EngineAvailability string                      `json:"engine_availability,omitempty"`
 	RuntimeKey         string                      `json:"runtime_key"`
 	ProfileDigest      string                      `json:"profile_digest"`
 	Endpoint           string                      `json:"endpoint"`
