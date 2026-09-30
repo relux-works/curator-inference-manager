@@ -103,8 +103,8 @@ Status: **DRAFT**, 2026-09-27. Not normative. This document collects what earlie
 - `mode = "ssh"` engine entries, already present in `model-harness` as profiles, cover a remote llama.cpp box. The `profile-ssh-forwarding` fact then stops being emitted as absent (LP §3).
 - KV snapshots (LP-D10; LP §4 Phase 5):
   - The `kv-snapshot` facts (`save`, `restore`, `validity`) belong to the module's engine contract; their execution belongs to `curator-inference-manager`.
-  - Today the only primitive is llama.cpp `/slots/{id}?action=save|restore` behind `--slot-save-path`. `mlx_lm.server` has none, and vLLM offers prefix caching only.
-  - Snapshot key: `(engine entry, weight digest, engine version, session id, prefix digest)`. The first four must match exactly and the fifth by prefix; anything else is reported as a cold prefill.
+  - Today the only primitive is llama.cpp `/slots/{id}?action=save|restore` behind `--slot-save-path`. `mlx_lm.server` has none, and vLLM offers prefix caching only. On a hybrid model (Qwen3.8) a restored slot cannot roll back, so a restore helps only a request that extends the saved prefix exactly, at the pinned engine build. An identical prompt or a divergent tail gets no reuse.
+  - Snapshot key: `(engine entry, weight digest, engine version, session id, prefix digest)`. The first four must match exactly and the fifth by prefix; anything else is reported as a cold prefill. The key further carries the KV layout (K/V cache types, stream count, V transposition), the render digest (the chat template in effect plus the effort it renders), the KV session lineage and the transcript anchor, and the weight identity (a digest of the artifacts the attested instance actually loaded, adapters included), computed and enforced by the broker.
   - Snapshots are built only after measuring cold against restored prefill (LP-D10; roadmap §5).
 
 ## 9. Delivery
@@ -129,6 +129,10 @@ Status: **DRAFT**, 2026-09-27. Not normative. This document collects what earlie
 5. Repository visibility: the roadmap proposes public (roadmap §6). This repository stays private until the operator decides.
 
 ## 11. Change log
+
+**2026-10-02.** Erratum 1: on a hybrid model (Qwen3.8) a restored slot cannot roll back, so §8 states that a restore helps only a request extending the saved prefix exactly, at the pinned engine build.
+
+**2026-10-02.** Erratum 2: the §8 snapshot key gains the KV layout, the render digest, the KV session lineage and transcript anchor, and the broker-computed weight identity.
 
 **2026-10-01.** Erratum 8: the first member of the KV snapshot key in §8 is the engine entry, replacing the legacy profile.
 
