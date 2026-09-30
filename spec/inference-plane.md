@@ -104,7 +104,7 @@ Status: **DRAFT**, 2026-09-27. Not normative. This document collects what earlie
 - KV snapshots (LP-D10; LP §4 Phase 5):
   - The `kv-snapshot` facts (`save`, `restore`, `validity`) belong to the module's engine contract; their execution belongs to `curator-inference-manager`.
   - Today the only primitive is llama.cpp `/slots/{id}?action=save|restore` behind `--slot-save-path`. `mlx_lm.server` has none, and vLLM offers prefix caching only.
-  - Snapshot key: `(profile, weight digest, engine version, session id, prefix digest)`. The first four must match exactly and the fifth by prefix; anything else is reported as a cold prefill.
+  - Snapshot key: `(engine entry, weight digest, engine version, session id, prefix digest)`. The first four must match exactly and the fifth by prefix; anything else is reported as a cold prefill.
   - Snapshots are built only after measuring cold against restored prefill (LP-D10; roadmap §5).
 
 ## 9. Delivery
@@ -129,6 +129,8 @@ Status: **DRAFT**, 2026-09-27. Not normative. This document collects what earlie
 5. Repository visibility: the roadmap proposes public (roadmap §6). This repository stays private until the operator decides.
 
 ## 11. Change log
+
+**2026-10-01.** Erratum 8: the first member of the KV snapshot key in §8 is the engine entry, replacing the legacy profile.
 
 **2026-09-29.** Adopted the curator-engines v0.x engine catalog schema v1, strict reader/resolution outcomes, legacy Pi compatibility rule, supervision mapping, and sanitized terminal evidence summary. Decision 0020 remains pending in curator-spec (Decision 01).
 
