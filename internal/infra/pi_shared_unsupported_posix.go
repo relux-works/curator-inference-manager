@@ -43,6 +43,7 @@ type SharedRuntimeSharingStatus struct {
 }
 
 type SharedRuntimeStatus struct {
+	Readings           EngineReadings              `json:"readings"`
 	ContractVersion    int                         `json:"contract_version"`
 	EngineIdentity     SharedRuntimeEngineIdentity `json:"engine_identity"`
 	EngineAvailability string                      `json:"engine_availability,omitempty"`

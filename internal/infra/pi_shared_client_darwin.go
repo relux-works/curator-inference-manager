@@ -497,6 +497,11 @@ func connectAndAttestSharedRuntimeWithOwnership(resolved sharedResolvedProfile, 
 		return nil, ownership.stopAfterAttestationFailure(connection, reader, *response.Broker, err)
 	}
 	passed("model_discovery")
+	// Envelope shape is a refusal-only gate and adds no attestation outcome;
+	// the passed gate set stays frozen.
+	if err := validateAttestedHelloEnvelope(response, resolved.Profile.Runtime); err != nil {
+		return nil, ownership.stopAfterAttestationFailure(connection, reader, *response.Broker, err)
+	}
 	closeOnError = false
 	return &sharedAttestedRuntime{
 		connection: connection,

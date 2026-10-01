@@ -707,6 +707,22 @@ func parsePiRuntimeSharing(table map[string]any, field string, runtime PiRuntime
 	return sharing, nil
 }
 
+// piSharingMaximumLingerSeconds is the producer's linger bound: linger plus the
+// runtime shutdown plus the handoff grace must fit a time.Duration. The wire
+// sharing validator names this helper, so the reader can never be narrower or
+// wider than the writer. The configuration parser keeps its inline form at the
+// original refusal sites.
+func piSharingMaximumLingerSeconds(shutdownTimeoutSeconds int) int64 {
+	return maxTimeDurationSeconds - int64(shutdownTimeoutSeconds) - sharedRuntimeHandoffGraceSeconds
+}
+
+// piObservationPathValid is the producer's observation-path shape: a clean
+// absolute HTTP path without query or fragment. The wire pressure validator
+// names this helper instead of copying the rule.
+func piObservationPathValid(path string) bool {
+	return strings.HasPrefix(path, "/") && !strings.ContainsAny(path, "?#") && filepath.Clean(path) == path
+}
+
 func parsePiRuntimeResourcePressure(table map[string]any, field string) (PiRuntimeResourcePressure, error) {
 	if err := rejectUnknownFields(table, field, "observation_path", "observation_timeout_milliseconds", "pressure_threshold_bytes", "recovery_threshold_bytes", "eviction_grace_seconds", "pressure_action", "unknown_action", "busy_action"); err != nil {
 		return PiRuntimeResourcePressure{}, err

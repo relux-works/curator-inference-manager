@@ -74,3 +74,35 @@ use the existing owner schema, exact JSON keys and terminal-state checks;
 broker records and unknown state remain refused. Only layout-declared broker
 and runtime logs stay opaque. Pending retries, half-open attempts, open restart
 windows and readiness without terminal evidence refuse import admission.
+
+### Status readings (protocol v1.1)
+
+`go run ./cmd/curator-engines status --engine NAME --json` adds the 17-fact
+`observed-process/v3` readings envelope. See
+[protocol v1.1](spec/engines-protocol-v1.1.md) for provenance, typed failure and
+unknown semantics. The normal required schema module is pinned to v0.5.39;
+existing status and socket version numbers remain unchanged.
+
+Run the profile conformance and status refusal regressions with
+`go test -count=1 ./cmd/curator-engines ./internal/infra -run 'Test(StatusReadings|ReviewMalformedResourceEnvelope|Panel.*Alias|MainCatalogAdmits|Pinned|RetainedLocalEngineReadings)'`.
+The retained-engine test reports unavailable observations as a skip, never a
+healthy pass. Run the module-wide AST guard with
+`go test -count=1 ./scripts -run '^TestReadingsRefusalCensusAndGeneratedSingletons$'`;
+use the existing `scripts/engine-catalog-mutants.go` with
+`-files internal/infra/engine_readings.go,internal/infra/engine_readings_envelopes_darwin.go -task TASK-260929-2j6yml` for scoped
+mutation evidence. Logs and generated tables belong under `.temp/`.
+
+Status capacity observations and `check` share the option table in
+`internal/infra/engine_check.go`, including llama-cpp `-c` and `-ub` aliases.
+MLX capacity entries in the same table remain outside the llama-cpp check subset.
+Every evidence envelope on the readings path (hello, status, resource and all
+nested objects) is decoded through one shared strict decoder with exact-case
+closed member sets; unknown, duplicate, null and missing required members
+refuse, and readings validate all enum, range, policy and classification
+members before publishing any live values. Required sets mirror the owner
+structs and are pinned by `TestSharedWireRequiredMatchesOwnerTags`; the
+generated `TestWireRequiredMembersMatrix` removes and nulls every required
+member of every envelope. Sharing ranges and content name the producer's own
+bounds (`TestWireSharingAcceptsEveryCatalogFamily` and the TOML agreement
+batteries prove the agreement). Run the argv checker regressions
+with `go test -count=1 ./cmd/curator-engines -run '^TestEngineCheck'`.

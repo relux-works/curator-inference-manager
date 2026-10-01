@@ -638,3 +638,46 @@ func TestLegacyMutationCensusRejectsChangedCanonicalSnapshot(t *testing.T) {
 		t.Fatal("incomplete canonical snapshot admitted")
 	}
 }
+
+// collectSites walks ALL production Go files from the module root, across the
+// three platform contexts. Missing/stale/body-changed mappings fail here in a
+// clean committed checkout as well as in a working candidate.
+func TestReadingsRefusalCensusAndGeneratedSingletons(t *testing.T) {
+	root, err := filepath.Abs("..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err = legacyMutationCensusRoot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := productionPackageScope(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sites, err := collectSites(root, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutants, err := deriveMutants(root, sites)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected, err := selectMutationFiles(files, mutants, "internal/infra/engine_readings.go,internal/infra/engine_readings_envelopes_darwin.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, site := range sites {
+		if (site.file == "internal/infra/engine_readings.go" || site.file == "internal/infra/engine_readings_envelopes_darwin.go") && len(site.tests) == 0 {
+			t.Fatalf("unmapped readings refusal %s", site.id)
+		}
+	}
+	for _, m := range selected {
+		if !strings.Contains(m.replaceText, m.guardText) || len(m.tests) == 0 {
+			t.Fatalf("non-narrowing or unmapped mutant %s", m.key)
+		}
+	}
+	if len(selected) != 86 {
+		t.Fatalf("generated singleton count=%d, want 86; remaining members are declared frozen-grammar bounds", len(selected))
+	}
+}

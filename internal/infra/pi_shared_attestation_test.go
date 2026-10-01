@@ -122,7 +122,7 @@ resource_pressure_mode = "disabled"
 		PID: runtimeObservation.PID, PGID: runtimeObservation.PGID, StartTime: runtimeObservation.StartTime,
 		UID: runtimeObservation.UID, PostExec: ProcessExecShape{ExecPath: runtimeObservation.ExecPath, Argv: append([]string(nil), runtimeObservation.Argv...)},
 		CWD: resolved.Paths.RuntimeCWD, Endpoint: resolved.Profile.BaseURL,
-		ExecutableIdentity: targetIdentity, ExecPlanDigest: SharedRuntimeExecPlanDigest(resolved.Profile, resolved.Paths.RuntimeCWD), Stage: "ready",
+		ExecutableIdentity: targetIdentity, ExecPlanDigest: SharedRuntimeExecPlanDigest(resolved.Profile, resolved.Paths.RuntimeCWD), Stage: "running",
 	}
 	address, err := net.ResolveUnixAddr("unix", resolved.Paths.RendezvousSocket)
 	if err != nil {

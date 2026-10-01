@@ -1444,6 +1444,13 @@ func readSharedWireMessage(reader io.Reader) (sharedWireMessage, error) {
 	if err := requireJSONEOF(decoder); err != nil {
 		return sharedWireMessage{}, sharedRuntimeError("protocol_violation", err)
 	}
+	// Exact-case key closure runs after struct decoding so the refusal sites
+	// above keep their identities. encoding/json folds member names
+	// case-insensitively, so "State" beside "state" would otherwise overwrite
+	// the canonical member before any semantic check runs.
+	if err := validateSharedWireMessageKeys(line); err != nil {
+		return sharedWireMessage{}, sharedRuntimeError("protocol_violation", err)
+	}
 	return message, nil
 }
 

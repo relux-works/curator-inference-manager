@@ -25,6 +25,7 @@ type SharedRuntimeOperatorOptions struct {
 	HTTPClient *http.Client
 }
 
+var sharedRuntimeReadingsNow = time.Now
 var sharedRuntimeStatusWriteMessage = writeSharedWireMessage
 var sharedRuntimeStatusReadMessage = readSharedWireMessage
 var sharedRuntimeStopWriteMessage = writeSharedWireMessage
@@ -82,27 +83,28 @@ type SharedRuntimeSharingStatus struct {
 }
 
 type SharedRuntimeStatus struct {
-	ContractVersion    int                         `json:"contract_version"`
-	EngineIdentity     SharedRuntimeEngineIdentity `json:"engine_identity"`
-	EngineAvailability string                      `json:"engine_availability,omitempty"`
-	EngineAvailabilityReason string                `json:"engine_availability_reason,omitempty"`
-	RuntimeKey         string                      `json:"runtime_key"`
-	ProfileDigest      string                      `json:"profile_digest"`
-	Endpoint           string                      `json:"endpoint"`
-	RestartCount       int                         `json:"restart_count"`
-	RestartNotBefore   *time.Time                  `json:"restart_not_before"`
-	QuarantinedUntil   *time.Time                  `json:"quarantined_until"`
-	LastReadinessMatch *time.Time                  `json:"last_readiness_match"`
-	ManualQuarantine   bool                        `json:"manual_quarantine"`
-	HalfOpen           bool                        `json:"half_open"`
-	FailureHistory     []SharedRuntimeFailureEvent `json:"failure_history"`
-	Resources          SharedRuntimeResourceStatus `json:"resources"`
-	Sharing            SharedRuntimeSharingStatus  `json:"sharing"`
-	Broker             SharedRuntimeBrokerStatus   `json:"broker"`
-	Runtime            *SharedRuntimeProcessStatus `json:"runtime,omitempty"`
-	Leases             []SharedLeaseStatus         `json:"leases"`
-	Attestation        []SharedRuntimeGateOutcome  `json:"attestation"`
-	Paths              SharedRuntimePaths          `json:"paths"`
+	Readings                 EngineReadings              `json:"readings"`
+	ContractVersion          int                         `json:"contract_version"`
+	EngineIdentity           SharedRuntimeEngineIdentity `json:"engine_identity"`
+	EngineAvailability       string                      `json:"engine_availability,omitempty"`
+	EngineAvailabilityReason string                      `json:"engine_availability_reason,omitempty"`
+	RuntimeKey               string                      `json:"runtime_key"`
+	ProfileDigest            string                      `json:"profile_digest"`
+	Endpoint                 string                      `json:"endpoint"`
+	RestartCount             int                         `json:"restart_count"`
+	RestartNotBefore         *time.Time                  `json:"restart_not_before"`
+	QuarantinedUntil         *time.Time                  `json:"quarantined_until"`
+	LastReadinessMatch       *time.Time                  `json:"last_readiness_match"`
+	ManualQuarantine         bool                        `json:"manual_quarantine"`
+	HalfOpen                 bool                        `json:"half_open"`
+	FailureHistory           []SharedRuntimeFailureEvent `json:"failure_history"`
+	Resources                SharedRuntimeResourceStatus `json:"resources"`
+	Sharing                  SharedRuntimeSharingStatus  `json:"sharing"`
+	Broker                   SharedRuntimeBrokerStatus   `json:"broker"`
+	Runtime                  *SharedRuntimeProcessStatus `json:"runtime,omitempty"`
+	Leases                   []SharedLeaseStatus         `json:"leases"`
+	Attestation              []SharedRuntimeGateOutcome  `json:"attestation"`
+	Paths                    SharedRuntimePaths          `json:"paths"`
 }
 
 type SharedRuntimeStopResult struct {
@@ -119,6 +121,11 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 		return SharedRuntimeStatus{}, err
 	}
 	report := newSharedRuntimeStatus(resolved)
+	readings, err := profileEngineReadings(resolved)
+	if err != nil {
+		return SharedRuntimeStatus{}, err
+	}
+	report.Readings = readings
 	if resolved.NotRunnableCode != "" {
 		return sharedRuntimeRecordStatus(resolved, report)
 	}
@@ -135,10 +142,17 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 		}
 		message, err := sharedRuntimeStatusReadMessage(attested.reader)
 		if err != nil {
+			var typed *SharedRuntimeError
+			if errors.As(err, &typed) {
+				return SharedRuntimeStatus{}, err
+			}
 			return SharedRuntimeStatus{}, sharedRuntimeError("broker_unreachable", err)
 		}
 		if message.Type != "status" || message.Broker == nil || message.Runtime == nil || message.EffectiveSharing == nil {
 			return SharedRuntimeStatus{}, sharedRuntimeError("protocol_violation", errors.New("broker status response is incomplete"))
+		}
+		if err := validateAttestedStatusEnvelope(message, *attested, resolved); err != nil {
+			return SharedRuntimeStatus{}, err
 		}
 		report.Broker = sharedBrokerStatus(message.State, message.Stage, "attested", *message.Broker)
 		if resolved.CatalogEntry {
@@ -159,6 +173,9 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 			return SharedRuntimeStatus{}, err
 		}
 		applySharedRuntimeLedgerStatus(&report, ledger)
+		if err := observeAttestedEngineReadings(&report.Readings, resolved.Profile.Runtime.ReadinessPath, report.Resources, sharedRuntimeReadingsNow()); err != nil {
+			return SharedRuntimeStatus{}, err
+		}
 		return report, nil
 	}
 	if !isSharedBrokerUnreachable(err) {
@@ -402,12 +419,23 @@ func readSharedLeaseMirrors(directory string) ([]SharedLeaseStatus, error) {
 	return result, nil
 }
 
+// isSharedBrokerUnreachable reports pre-peer connection absence only: the
+// rendezvous socket is missing (ENOENT) or refuses connection (ECONNREFUSED),
+// so no broker peer was ever established and the record-status fallback is
+// honest. Any failure after a successful dial — a hello write or read
+// failure, a hello timeout, an attestation mismatch, a status round-trip
+// failure — is a failed observation of an established peer and must refuse
+// atomically, never fall back to an absent-broker success with 17 facts.
+//
+// The classification reads the protocol stage, not the error code or text:
+// sharedConnectError is constructed only at the pre-peer dial site in
+// connectAndAttestSharedRuntimeWithOwnership, so only that marker means
+// absence. Post-peer transport failures keep their broker_unreachable and
+// shared_runtime_unavailable codes for the acquire retry loop and for status
+// diagnostics, but they no longer count as absence here. A test pins the
+// single construction site.
 func isSharedBrokerUnreachable(err error) bool {
-	if isSharedConnectAbsence(err) {
-		return true
-	}
-	var shared *SharedRuntimeError
-	return errors.As(err, &shared) && (shared.Code == "broker_unreachable" || shared.Code == "shared_runtime_unavailable")
+	return isSharedConnectAbsence(err)
 }
 
 // probeSharedBrokerLock reports a held existing lock. If it can take the lock,

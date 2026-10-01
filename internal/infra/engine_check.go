@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/relux-works/skill-agents-management/pkg/inferenceengine"
+
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -97,30 +99,36 @@ func CheckEngineFile(path, name string) EngineCheckReport {
 }
 
 type engineArgSpec struct {
-	name  string
-	value bool
+	name    string
+	value   bool
+	reading inferenceengine.Fact
+	mlxOnly bool
 }
 
 var engineCheckFlags = map[string]engineArgSpec{
-	"--parallel": {"parallel", true}, "-np": {"parallel", true},
-	"--kv-unified": {"unified", false}, "-kvu": {"unified", false},
-	"--no-kv-unified": {"separate", false}, "-no-kvu": {"separate", false},
-	"--cache-ram": {"cache_ram", true}, "-cram": {"cache_ram", true},
-	"--no-cache-idle-slots": {"no_idle", false}, "--cache-idle-slots": {"idle", false},
-	"--chat-template-file": {"template_file", true}, "--chat-template": {"template", true},
-	"--cache-type-k": {"type_k", true}, "-ctk": {"type_k", true},
-	"--cache-type-v": {"type_v", true}, "-ctv": {"type_v", true},
-	"--sleep-idle-seconds": {"sleep", true},
-	"--model":              {"model", true}, "-m": {"model", true},
-	"--ctx-size": {"ctx", true}, "-c": {"ctx", true},
-	"--models-dir": {"router", true}, "--models-preset": {"router", true}, "--models-max": {"router", true},
-	"--models-autoload": {"router", false}, "--no-models-autoload": {"router", false},
-	"--in-prefix": {"template_override", true}, "--in-suffix": {"template_override", true},
-	"--alias": {"other", true}, "--host": {"other", true}, "--port": {"other", true},
-	"--flash-attn": {"other", true}, "-fa": {"other", true}, "--gpu-layers": {"other", true}, "-ngl": {"other", true},
-	"--batch-size": {"other", true}, "-b": {"other", true}, "--ubatch-size": {"other", true}, "-ub": {"other", true},
-	"--threads": {"other", true}, "-t": {"other", true}, "--jinja": {"other", false},
-	"--no-webui": {"other", false}, "--no-ui": {"other", false},
+	"--parallel": {name: "parallel", value: true}, "-np": {name: "parallel", value: true},
+	"--kv-unified": {name: "unified", value: false}, "-kvu": {name: "unified", value: false},
+	"--no-kv-unified": {name: "separate", value: false}, "-no-kvu": {name: "separate", value: false},
+	"--cache-ram": {name: "cache_ram", value: true}, "-cram": {name: "cache_ram", value: true},
+	"--no-cache-idle-slots": {name: "no_idle", value: false}, "--cache-idle-slots": {name: "idle", value: false},
+	"--chat-template-file": {name: "template_file", value: true}, "--chat-template": {name: "template", value: true},
+	"--cache-type-k": {name: "type_k", value: true}, "-ctk": {name: "type_k", value: true},
+	"--cache-type-v": {name: "type_v", value: true}, "-ctv": {name: "type_v", value: true},
+	"--sleep-idle-seconds": {name: "sleep", value: true},
+	"--model":              {name: "model", value: true}, "-m": {name: "model", value: true},
+	"--ctx-size": {name: "ctx", value: true, reading: inferenceengine.FactContextArgv}, "-c": {name: "ctx", value: true, reading: inferenceengine.FactContextArgv},
+	"--models-dir": {name: "router", value: true}, "--models-preset": {name: "router", value: true}, "--models-max": {name: "router", value: true},
+	"--models-autoload": {name: "router", value: false}, "--no-models-autoload": {name: "router", value: false},
+	"--in-prefix": {name: "template_override", value: true}, "--in-suffix": {name: "template_override", value: true},
+	"--alias": {name: "other", value: true}, "--host": {name: "other", value: true}, "--port": {name: "other", value: true},
+	"--flash-attn": {name: "other", value: true}, "-fa": {name: "other", value: true}, "--gpu-layers": {name: "other", value: true}, "-ngl": {name: "other", value: true},
+	"--batch-size": {name: "other", value: true}, "-b": {name: "other", value: true}, "--ubatch-size": {name: "other", value: true, reading: inferenceengine.FactPrefillArgv}, "-ub": {name: "other", value: true, reading: inferenceengine.FactPrefillArgv},
+	"--threads": {name: "other", value: true}, "-t": {name: "other", value: true}, "--jinja": {name: "other", value: false},
+	"--no-webui": {name: "other", value: false}, "--no-ui": {name: "other", value: false},
+	// Capacity spellings share this table with status. MLX options do not
+	// expand the documented llama-cpp check subset.
+	"--max-kv-size":       {value: true, reading: inferenceengine.FactContextArgv, mlxOnly: true},
+	"--prefill-step-size": {value: true, reading: inferenceengine.FactPrefillArgv, mlxOnly: true},
 }
 
 func parseEngineCheckArgs(argv []string) (map[string][]string, []EngineCheckFailure) {
@@ -129,7 +137,7 @@ func parseEngineCheckArgs(argv []string) (map[string][]string, []EngineCheckFail
 	for i := 0; i < len(argv); i++ {
 		token := argv[i]
 		spec, ok := engineCheckFlags[token]
-		if !ok {
+		if !ok || spec.mlxOnly {
 			failures = append(failures, EngineCheckFailure{Code: "argv_unsupported", Message: "argument outside the documented check subset"})
 			continue
 		}

@@ -30,6 +30,16 @@ const (
 	engineCatalogShutdownDefault = 30
 )
 
+// Supervision policy bounds, shared by the catalog validator and the wire
+// sharing validator. Both sides name these constants, so the reader can
+// never be narrower or wider than the writer.
+const (
+	engineCatalogFatalMarkersMinCount        = 1
+	engineCatalogFatalMarkersMaxCount        = 16
+	engineCatalogFatalMarkerMaxBytes         = 512
+	engineCatalogRestartDelayMaxMilliseconds = 60000
+)
+
 type EngineCatalogState string
 
 const (
@@ -120,19 +130,20 @@ type EngineCatalogEntry struct {
 }
 
 type sharedResolvedProfile struct {
-	Project           string
-	HomeDir           string
-	ProfileName       string
-	EngineIdentity    SharedRuntimeEngineIdentity
-	Profile           PiProfile
-	Sharing           PiRuntimeSharing
-	RuntimeKey        string
-	ProfileDigest     string
-	Paths             SharedRuntimePaths
-	CatalogEntry      bool
-	CatalogMode       string
-	NotRunnableCode   string
-	NotRunnableReason string
+	Project            string
+	HomeDir            string
+	ProfileName        string
+	EngineIdentity     SharedRuntimeEngineIdentity
+	Profile            PiProfile
+	Sharing            PiRuntimeSharing
+	RuntimeKey         string
+	ProfileDigest      string
+	Paths              SharedRuntimePaths
+	CatalogObservation *EngineCatalogEntry
+	CatalogEntry       bool
+	CatalogMode        string
+	NotRunnableCode    string
+	NotRunnableReason  string
 }
 
 type EngineCatalogKnobs struct {
@@ -701,11 +712,11 @@ func validateEngineCatalogSupervision(policy *EngineCatalogSupervisionPolicy) er
 	if policy == nil {
 		return nil
 	}
-	if len(policy.FatalOutputSubstrings) < 1 || len(policy.FatalOutputSubstrings) > 16 {
+	if len(policy.FatalOutputSubstrings) < engineCatalogFatalMarkersMinCount || len(policy.FatalOutputSubstrings) > engineCatalogFatalMarkersMaxCount {
 		return engineCatalogMalformed("entry.supervision.fatal_output_substrings", errors.New("must contain between 1 and 16 entries"))
 	}
 	for _, marker := range policy.FatalOutputSubstrings {
-		if marker == "" || len(marker) > 512 || strings.IndexByte(marker, 0) >= 0 {
+		if marker == "" || len(marker) > engineCatalogFatalMarkerMaxBytes || strings.IndexByte(marker, 0) >= 0 {
 			return engineCatalogMalformed("entry.supervision.fatal_output_substrings", errors.New("entries must be non-empty, at most 512 bytes, and NUL-free"))
 		}
 	}
@@ -715,7 +726,7 @@ func validateEngineCatalogSupervision(policy *EngineCatalogSupervisionPolicy) er
 	if policy.RestartWindowSeconds < 1 || policy.RestartWindowSeconds > 86400 {
 		return engineCatalogMalformed("entry.supervision.restart_window_seconds", errors.New("must be between 1 and 86400"))
 	}
-	if policy.RestartDelayMilliseconds < 0 || policy.RestartDelayMilliseconds > 60000 {
+	if policy.RestartDelayMilliseconds < 0 || policy.RestartDelayMilliseconds > engineCatalogRestartDelayMaxMilliseconds {
 		return engineCatalogMalformed("entry.supervision.restart_delay_milliseconds", errors.New("must be between 0 and 60000"))
 	}
 	return nil
@@ -995,7 +1006,7 @@ func resolveCatalogProfile(project string, homeDir, cacheRoot, name string, entr
 		Project: project, HomeDir: homeDir, ProfileName: name,
 		EngineIdentity: SharedRuntimeEngineIdentity{Name: name, Key: runtimeKey},
 		Profile:        profile, Sharing: *runtime.Sharing, RuntimeKey: runtimeKey,
-		ProfileDigest: profileDigest, Paths: paths, CatalogEntry: true, CatalogMode: entry.Mode,
+		ProfileDigest: profileDigest, Paths: paths, CatalogEntry: true, CatalogMode: entry.Mode, CatalogObservation: &entry,
 		NotRunnableCode: notRunnableCode, NotRunnableReason: notRunnableReason,
 	}, nil
 }

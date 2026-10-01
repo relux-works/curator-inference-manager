@@ -195,7 +195,17 @@ func TestEngineCheckMissingPassthroughValues(t *testing.T) {
 		for _, element := range spec.Values[0].(*ast.CompositeLit).Elts {
 			pair := element.(*ast.KeyValueExpr)
 			fields := pair.Value.(*ast.CompositeLit).Elts
-			if fields[0].(*ast.BasicLit).Value == `"other"` && fields[1].(*ast.Ident).Name == "true" {
+			var name, takesValue string
+			for _, field := range fields {
+				keyed := field.(*ast.KeyValueExpr)
+				if keyed.Key.(*ast.Ident).Name == "name" {
+					name = keyed.Value.(*ast.BasicLit).Value
+				}
+				if keyed.Key.(*ast.Ident).Name == "value" {
+					takesValue = keyed.Value.(*ast.Ident).Name
+				}
+			}
+			if name == `"other"` && takesValue == "true" {
 				flag, err := strconv.Unquote(pair.Key.(*ast.BasicLit).Value)
 				if err != nil {
 					t.Fatal(err)
