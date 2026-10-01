@@ -29,6 +29,7 @@ type LegacyImportOptions struct {
 	ProjectDir   string
 }
 type LegacyImportReport struct {
+	FieldPlan    map[string]map[string]string `json:"field_plan"`
 	Action       string                       `json:"action"`
 	SourceSHA256 string                       `json:"source_sha256"`
 	Targets      []string                     `json:"targets"`
@@ -233,6 +234,8 @@ func legacyStatesEqual(a, b LegacyImportFileState) bool {
 
 func legacyPlan(options LegacyImportOptions, journal *LegacyImportJournal) (legacyImportPlan, error) {
 	plan := legacyImportPlan{report: LegacyImportReport{Targets: []string{}, NotRunnable: map[string]string{}}, after: map[string][]byte{}, before: map[string]LegacyImportFileState{}, beforeBytes: map[string][]byte{}}
+	presence := map[string]map[string]bool{}
+	plan.report.FieldPlan = map[string]map[string]string{}
 	source := EngineCatalogDocument{SchemaVersion: 1, Engines: map[string]EngineCatalogEntry{}}
 	digest := []byte("legacy-import-input/v1\x00")
 	if options.ConfigPath != "" {
@@ -244,26 +247,13 @@ func legacyPlan(options LegacyImportOptions, journal *LegacyImportJournal) (lega
 			return plan, legacyImportRefuse("source.symlink", errors.New("source must be regular"))
 		}
 		if state.Kind != "absent" {
-			source, plan.report.NotRunnable, err = ReadLegacyEngineProfiles(data)
+			source, plan.report.NotRunnable, err = readLegacyEngineProfiles(data, presence)
 			if err != nil {
 				return plan, err
 			}
 			digest = append(digest, []byte("profiles\x00")...)
 			digest = append(digest, data...)
 		}
-	}
-	// Use the same argv transcription and check as the catalog command. Report
-	// legacy K0 failures without adding defaults or changing source values.
-	plan.report.Checks = map[string]EngineCheckReport{}
-	for name, entry := range source.Engines {
-		kind := entry.Engine
-		if entry.Mode == "ssh" {
-			kind = "ssh"
-		}
-		plan.report.Checks[name] = CheckEngineEntry(EngineCheckEntry{
-			Name: name, Kind: kind, Argv: engineCatalogIdentityArgv(entry, 1),
-			Directory: filepath.Join(options.HomeDir, ".curator"),
-		})
 	}
 	summaries, err := legacyReadEvidence(options.EvidenceRoot)
 	if err != nil {
@@ -331,9 +321,24 @@ func legacyPlan(options LegacyImportOptions, journal *LegacyImportJournal) (lega
 			}
 		}
 	}
-	merged, changed, err := legacyMergeCatalog(before, source, owned)
+	merged, changed, err := legacyMergeCatalog(before, source, owned, presence, plan.report.FieldPlan)
 	if err != nil {
 		return plan, err
+	}
+	// Reports describe the effective merged fields consumed by apply. Presence
+	// does not replace retained destination argv with a source default in preview.
+	plan.report.Checks = map[string]EngineCheckReport{}
+	for name := range source.Engines {
+		entry := merged.Engines[name]
+		_, plan.report.NotRunnable[name] = legacyServedModelID(entry)
+		if code, _ := engineCatalogExecutableNotRunnable(entry); code != "" {
+			plan.report.NotRunnable[name] = code
+		}
+		kind := entry.Engine
+		if entry.Mode == "ssh" {
+			kind = "ssh"
+		}
+		plan.report.Checks[name] = CheckEngineEntry(EngineCheckEntry{Name: name, Kind: kind, Argv: engineCatalogIdentityArgv(entry, 1), Directory: filepath.Join(options.HomeDir, ".curator")})
 	}
 	if changed {
 		data, err := MarshalEngineCatalog(merged)

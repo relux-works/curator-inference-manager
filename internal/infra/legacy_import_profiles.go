@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -14,6 +15,11 @@ import (
 // ReadLegacyEngineProfiles transcribes the closed legacy profile schema into
 // the existing catalog types. It never infers engine kind from executable names.
 func ReadLegacyEngineProfiles(data []byte) (EngineCatalogDocument, map[string]string, error) {
+	return readLegacyEngineProfiles(data, nil)
+}
+
+// Presence is collected before defaults, normalization, and legacy key translation.
+func readLegacyEngineProfiles(data []byte, presence map[string]map[string]bool) (EngineCatalogDocument, map[string]string, error) {
 	result := EngineCatalogDocument{SchemaVersion: EngineCatalogSchemaVersion, Engines: map[string]EngineCatalogEntry{}}
 	reasons := map[string]string{}
 	var raw map[string]any
@@ -27,10 +33,14 @@ func ReadLegacyEngineProfiles(data []byte) (EngineCatalogDocument, map[string]st
 	if !ok {
 		return result, reasons, legacyImportRefuse("profiles.table", errors.New("profiles table required"))
 	}
-	for _, value := range profiles {
+	for name, value := range profiles {
 		entry, ok := value.(map[string]any)
 		if !ok {
 			return result, reasons, legacyImportRefuse("profiles.entry", errors.New("entry table required"))
+		}
+		if presence != nil {
+			presence[name] = map[string]bool{}
+			legacyCollectPresence(entry, "", presence[name])
 		}
 		// served_model_id and the renamed knob keys are catalog-only, never old fields.
 		if _, present := entry["served_model_id"]; present {
@@ -82,8 +92,10 @@ func ReadLegacyEngineProfiles(data []byte) (EngineCatalogDocument, map[string]st
 			return result, reasons, err
 		}
 		entry.ServedModelID, reasons[name] = legacyServedModelID(entry)
-		if err := validateEngineCatalogEntry(name, entry); err != nil {
-			return result, reasons, err
+		if presence == nil {
+			if err := validateEngineCatalogEntry(name, entry); err != nil {
+				return result, reasons, err
+			}
 		}
 		if code, _ := engineCatalogExecutableNotRunnable(entry); code != "" {
 			reasons[name] = code
@@ -187,13 +199,29 @@ func legacySameEntry(a, b EngineCatalogEntry) bool {
 	right, errB := marshalEngineCatalogEntry(b)
 	return errA == nil && errB == nil && bytes.Equal(left, right)
 }
-func legacyMergeCatalog(before, source EngineCatalogDocument, owned bool) (EngineCatalogDocument, bool, error) {
+func legacyMergeCatalog(before, source EngineCatalogDocument, owned bool, presence map[string]map[string]bool, fieldPlan map[string]map[string]string) (EngineCatalogDocument, bool, error) {
 	changed := false
 	if before.Engines == nil {
 		before.Engines = map[string]EngineCatalogEntry{}
 	}
 	for name, entry := range source.Engines {
 		old, present := before.Engines[name]
+		fields := map[string]string{}
+		if present {
+			entry = legacyOverlayEntry(old, entry, presence[name], fields)
+		} else {
+			legacyOverlayFields(reflect.ValueOf(&entry).Elem(), reflect.ValueOf(entry), presence[name], "", fields, false)
+		}
+		if !present {
+			if !presence[name]["engine"] {
+				fields["engine"] = "default"
+			}
+			fields["served_model_id"] = "derive"
+		}
+		fieldPlan[name] = fields
+		if err := validateEngineCatalogEntry(name, entry); err != nil {
+			return before, false, err
+		}
 		if present && legacySameEntry(old, entry) {
 			continue
 		}
@@ -204,4 +232,95 @@ func legacyMergeCatalog(before, source EngineCatalogDocument, owned bool) (Engin
 		changed = true
 	}
 	return before, changed, nil
+}
+
+// The closed catalog schema supplies the typed values; this map retains only
+// source key presence, including explicit false, zero, and empty arrays.
+func legacyCollectPresence(table map[string]any, prefix string, fields map[string]bool) {
+	for key, value := range table {
+		path := prefix + key
+		switch path {
+		case "knobs.kv_context_tokens":
+			path = "knobs.kv_context_size"
+		case "knobs.prefill_chunk_tokens":
+			path = "knobs.prefill_chunk_size"
+		}
+		fields[path] = true
+		if nested, ok := value.(map[string]any); ok {
+			legacyCollectPresence(nested, path+".", fields)
+		}
+	}
+}
+
+func legacyOverlayEntry(old, incoming EngineCatalogEntry, presence map[string]bool, plan map[string]string) EngineCatalogEntry {
+	result := old
+	legacyOverlayFields(reflect.ValueOf(&result).Elem(), reflect.ValueOf(incoming), presence, "", plan, true)
+	// Served identity is derived from the effective identity fields, never from
+	// a source default that might have been absent in the destination overlay.
+	if presence["mode"] || presence["engine"] || presence["model"] || presence["argv"] {
+		result.ServedModelID, _ = legacyServedModelID(result)
+		plan["served_model_id"] = "derive"
+	}
+	return result
+}
+
+// Walk schema tags rather than zero values. Nested pointers are copied before
+// overlay so planning never mutates the original destination entry.
+func legacyOverlayFields(destination, incoming reflect.Value, presence map[string]bool, prefix string, plan map[string]string, existing bool) {
+	typ := destination.Type()
+	for index := 0; index < typ.NumField(); index++ {
+		key := strings.Split(typ.Field(index).Tag.Get("toml"), ",")[0]
+		if key == "-" {
+			continue
+		}
+		path := prefix + key
+		dst, src := destination.Field(index), incoming.Field(index)
+		if dst.Kind() == reflect.Pointer {
+			// A table is a container, not a field value. An empty table cannot
+			// introduce a policy or erase any of its absent members.
+			hasMember := false
+			for member := range presence {
+				if strings.HasPrefix(member, path+".") {
+					hasMember = true
+					break
+				}
+			}
+			if dst.IsNil() && !hasMember {
+				plan[path] = "absent"
+				continue
+			}
+			copy := reflect.New(dst.Type().Elem())
+			if !dst.IsNil() {
+				copy.Elem().Set(dst.Elem())
+			}
+			if src.IsNil() {
+				src = reflect.New(dst.Type().Elem())
+			}
+			legacyOverlayFields(copy.Elem(), src.Elem(), presence, path+".", plan, existing && !dst.IsNil())
+			dst.Set(copy)
+			continue
+		}
+		if !presence[path] {
+			if existing {
+				plan[path] = "preserve"
+			} else {
+				plan[path] = "absent"
+			}
+			continue
+		}
+		// Normalized knob strings are the catalog's in-memory representation.
+		switch path {
+		case "knobs.kv_context_size":
+			dst = destination.FieldByName("KVContextTokens")
+			src = incoming.FieldByName("KVContextTokens")
+		case "knobs.prefill_chunk_size":
+			dst = destination.FieldByName("PrefillChunkTokens")
+			src = incoming.FieldByName("PrefillChunkTokens")
+		}
+		plan[path] = "set"
+		if existing && reflect.DeepEqual(dst.Interface(), src.Interface()) {
+			plan[path] = "unchanged"
+		}
+		dst.Set(src)
+	}
 }
