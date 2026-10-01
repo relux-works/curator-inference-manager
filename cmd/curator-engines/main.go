@@ -36,6 +36,15 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 	if command == "check" {
 		return runCheck(args[1:], stdout, stderr)
 	}
+	if command == "import-legacy" {
+		return runLegacyImport(args[1:], stdout, stderr)
+	}
+	if command == "legacy-evidence" {
+		return runLegacyEvidence(args[1:], stdout, stderr)
+	}
+	if command == "compat" {
+		return runEngineCompatibility(parent, args[1:], stdout, stderr)
+	}
 	if command != "status" && command != "ensure" && command != "release" && command != "stop" {
 		if err := writeFormatted(stderr, "unknown curator-engines command %q\n", command); err != nil {
 			return 1
@@ -208,6 +217,9 @@ func runInternal(args []string, stdout, stderr io.Writer) int {
 
 func reportError(stderr io.Writer, err error) int {
 	_ = writeLine(stderr, err.Error())
+	if code, ok := legacyImportExitCode(err); ok {
+		return code
+	}
 	if code, ok := infra.SharedRuntimeExitCode(err); ok {
 		return code
 	}
@@ -228,6 +240,9 @@ func writeJSON(writer io.Writer, value any, stderr io.Writer) int {
 func writeUsage(writer io.Writer) {
 	_ = writeLine(writer, "Usage: curator-engines <check|status|ensure|release|stop> [--engine NAME] [--json]")
 	_ = writeLine(writer, "  check requires --config FILE and --engine NAME (read-only)")
+	_ = writeLine(writer, "  import-legacy <preview|apply|resume|rollback> --config FILE [--evidence-root DIR]")
+	_ = writeLine(writer, "  legacy-evidence DIR (read-only)")
+	_ = writeLine(writer, "  compat <qwen-infra|model-harness> <command> --engine NAME")
 	_ = writeLine(writer, "  release also requires --lease-token TOKEN")
 	_ = writeLine(writer, "  stop accepts --force and --timeout SECONDS")
 }

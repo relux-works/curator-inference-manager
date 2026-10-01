@@ -50,7 +50,7 @@ Status: **DRAFT**, 2026-09-27. Not normative. This document collects what earlie
 - `stress.startup_timeout_seconds` is also used as the manager's readiness timeout. This schema revision preserves the legacy value, but does not keep the legacy stress-only timeout use separate from normal startup.
 - `pinned_distribution` is transcribed and validated as catalog data. This revision does not verify the installed package's provenance at launch; that remains a separate runtime-check question.
 - The manager may emit one sanitized terminal Pi evidence summary v1 with exactly these JSON keys: `schema_version`, `session_identity_digest`, `closed_at`, `terminal_status`, and `source_path_digest`. Digests are lowercase SHA-256 hex. The source lifecycle envelope and log remain in place and read-only; raw events and their arbitrary fields are never copied. A held `active.lock`, missing close timestamp, unknown terminal status, or otherwise unclassifiable envelope refuses.
-- The summary reader is a producer surface for the out-of-scope importer; this leaf does not wire an import caller.
+- The summary reader feeds the explicit legacy importer described in [legacy-engine-import.md](legacy-engine-import.md); source lifecycle evidence remains read-only.
 
 ## 4. Lifecycle
 

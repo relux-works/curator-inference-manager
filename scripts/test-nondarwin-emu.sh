@@ -118,6 +118,13 @@ def prepare(source_root, output_root, target_goos, host_goos, target_json, expec
         return set()
 
     shutil.copytree(source_root, output_root, ignore=ignore, symlinks=True)
+    # Full-module AST tests need the original platform directives. Preserve the
+    # same candidate privately; tests bind its content to the projected tree
+    # before using it for all three platform type contexts.
+    shutil.copytree(
+        source_root, output_root / ".temp" / "canonical-source",
+        ignore=ignore, symlinks=True,
+    )
     for directory, directory_names, file_names in os.walk(output_root):
         if Path(directory).resolve() == output_root:
             directory_names[:] = [

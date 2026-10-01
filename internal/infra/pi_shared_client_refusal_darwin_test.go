@@ -81,7 +81,14 @@ func answerAttestationWithoutClientHello(t *testing.T, fixture sharedAttestation
 			EngineIdentity: &fixture.resolved.EngineIdentity, Broker: &fixture.broker,
 			Runtime: &fixture.record, EffectiveSharing: &effective,
 		}
-		result <- writeSharedWireMessage(connection, response)
+		if err := writeSharedWireMessage(connection, response); err != nil {
+			result <- err
+			return
+		}
+		// Keep the peer alive through identity inspection and the injected hello
+		// write. Only the client's refusal/close ends this fixture connection.
+		_, err = io.Copy(io.Discard, connection)
+		result <- err
 	}()
 	return result
 }
@@ -245,6 +252,7 @@ func TestConnectAndAttestSharedRuntimeRefusesSetDeadlineFailure(t *testing.T) {
 }
 
 func TestConnectAndAttestSharedRuntimeClassifiesHelloWriteAndReadFailures(t *testing.T) {
+	helloWriteAttempted := false
 	tests := []struct {
 		name                     string
 		mutate                   func() func()
@@ -258,6 +266,7 @@ func TestConnectAndAttestSharedRuntimeClassifiesHelloWriteAndReadFailures(t *tes
 				original := sharedRuntimeAttestationWriteMessage
 				sharedRuntimeAttestationWriteMessage = func(_ io.Writer, message sharedWireMessage) error {
 					if message.Type == "hello" {
+						helloWriteAttempted = true
 						return os.ErrPermission
 					}
 					return original(io.Discard, message)
@@ -304,6 +313,9 @@ func TestConnectAndAttestSharedRuntimeClassifiesHelloWriteAndReadFailures(t *tes
 			restore := testCase.mutate()
 			t.Cleanup(restore)
 			_, err := connectAndAttestSharedRuntime(fixture.resolved, fixture.state, "RUN-io", nil, time.Second)
+			if testCase.answerWithoutClientHello && !helloWriteAttempted {
+				t.Fatal("connection refused before the injected hello write")
+			}
 			requireSharedAttestationCode(t, err, testCase.code)
 			select {
 			case <-served:

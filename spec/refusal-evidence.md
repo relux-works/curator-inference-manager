@@ -203,3 +203,41 @@ accepted witnesses are individually source-bound as undecided under brief 08;
 their previous mutant keys, results and exact rejected shapes are preserved in
 the handoff ledger. Current executions cover only the frozen accepted subset.
 A historical kill is never silently promoted to current singleton evidence.
+
+## Legacy importer convergence onto 1ecc0aa
+
+The legacy importer extends the same typed census and explicit certificate file;
+it does not add a second inventory or witness grammar. `-files` selects execution
+rows only after the full module census, certificate validation and mutant
+derivation succeed. `-task` changes the safe outcome filename prefix. The
+singleton shape/type/object checks, content-bound execution roots, baseline
+admission, joint-equivalence and defensive-bound rules remain unchanged.
+
+Importer certificates bind current production digests and named negative test
+bodies. Previously accepted length/error-text/method/pointer witnesses are
+recorded as source-bound undecided rows under the frozen grammar. A recorded
+historical kill is not singleton evidence. Unconditional factory removal
+remains a separate classification. Go timeouts, including a timeout after an
+earlier assertion failure, are invalid kill evidence.
+
+`TestLegacyRuntimeStateMutantsRetainPredicateAndNarrowOneClass` runs the module
+census and certified generator, pins the original gate and mapped test-body
+hashes, and requires both ledger-schema and half-open singleton witnesses.
+`TestImportLegacyEngineStateLifecycleSchemaSingleton` drives all four public
+import actions with the reader's schema witness and checks exact preservation
+of source, manager config and cache state. Undecided rows and every executed
+survivor are reported individually in the task's current mutation table.
+
+On the converged importer candidate the module census is **629 sites**: the
+upstream 482 identities remain, and 147 importer identities are added. All 147
+new identities have named, body-bound negative tests. The whole module has 519
+named certificates and 110 upstream sites with explicit undecided evidence gaps;
+186 mutants are currently generated. These census counts account for sites;
+they do not claim that every site or operand has a killed singleton witness.
+
+Non-Darwin file-set projections retain the unprojected candidate privately under
+`.temp/canonical-source`. The full-module importer census test binds that snapshot
+to the executing tree using the existing content identity check before resolving
+all three original platform contexts. Projected build tags cannot supply those
+contexts themselves. `TestLegacyMutationCensusRejectsChangedCanonicalSnapshot`
+refuses a changed test body or incomplete snapshot; no context or guard is skipped.

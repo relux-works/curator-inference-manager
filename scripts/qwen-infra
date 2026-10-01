@@ -1,0 +1,2 @@
+#!/bin/sh
+exec curator-engines compat qwen-infra "$@"

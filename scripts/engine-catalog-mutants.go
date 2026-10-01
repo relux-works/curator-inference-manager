@@ -123,6 +123,8 @@ func main() {
 	workers := flag.Int("workers", 4, "parallel behavioral mutant processes")
 	linuxEmulationRoot := flag.String("linux-emu-root", "", "materialized Linux file-set emulation root for non-Darwin mutants")
 	windowsEmulationRoot := flag.String("windows-emu-root", "", "materialized Windows file-set emulation root for non-Darwin mutants")
+	scopeFiles := flag.String("files", "", "comma-separated production files selecting execution rows after the complete module census")
+	taskID := flag.String("task", "TASK-260930-1hzscs", "safe outcome filename prefix")
 	inventoryOnly := flag.Bool("inventory", false, "print the package-derived refusal inventory as JSON")
 	flag.Parse()
 	root, err := os.Getwd()
@@ -136,6 +138,11 @@ func main() {
 	fatalIf(err)
 	mutants, err := deriveMutants(rootPath, sites)
 	fatalIf(err)
+	mutants, err = selectMutationFiles(files, mutants, *scopeFiles)
+	fatalIf(err)
+	if !regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`).MatchString(*taskID) {
+		fatalIf(fmt.Errorf("task must be a safe filename prefix"))
+	}
 	if *inventoryOnly {
 		report := inventoryReport{Files: files, AcceptedSubset: propagationSubset}
 		for _, site := range sites {
@@ -184,7 +191,7 @@ func main() {
 		end = *start + *count
 	}
 	rows := runMutants(rootPath, outPath, mutants[*start:end], *start, *workers, *linuxEmulationRoot, *windowsEmulationRoot)
-	manifest := filepath.Join(outPath, fmt.Sprintf("TASK-260930-1hzscs_mutants_%03d-%03d.md", *start, end))
+	manifest := filepath.Join(outPath, fmt.Sprintf("%s_mutants_%03d-%03d.md", *taskID, *start, end))
 	if err := os.WriteFile(manifest, []byte(renderTable(len(sites), len(mutants), rows)), 0o600); err != nil {
 		fatalIf(err)
 	}
@@ -1705,14 +1712,10 @@ func testPatterns(names []string) []string {
 var failedTest = regexp.MustCompile(`(?m)^--- FAIL: (Test[[:alnum:]_]+(/[[:alnum:]_]+)*)`)
 
 func failingTest(output []byte) string {
-	match := failedTest.FindSubmatch(output)
-	if len(match) >= 2 {
-		return string(match[1])
+	if strings.Contains(string(output), "panic: test timed out") {
+		return ""
 	}
-	// Go's timeout panic reports active test names in its running-tests list,
-	// not through the ordinary --- FAIL line for the interrupted test.
-	timeoutTest := regexp.MustCompile(`(?m)^\s+(Test[[:alnum:]_]+(/[[:alnum:]_]+)*) \([0-9.]+[smh]\)`)
-	match = timeoutTest.FindSubmatch(output)
+	match := failedTest.FindSubmatch(output)
 	if len(match) >= 2 {
 		return string(match[1])
 	}
@@ -2795,4 +2798,28 @@ func resolvedWitnessObject(expr ast.Expr, info *types.Info) types.Object {
 		return info.Uses[value.Sel]
 	}
 	return nil
+}
+
+// Selection never narrows the certificate census; unknown paths fail closed.
+func selectMutationFiles(files []string, mutants []mutant, scope string) ([]mutant, error) {
+	if scope == "" {
+		return mutants, nil
+	}
+	selected := map[string]bool{}
+	for _, path := range strings.Split(scope, ",") {
+		if !containsValue(files, path) || selected[path] {
+			return nil, fmt.Errorf("unknown or duplicate production file %q", path)
+		}
+		selected[path] = true
+	}
+	var filtered []mutant
+	for _, candidate := range mutants {
+		if selected[candidate.file] {
+			filtered = append(filtered, candidate)
+		}
+	}
+	if len(filtered) == 0 {
+		return nil, fmt.Errorf("selected files contain no certified mutants")
+	}
+	return filtered, nil
 }

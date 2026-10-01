@@ -520,3 +520,121 @@ func TestResolveSharedProfileUsesCatalogForSelectedPrimaryProfile(t *testing.T) 
 		}
 	}
 }
+
+func TestMutationTimeoutIsNotNamedBehavioralFailure(t *testing.T) {
+	for _, output := range []string{
+		"panic: test timed out after 45s\n\trunning tests:\n\t\tTestRunning (45s)\n",
+		"--- FAIL: TestEarlier (0.1s)\npanic: test timed out after 45s\n",
+	} {
+		if got := failingTest([]byte(output)); got != "" {
+			t.Fatalf("timeout reported as killed by %s", got)
+		}
+	}
+	if got := failingTest([]byte("--- FAIL: TestRefusal (0.1s)\nFAIL\n")); got != "TestRefusal" {
+		t.Fatal("ordinary assertion lost", got)
+	}
+}
+
+func TestLegacyMutationSelectionKeepsModuleCensusAndRejectsUnknownPaths(t *testing.T) {
+	files := []string{"import.go", "owner.go"}
+	mutants := []mutant{{file: "import.go", key: "import"}, {file: "owner.go", key: "owner"}}
+	for _, scope := range []string{"missing.go", "import.go,import.go", "../import.go", "import.go,"} {
+		if _, err := selectMutationFiles(files, mutants, scope); err == nil {
+			t.Fatal("invalid selection admitted", scope)
+		}
+	}
+	selected, err := selectMutationFiles(files, mutants, "import.go")
+	if err != nil || len(selected) != 1 || selected[0].key != "import" || len(files) != 2 || len(mutants) != 2 {
+		t.Fatal("selection changed module census", selected, err)
+	}
+}
+
+func TestLegacyRuntimeStateMutantsRetainPredicateAndNarrowOneClass(t *testing.T) {
+	root, err := filepath.Abs("..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err = legacyMutationCensusRoot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := productionPackageScope(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sites, err := collectSites(root, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutants, err := deriveMutants(root, sites)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected, err := selectMutationFiles(files, mutants, "internal/infra/legacy_import_runtime_state.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema, halfOpen := false, false
+	for _, m := range selected {
+		if !strings.Contains(m.replaceText, m.guardText) || strings.Contains(m.replaceText, "&& false") || strings.Contains(m.replaceText, "|| true") {
+			t.Errorf("original gate was removed: %s %s", m.key, m.replaceText)
+		}
+		if len(m.tests) == 0 {
+			t.Errorf("unmapped runtime refusal: %s", m.key)
+		}
+		for _, ref := range m.tests {
+			if ref.BodySHA256 == "" {
+				t.Errorf("test body unbound: %s", m.key)
+			}
+		}
+		schema = schema || strings.Contains(m.memberText, `ledger.Schema == "__mutant__"`)
+		halfOpen = halfOpen || strings.Contains(m.memberText, "ledger.HalfOpen == true")
+	}
+	if !schema || !halfOpen {
+		t.Fatalf("runtime singleton regressions omitted: schema=%t half-open=%t", schema, halfOpen)
+	}
+}
+
+// A projected file set cannot be compiled under its original target tags.
+// Inventory the emulator's original snapshot only after binding every Go body
+// and module input to the executing tree. This preserves all type contexts.
+func legacyMutationCensusRoot(root string) (string, error) {
+	canonical := filepath.Join(root, ".temp", "canonical-source")
+	if _, err := os.Lstat(canonical); os.IsNotExist(err) {
+		return root, nil
+	} else if err != nil {
+		return "", err
+	}
+	if _, err := bindMutationTestRoot(canonical, root, nil); err != nil {
+		return "", err
+	}
+	return canonical, nil
+}
+
+func TestLegacyMutationCensusRejectsChangedCanonicalSnapshot(t *testing.T) {
+	root := mutationCommandFixture(t, "func entry() error { return nil }", "func TestGate(t *testing.T) {}")
+	if got, err := legacyMutationCensusRoot(root); err != nil || got != root {
+		t.Fatalf("native census root: %q %v", got, err)
+	}
+	canonical := filepath.Join(root, ".temp", "canonical-source")
+	for _, name := range []string{"go.mod", "gate.go", "gate_test.go"} {
+		body, err := os.ReadFile(filepath.Join(root, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		writeMutationFile(t, canonical, name, string(body))
+	}
+	if got, err := legacyMutationCensusRoot(root); err != nil || got != canonical {
+		t.Fatalf("bound canonical census root: %q %v", got, err)
+	}
+	writeMutationFile(t, canonical, "gate_test.go", "package fixture\nimport \"testing\"\nfunc TestGate(t *testing.T) { t.Fatal(\"changed\") }\n")
+	if _, err := legacyMutationCensusRoot(root); err == nil {
+		t.Fatal("changed canonical test body admitted")
+	}
+	if err := os.Remove(filepath.Join(canonical, "go.mod")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := legacyMutationCensusRoot(root); err == nil {
+		t.Fatal("incomplete canonical snapshot admitted")
+	}
+}

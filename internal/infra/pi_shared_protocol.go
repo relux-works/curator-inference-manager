@@ -37,6 +37,14 @@ const (
 	sharedRuntimeMaxFrameBytes    = 65536
 )
 
+// Runtime layout names are also the importer's opaque-log allow-list.
+const (
+	sharedRuntimeBrokerLogName     = "broker.log"
+	sharedRuntimeLogName           = "runtime.log"
+	sharedRuntimeRestartLedgerName = "restart-ledger.json"
+	sharedRuntimeBrokerStateName   = "broker-state.json"
+)
+
 var sharedRuntimeAuthFields = [...]string{
 	"schema",
 	"protocol_version",
@@ -266,10 +274,10 @@ func ResolveSharedRuntimePaths(cacheRoot, runtimeKey string) (SharedRuntimePaths
 		RuntimeKey:         runtimeKey,
 		Root:               root,
 		BrokerLock:         filepath.Join(root, "broker.lock"),
-		BrokerState:        filepath.Join(root, "broker-state.json"),
-		RestartLedger:      filepath.Join(root, "restart-ledger.json"),
-		BrokerLog:          filepath.Join(root, "broker.log"),
-		RuntimeLog:         filepath.Join(root, "runtime.log"),
+		BrokerState:        filepath.Join(root, sharedRuntimeBrokerStateName),
+		RestartLedger:      filepath.Join(root, sharedRuntimeRestartLedgerName),
+		BrokerLog:          filepath.Join(root, sharedRuntimeBrokerLogName),
+		RuntimeLog:         filepath.Join(root, sharedRuntimeLogName),
 		LeasesDir:          filepath.Join(root, "leases"),
 		RuntimeCWD:         filepath.Join(root, "cwd"),
 		RendezvousDir:      rv,

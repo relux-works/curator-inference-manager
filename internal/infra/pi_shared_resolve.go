@@ -27,6 +27,9 @@ func resolveSharedProfile(projectDir, homeDir, cacheRoot, profileName string) (s
 			return sharedResolvedProfile{}, err
 		}
 	}
+	if err := RefuseActiveLegacyEngineState(cacheRoot); err != nil {
+		return sharedResolvedProfile{}, err
+	}
 	var profiles map[string]PiProfile
 	if profileName == "" {
 		var selectedProfile string

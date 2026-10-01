@@ -1,0 +1,660 @@
+{
+  "resourceType": "migration-journal-grammar",
+  "owner": "curator-inference-manager",
+  "revision": 1,
+  "limits": {
+    "serializedJournalBytes": 262144,
+    "targets": 64,
+    "targetIdUtf8Bytes": 128,
+    "transactionIdUtf8Bytes": 64,
+    "symlinkTargetUtf8Bytes": 4096,
+    "unknownFields": "refuse",
+    "encoding": "UTF-8 JSON; reject duplicate object member names and trailing non-whitespace bytes"
+  },
+  "jsonSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://relux.dev/schemas/manager-legacy-import-journal/v1",
+    "title": "curator-inference-manager legacy import transaction journal v1",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "format",
+      "transactionId",
+      "sourceSha256",
+      "phase",
+      "targets"
+    ],
+    "properties": {
+      "format": {
+        "const": "manager-legacy-import-journal/v1"
+      },
+      "transactionId": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "sourceSha256": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$",
+        "minLength": 64,
+        "maxLength": 64
+      },
+      "phase": {
+        "enum": [
+          "prepared",
+          "applying",
+          "committed",
+          "rolling-back"
+        ]
+      },
+      "targets": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 64,
+        "items": {
+          "$ref": "#/$defs/target"
+        }
+      }
+    },
+    "$defs": {
+      "state": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "sha256",
+          "mode",
+          "linkTarget"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "absent",
+              "file",
+              "symlink"
+            ]
+          },
+          "sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 511
+          },
+          "linkTarget": {
+            "oneOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "absent"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "sha256": {
+                  "type": "null"
+                },
+                "mode": {
+                  "const": 0
+                },
+                "linkTarget": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "file"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$",
+                  "minLength": 64,
+                  "maxLength": 64
+                },
+                "linkTarget": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "symlink"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$",
+                  "minLength": 64,
+                  "maxLength": 64
+                },
+                "mode": {
+                  "const": 0
+                },
+                "linkTarget": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              }
+            }
+          }
+        ]
+      },
+      "target": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "targetId",
+          "before",
+          "after",
+          "backupRef",
+          "backupSha256"
+        ],
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "before": {
+            "$ref": "#/$defs/state"
+          },
+          "after": {
+            "$ref": "#/$defs/state"
+          },
+          "backupRef": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "backupSha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "before": {
+                  "properties": {
+                    "kind": {
+                      "const": "absent"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                }
+              },
+              "required": [
+                "before"
+              ]
+            },
+            "then": {
+              "properties": {
+                "backupRef": {
+                  "type": "null"
+                },
+                "backupSha256": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "before": {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "file",
+                        "symlink"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                }
+              },
+              "required": [
+                "before"
+              ]
+            },
+            "then": {
+              "properties": {
+                "backupRef": {
+                  "type": "string"
+                },
+                "backupSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$",
+                  "minLength": 64,
+                  "maxLength": 64
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "conformanceVectors": [
+    {
+      "id": "valid-absent-to-file",
+      "expect": "accept",
+      "record": {
+        "format": "manager-legacy-import-journal/v1",
+        "transactionId": "mig-manager",
+        "sourceSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "phase": "prepared",
+        "targets": [
+          {
+            "targetId": "global-codex-settings",
+            "before": {
+              "kind": "absent",
+              "sha256": null,
+              "mode": 0,
+              "linkTarget": null
+            },
+            "after": {
+              "kind": "file",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "mode": 384,
+              "linkTarget": null
+            },
+            "backupRef": null,
+            "backupSha256": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "missing-format",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/format"
+      }
+    },
+    {
+      "id": "missing-transactionid",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/transactionId"
+      }
+    },
+    {
+      "id": "missing-sourcesha256",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/sourceSha256"
+      }
+    },
+    {
+      "id": "missing-phase",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/phase"
+      }
+    },
+    {
+      "id": "missing-targets",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets"
+      }
+    },
+    {
+      "id": "missing-targetid",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/targetId"
+      }
+    },
+    {
+      "id": "missing-before",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/before"
+      }
+    },
+    {
+      "id": "missing-after",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/after"
+      }
+    },
+    {
+      "id": "missing-backupref",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/backupRef"
+      }
+    },
+    {
+      "id": "missing-backupsha256",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/backupSha256"
+      }
+    },
+    {
+      "id": "missing-before-kind",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/before/kind"
+      }
+    },
+    {
+      "id": "missing-before-sha256",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/before/sha256"
+      }
+    },
+    {
+      "id": "missing-before-mode",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/before/mode"
+      }
+    },
+    {
+      "id": "missing-before-linktarget",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/before/linkTarget"
+      }
+    },
+    {
+      "id": "missing-after-kind",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/after/kind"
+      }
+    },
+    {
+      "id": "missing-after-sha256",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/after/sha256"
+      }
+    },
+    {
+      "id": "missing-after-mode",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/after/mode"
+      }
+    },
+    {
+      "id": "missing-after-linktarget",
+      "expect": "refuse",
+      "mutation": {
+        "remove": "/targets/0/after/linkTarget"
+      }
+    },
+    {
+      "id": "unknown-field",
+      "expect": "refuse",
+      "mutation": {
+        "add": {
+          "path": "/unlisted",
+          "value": true
+        }
+      }
+    },
+    {
+      "id": "duplicate-target-id",
+      "expect": "refuse",
+      "record": {
+        "format": "manager-legacy-import-journal/v1",
+        "transactionId": "mig-manager",
+        "sourceSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "phase": "prepared",
+        "targets": [
+          {
+            "targetId": "global-codex-settings",
+            "before": {
+              "kind": "absent",
+              "sha256": null,
+              "mode": 0,
+              "linkTarget": null
+            },
+            "after": {
+              "kind": "file",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "mode": 384,
+              "linkTarget": null
+            },
+            "backupRef": null,
+            "backupSha256": null
+          },
+          {
+            "targetId": "global-codex-settings",
+            "before": {
+              "kind": "absent",
+              "sha256": null,
+              "mode": 0,
+              "linkTarget": null
+            },
+            "after": {
+              "kind": "file",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "mode": 384,
+              "linkTarget": null
+            },
+            "backupRef": null,
+            "backupSha256": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "backup-digest-mismatch",
+      "expect": "refuse",
+      "record": {
+        "format": "manager-legacy-import-journal/v1",
+        "transactionId": "mig-manager",
+        "sourceSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "phase": "prepared",
+        "targets": [
+          {
+            "targetId": "global-codex-settings",
+            "before": {
+              "kind": "file",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "mode": 384,
+              "linkTarget": null
+            },
+            "after": {
+              "kind": "file",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "mode": 384,
+              "linkTarget": null
+            },
+            "backupRef": "backup-1",
+            "backupSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ]
+      }
+    },
+    {
+      "id": "live-target-matches-neither-state",
+      "expect": "refuse",
+      "record": {
+        "format": "manager-legacy-import-journal/v1",
+        "transactionId": "mig-manager",
+        "sourceSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "phase": "applying",
+        "targets": [
+          {
+            "targetId": "global-codex-settings",
+            "before": {
+              "kind": "absent",
+              "sha256": null,
+              "mode": 0,
+              "linkTarget": null
+            },
+            "after": {
+              "kind": "file",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "mode": 384,
+              "linkTarget": null
+            },
+            "backupRef": null,
+            "backupSha256": null
+          }
+        ]
+      },
+      "observedTargets": [
+        {
+          "targetId": "global-codex-settings",
+          "state": {
+            "kind": "file",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "mode": 384,
+            "linkTarget": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "committed-target-not-after-state",
+      "expect": "refuse",
+      "record": {
+        "format": "manager-legacy-import-journal/v1",
+        "transactionId": "mig-manager",
+        "sourceSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "phase": "committed",
+        "targets": [
+          {
+            "targetId": "global-codex-settings",
+            "before": {
+              "kind": "absent",
+              "sha256": null,
+              "mode": 0,
+              "linkTarget": null
+            },
+            "after": {
+              "kind": "file",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "mode": 384,
+              "linkTarget": null
+            },
+            "backupRef": null,
+            "backupSha256": null
+          }
+        ]
+      },
+      "observedTargets": [
+        {
+          "targetId": "global-codex-settings",
+          "state": {
+            "kind": "absent",
+            "sha256": null,
+            "mode": 0,
+            "linkTarget": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "journal-over-limit",
+      "expect": "refuse",
+      "rawInput": {
+        "utf8Bytes": 262145,
+        "generator": {
+          "repeatByte": 32,
+          "count": 262145
+        }
+      },
+      "assertBeforeParse": true
+    },
+    {
+      "id": "duplicate-json-member",
+      "expect": "refuse",
+      "rawJsonText": "{\"format\":\"manager-legacy-import-journal/v1\",\"transactionId\":\"mig-duplicate-key\",\"sourceSha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"phase\":\"prepared\",\"phase\":\"applying\",\"targets\":[]}"
+    }
+  ],
+  "recoverySemantics": {
+    "pathSelection": "targetId resolves only through the importing owner’s compile-time allow-list; the journal cannot supply an arbitrary filesystem path",
+    "backup": "For before.kind file or symlink, backupRef names a private owner-local backup whose SHA-256 equals backupSha256 and before.sha256. For before.kind absent, both backup fields are null.",
+    "recovery": "During applying or rolling-back, each live target must match its before or after state exactly; any third state refuses without writes. A committed journal requires every target to match after.",
+    "secrets": "Journal contains digests and allow-listed target IDs only, never config values, credentials, or raw paths."
+  },
+  "conformanceProtocol": {
+    "mutationBase": "The vector with id valid-absent-to-file is the base record for every vector containing mutation.",
+    "mutationSemantics": "remove uses one RFC 6901 JSON Pointer; add.path/value inserts that member; standalone record vectors are validated as supplied; observedTargets are the filesystem snapshot supplied to recovery; duplicate-target and digest-consistency vectors are semantic checks.",
+    "rawInputSemantics": "rawInput.generator repeats the stated byte count before parsing; rawJsonText is passed verbatim to the parser. These gates run before JSON Schema validation."
+  }
+}

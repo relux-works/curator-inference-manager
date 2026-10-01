@@ -4,7 +4,6 @@ package infra
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -153,6 +152,9 @@ func ReadPiTerminalEvidenceSummary(entryDirectory string) (PiTerminalEvidenceSum
 		return PiTerminalEvidenceSummary{}, piTerminalEvidenceRefuse(PiTerminalEvidenceUnclassifiable, "entry.active_lock", err)
 	}
 	defer func() { _ = syscall.Flock(int(activeFile.Fd()), syscall.LOCK_UN) }()
+	if err := inventoryPiEvidenceChildren(directoryPath); err != nil {
+		return PiTerminalEvidenceSummary{}, err
+	}
 
 	var directoryStat syscall.Stat_t
 	if err := fstatPiEvidenceDirectory(int(directory.Fd()), &directoryStat); err != nil {
@@ -171,9 +173,7 @@ func ReadPiTerminalEvidenceSummary(entryDirectory string) (PiTerminalEvidenceSum
 		return PiTerminalEvidenceSummary{}, piTerminalEvidenceRefuse(PiTerminalEvidenceUnclassifiable, "entry.record", err)
 	}
 	var record legacyPiEvidenceRecord
-	decoder := json.NewDecoder(bytes.NewReader(recordBytes))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&record); err != nil || requireJSONEOF(decoder) != nil {
+	if err := legacyDecodeClosedJSON(recordBytes, &record); err != nil {
 		return PiTerminalEvidenceSummary{}, piTerminalEvidenceRefuse(PiTerminalEvidenceUnclassifiable, "entry.record", errors.New("legacy lifecycle record is malformed"))
 	}
 	if record.SchemaVersion != 1 || len(record.EntryID) != 32 || record.CommittedBytes < 0 || record.CommittedRecords == 0 {
@@ -222,6 +222,21 @@ func ReadPiTerminalEvidenceSummary(entryDirectory string) (PiTerminalEvidenceSum
 		ClosedAt:              record.ClosedAt, TerminalStatus: status,
 		SourcePathDigest: digestPiEvidenceValue("curator.pi.source-path.v1\x00", filepath.Clean(directoryPath)),
 	}, nil
+}
+
+func inventoryPiEvidenceChildren(path string) error {
+	children, err := os.ReadDir(path)
+	if err != nil {
+		return piTerminalEvidenceRefuse(PiTerminalEvidenceUnclassifiable, "entry.children_read", err)
+	}
+	for _, child := range children {
+		if child.Name() != "active.lock" && child.Name() != "record.json" && child.Name() != "log.jsonl" {
+			return piTerminalEvidenceRefuse(PiTerminalEvidenceUnclassifiable, "entry.child_unknown", errors.New("unclassified lifecycle child"))
+		}
+		// Each admitted name is opened below with the existing regular-file,
+		// no-symlink, owner/mode and single-link checks before its data is read.
+	}
+	return nil
 }
 
 type piEvidenceFileIdentity struct{ device, inode uint64 }
@@ -283,9 +298,7 @@ func classifyLegacyPiTerminalStatus(file *os.File) (string, uint64, error) {
 			return "", count, errors.New("legacy log contains an empty event")
 		}
 		var event legacyPiEvidenceEvent
-		decoder := json.NewDecoder(bytes.NewReader(line))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&event); err != nil || requireJSONEOF(decoder) != nil {
+		if err := legacyDecodeClosedJSON(line, &event); err != nil {
 			return "", count, errors.New("legacy log contains an unclassifiable event")
 		}
 		if event.Event == "" {
