@@ -29,7 +29,7 @@ func TestInferencePlaneDocumentationMatchesEngineCatalogV1(t *testing.T) {
 		"catalog data never shortens or guesses a path-derived id",
 		"this leaf adds no quarantine-clearing CLI command",
 		"adopted by curator-engines v0.x; Decision 0020 pending in curator-spec",
-		"other shapes are out of scope, see TASK-260930-1hzscs",
+		"closed P1–P4 propagation rule",
 	} {
 		if !strings.Contains(specText, required) {
 			t.Errorf("spec/inference-plane.md is missing adopted catalog contract text %q", required)

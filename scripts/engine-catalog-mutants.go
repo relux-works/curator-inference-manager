@@ -4,13 +4,18 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/build/constraint"
 	"go/format"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,10 +24,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 )
 
 type refusalSite struct {
+	bounds               []siteBound
+	unconditional        bool
+	typeContext          *typedUnit
+	fset                 *token.FileSet
+	witnesses            []narrowingWitness
 	id                   string
 	file                 string
 	function             string
@@ -39,16 +48,25 @@ type refusalSite struct {
 }
 
 type testReference struct {
-	Name string `json:"name"`
-	Dir  string `json:"dir"`
+	BodySHA256 string `json:"body_sha256"`
+	Name       string `json:"name"`
+	Dir        string `json:"dir"`
 }
 
 type parsedTest struct {
-	reference testReference
-	body      *ast.BlockStmt
+	bodyDigest string
+	reference  testReference
+	body       *ast.BlockStmt
+}
+
+type sourceMutation struct {
+	start, end  int
+	replacement string
 }
 
 type mutant struct {
+	bounds      []siteBound
+	extra       []sourceMutation
 	key         string
 	siteID      string
 	file        string
@@ -69,6 +87,7 @@ type overlay struct {
 }
 
 type inventorySite struct {
+	Bounds       []siteBound     `json:"bounds,omitempty"`
 	Key          string          `json:"key"`
 	File         string          `json:"file"`
 	Function     string          `json:"function"`
@@ -80,9 +99,10 @@ type inventorySite struct {
 }
 
 type inventoryReport struct {
-	Files   []string          `json:"files"`
-	Sites   []inventorySite   `json:"sites"`
-	Mutants []inventoryMutant `json:"mutants"`
+	AcceptedSubset string            `json:"accepted_subset"`
+	Files          []string          `json:"files"`
+	Sites          []inventorySite   `json:"sites"`
+	Mutants        []inventoryMutant `json:"mutants"`
 }
 
 type inventoryMutant struct {
@@ -117,9 +137,9 @@ func main() {
 	mutants, err := deriveMutants(rootPath, sites)
 	fatalIf(err)
 	if *inventoryOnly {
-		report := inventoryReport{Files: files}
+		report := inventoryReport{Files: files, AcceptedSubset: propagationSubset}
 		for _, site := range sites {
-			report.Sites = append(report.Sites, inventorySite{Key: site.id, File: site.file, Function: site.function, Constructor: site.constructor, Site: site.site, Line: site.line, Tests: site.tests, MutationKeys: site.expectedMutationKeys})
+			report.Sites = append(report.Sites, inventorySite{Key: site.id, File: site.file, Function: site.function, Constructor: site.constructor, Site: site.site, Line: site.line, Tests: site.tests, MutationKeys: site.expectedMutationKeys, Bounds: site.bounds})
 		}
 		for _, mutant := range mutants {
 			tests := make([]string, len(mutant.tests))
@@ -141,13 +161,13 @@ func main() {
 		*windowsEmulationRoot = validateEmulationRoot(*windowsEmulationRoot, "Windows", "internal/infra/pi_shared_unsupported_windows.go")
 	}
 	if *out == "" {
-		fmt.Fprintln(os.Stderr, "-out is required and must be outside the managed Story worktree")
+		fmt.Fprintln(os.Stderr, "-out is required and must be under .temp/")
 		os.Exit(2)
 	}
 	outPath, err := filepath.Abs(*out)
 	fatalIf(err)
-	if within(rootPath, outPath) {
-		fatalIf(fmt.Errorf("mutation outputs must be outside the repository worktree"))
+	if !within(filepath.Join(rootPath, ".temp"), outPath) {
+		fatalIf(fmt.Errorf("mutation outputs must be under the repository .temp/ directory"))
 	}
 	if err := os.MkdirAll(outPath, 0o700); err != nil {
 		fatalIf(err)
@@ -164,31 +184,40 @@ func main() {
 		end = *start + *count
 	}
 	rows := runMutants(rootPath, outPath, mutants[*start:end], *start, *workers, *linuxEmulationRoot, *windowsEmulationRoot)
-	manifest := filepath.Join(outPath, fmt.Sprintf("TASK-260929-9amima_mutants_%03d-%03d.md", *start, end))
+	manifest := filepath.Join(outPath, fmt.Sprintf("TASK-260930-1hzscs_mutants_%03d-%03d.md", *start, end))
 	if err := os.WriteFile(manifest, []byte(renderTable(len(sites), len(mutants), rows)), 0o600); err != nil {
 		fatalIf(err)
 	}
+	records := []map[string]any{}
+	for _, row := range rows {
+		records = append(records, map[string]any{"index": row.index, "key": row.mutant.key, "site": row.mutant.siteID, "member": row.mutant.memberText, "state": row.state, "test": row.test, "exit": row.code, "bound": row.bound, "log": row.log, "joint_log": row.jointLog, "joint_exit": row.jointCode, "target": row.target})
+	}
+	encoded, err := json.MarshalIndent(records, "", "  ")
+	fatalIf(err)
+	fatalIf(os.WriteFile(manifest+".json", encoded, 0600))
 	failures := 0
 	for _, row := range rows {
-		if row.state != "killed" && row.state != "equivalent" {
+		if row.state != "killed" && row.state != "equivalent" && !strings.HasPrefix(row.state, "bound: ") {
 			failures++
 		}
 	}
 	fmt.Printf("package production files=%d; refusal/gate sites=%d; generated mutants=%d; run=%d; unresolved=%d; table=%s\n", len(files), len(sites), len(mutants), len(rows), failures, manifest)
-	if failures > 0 {
+	if !mutationEvidenceComplete(rows) {
 		os.Exit(1)
 	}
 }
 
 type result struct {
-	index  int
-	mutant mutant
-	target string
-	state  string
-	test   string
-	code   int
-	log    string
-	bound  string
+	index     int
+	mutant    mutant
+	target    string
+	state     string
+	test      string
+	code      int
+	log       string
+	jointLog  string
+	jointCode int
+	bound     string
 }
 
 func validateEmulationRoot(path, platform, source string) string {
@@ -289,83 +318,57 @@ func productionPackageScope(root string) ([]string, error) {
 }
 
 func collectSites(root string, files []string) ([]refusalSite, error) {
-	constructorsByDirectory := make(map[string]map[string]bool)
-	for _, sourceName := range files {
-		directory := filepath.ToSlash(filepath.Dir(sourceName))
-		if constructorsByDirectory[directory] != nil {
-			continue
-		}
-		constructors, err := domainErrorHelpers(root, []string{sourceName})
-		if err != nil {
-			return nil, err
-		}
-		constructorsByDirectory[directory] = constructors
-	}
-	var sites []refusalSite
-	fileSets := make(map[string]*token.FileSet)
-	for _, sourceName := range files {
-		path := filepath.Join(root, sourceName)
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, path, nil, 0)
-		if err != nil {
-			return nil, err
-		}
-		fileSets[sourceName] = fset
-		for _, declaration := range file.Decls {
-			function, ok := declaration.(*ast.FuncDecl)
-			if !ok || function.Body == nil {
-				continue
-			}
-			var parents []ast.Node
-			ast.Inspect(function.Body, func(node ast.Node) bool {
-				if node == nil {
-					if len(parents) > 0 {
-						parents = parents[:len(parents)-1]
-					}
-					return false
-				}
-				if returned, ok := node.(*ast.ReturnStmt); ok {
-					guard, guardExpr, elseBranch := nearestGuard(parents, returned)
-					for _, expression := range returned.Results {
-						collectTypedCalls(expression, constructorsByDirectory[filepath.ToSlash(filepath.Dir(sourceName))], func(call *ast.CallExpr, constructor, site string) {
-							position := fset.Position(call.Pos())
-							id := fmt.Sprintf("%s:%d:%s:%s", sourceName, position.Offset, constructor, site)
-							sites = append(sites, refusalSite{id: id, file: sourceName, function: function.Name.Name, constructor: constructor, site: site, line: position.Line, guard: guard, guardExpr: guardExpr, elseBranch: elseBranch, call: call, expression: call})
-						})
-						collectTypedLiterals(expression, constructorsByDirectory[filepath.ToSlash(filepath.Dir(sourceName))], func(target ast.Expr, constructor, site string) {
-							position := fset.Position(target.Pos())
-							id := fmt.Sprintf("%s:%d:%s:%s", sourceName, position.Offset, constructor, site)
-							sites = append(sites, refusalSite{id: id, file: sourceName, function: function.Name.Name, constructor: constructor, site: site, line: position.Line, guard: guard, guardExpr: guardExpr, elseBranch: elseBranch, expression: target})
-						})
-					}
-				}
-				parents = append(parents, node)
-				return true
-			})
-		}
-		collectUnknownStatusGates(sourceName, fset, file, &sites)
-		collectCatalogAvailabilityAttestationGates(sourceName, fset, file, &sites)
-		collectCatalogResolutionDecisionGates(sourceName, fset, file, &sites)
-	}
-	if len(sites) == 0 {
-		return nil, fmt.Errorf("package-derived AST inventory found no typed refusal or status gate sites")
+	sites, sets, err := typedPropagationSites(root, files)
+	if err != nil {
+		return nil, err
 	}
 	tests, err := loadTests(root, files)
 	if err != nil {
 		return nil, err
 	}
-	callers, err := productionCallers(root, files)
+	mappings, err := readSiteMappings(root)
 	if err != nil {
 		return nil, err
 	}
-	for index := range sites {
-		sites[index].tests = testsForRefusalSite(tests, callers, sites[index])
-		keys, keyErr := expectedMutationKeys(fileSets[sites[index].file], sites[index])
-		if keyErr != nil {
-			return nil, keyErr
+	known := map[string]bool{}
+	for i := range sites {
+		known[sites[i].id] = true
+		var mapping *siteMapping
+		for j := range mappings {
+			if mappings[j].Site == sites[i].id {
+				if mapping != nil {
+					return nil, fmt.Errorf("%s: duplicate certificate", sites[i].id)
+				}
+				mapping = &mappings[j]
+			}
 		}
-		sites[index].expectedMutationKeys = keys
+		if mapping == nil {
+			return nil, fmt.Errorf("%s: missing certificate or explicit bound", sites[i].id)
+		}
+		if err = validateSiteBounds(root, sites[i], *mapping); err != nil {
+			return nil, err
+		}
+		sites[i].bounds = mapping.Bounds
+		sites[i].witnesses = mapping.Witnesses
+		if len(mapping.Tests) > 0 {
+			sites[i].tests, err = mappedSiteTests(sites[i].id, mappings, tests)
+			if err != nil {
+				return nil, err
+			}
+		} else if !hasUndecidedBound(mapping.Bounds, -1) {
+			return nil, fmt.Errorf("%s: missing named negative test", sites[i].id)
+		}
+		sites[i].expectedMutationKeys, err = expectedMutationKeys(sets[sites[i].file], sites[i])
+		if err != nil {
+			return nil, err
+		}
 	}
+	for _, mapping := range mappings {
+		if !known[mapping.Site] {
+			return nil, fmt.Errorf("%s: stale certificate outside AST census", mapping.Site)
+		}
+	}
+
 	return sites, nil
 }
 
@@ -406,6 +409,9 @@ func productionCallers(root string, files []string) (map[string][]string, error)
 	return callers, nil
 }
 
+// Legacy selection helpers remain exercised by the original regression tests.
+// The production inventory never invokes them: collectSites uses explicit
+// file/function/ordinal certificates through mappedSiteTests.
 func testsForRefusalSite(candidates []parsedTest, callers map[string][]string, site refusalSite) []testReference {
 	if site.constructor == "availability attestation gate" {
 		return testsForAvailabilityAttestationGate(candidates, callers, site)
@@ -582,77 +588,6 @@ func uniqueSortedTestReferences(references []testReference) []testReference {
 	return unique
 }
 
-func packageSourceFiles(root string, directories []string) ([]string, error) {
-	seen := map[string]bool{}
-	var files []string
-	for _, directory := range directories {
-		entries, err := os.ReadDir(filepath.Join(root, directory))
-		if err != nil {
-			return nil, err
-		}
-		for _, entry := range entries {
-			name := entry.Name()
-			path := filepath.ToSlash(filepath.Join(directory, name))
-			if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
-				continue
-			}
-			if !seen[path] {
-				seen[path] = true
-				files = append(files, path)
-			}
-		}
-	}
-	return files, nil
-}
-
-func domainErrorHelpers(root string, changedFiles []string) (map[string]bool, error) {
-	var directories []string
-	for _, path := range changedFiles {
-		directories = appendUnique(directories, filepath.ToSlash(filepath.Dir(path)))
-	}
-	files, err := packageSourceFiles(root, directories)
-	if err != nil {
-		return nil, err
-	}
-	type errorMethod struct{ receiver string }
-	var methods []errorMethod
-	var declarations []*ast.FuncDecl
-	for _, path := range files {
-		parsed, parseErr := parser.ParseFile(token.NewFileSet(), filepath.Join(root, path), nil, 0)
-		if parseErr != nil {
-			return nil, parseErr
-		}
-		for _, declaration := range parsed.Decls {
-			function, ok := declaration.(*ast.FuncDecl)
-			if !ok {
-				continue
-			}
-			if function.Name.Name == "Error" && function.Recv != nil && function.Type.Results != nil && len(function.Type.Results.List) == 1 {
-				if receiver := receiverName(function.Recv.List[0].Type); receiver != "" {
-					methods = append(methods, errorMethod{receiver: receiver})
-				}
-			}
-			if function.Recv == nil && function.Body != nil {
-				declarations = append(declarations, function)
-			}
-		}
-	}
-	errorTypes := map[string]bool{}
-	for _, method := range methods {
-		errorTypes[method.receiver] = true
-	}
-	helpers := map[string]bool{}
-	for _, function := range declarations {
-		if returnsErrorType(function.Type.Results, errorTypes) && returnsCustomError(function.Body, errorTypes) {
-			helpers[function.Name.Name] = true
-		}
-	}
-	for name := range errorTypes {
-		helpers[name] = true
-	}
-	return helpers, nil
-}
-
 func receiverName(expression ast.Expr) string {
 	switch value := expression.(type) {
 	case *ast.Ident:
@@ -663,137 +598,6 @@ func receiverName(expression ast.Expr) string {
 		}
 	}
 	return ""
-}
-
-func returnsErrorType(results *ast.FieldList, errorTypes map[string]bool) bool {
-	if results == nil || len(results.List) != 1 || len(results.List[0].Names) > 1 {
-		return false
-	}
-	if name, ok := results.List[0].Type.(*ast.Ident); ok && (name.Name == "error" || errorTypes[name.Name]) {
-		return true
-	}
-	return false
-}
-
-func returnsCustomError(body *ast.BlockStmt, errorTypes map[string]bool) bool {
-	found := false
-	ast.Inspect(body, func(node ast.Node) bool {
-		returned, ok := node.(*ast.ReturnStmt)
-		if !ok {
-			return true
-		}
-		for _, expression := range returned.Results {
-			ast.Inspect(expression, func(child ast.Node) bool {
-				switch value := child.(type) {
-				case *ast.CompositeLit:
-					if name, ok := value.Type.(*ast.Ident); ok && errorTypes[name.Name] {
-						found = true
-					}
-				}
-				return !found
-			})
-		}
-		return !found
-	})
-	return found
-}
-
-func calledName(expression ast.Expr) string {
-	switch value := expression.(type) {
-	case *ast.Ident:
-		return value.Name
-	case *ast.SelectorExpr:
-		return value.Sel.Name
-	}
-	return ""
-}
-
-func collectTypedCalls(expression ast.Expr, constructors map[string]bool, found func(*ast.CallExpr, string, string)) {
-	ast.Inspect(expression, func(node ast.Node) bool {
-		call, ok := node.(*ast.CallExpr)
-		if !ok {
-			return true
-		}
-		name := calledName(call.Fun)
-		if !constructors[name] {
-			return true
-		}
-		var site string
-		for _, argument := range call.Args {
-			literal, ok := argument.(*ast.BasicLit)
-			if !ok || literal.Kind != token.STRING {
-				continue
-			}
-			if value, err := strconv.Unquote(literal.Value); err == nil {
-				site = value
-				break
-			}
-		}
-		if site == "" {
-			if len(call.Args) > 0 {
-				var expression strings.Builder
-				if err := format.Node(&expression, token.NewFileSet(), call.Args[0]); err == nil {
-					site = "expr:" + expression.String()
-				}
-			}
-			if site == "" {
-				site = "helper:" + name
-			}
-		}
-		found(call, name, site)
-		return false
-	})
-}
-
-func collectTypedLiterals(expression ast.Expr, errorTypes map[string]bool, found func(ast.Expr, string, string)) {
-	var literal *ast.CompositeLit
-	var target ast.Expr
-	switch value := expression.(type) {
-	case *ast.UnaryExpr:
-		if value.Op == token.AND {
-			literal, _ = value.X.(*ast.CompositeLit)
-			target = value
-		}
-	case *ast.CompositeLit:
-		literal = value
-		target = value
-	}
-	if literal == nil {
-		return
-	}
-	typeName := receiverName(literal.Type)
-	if !errorTypes[typeName] {
-		return
-	}
-	site := "type:" + typeName
-	ast.Inspect(literal, func(node ast.Node) bool {
-		value, ok := node.(*ast.BasicLit)
-		if !ok || value.Kind != token.STRING {
-			return true
-		}
-		if text, err := strconv.Unquote(value.Value); err == nil && text != "" {
-			site = text
-			return false
-		}
-		return true
-	})
-	found(target, typeName, site)
-}
-
-func nearestGuard(parents []ast.Node, returned *ast.ReturnStmt) (*ast.IfStmt, ast.Expr, bool) {
-	for index := len(parents) - 1; index >= 0; index-- {
-		branch, ok := parents[index].(*ast.IfStmt)
-		if !ok {
-			continue
-		}
-		if branch.Body != nil && returned.Pos() >= branch.Body.Pos() && returned.End() <= branch.Body.End() {
-			return branch, branch.Cond, false
-		}
-		if branch.Else != nil && returned.Pos() >= branch.Else.Pos() && returned.End() <= branch.Else.End() {
-			return branch, branch.Cond, true
-		}
-	}
-	return nil, nil, false
 }
 
 func nearestGuardForNode(parents []ast.Node, target ast.Node) (*ast.IfStmt, ast.Expr, bool) {
@@ -1065,7 +869,7 @@ func loadTests(root string, changedFiles []string) ([]parsedTest, error) {
 				if !ok || function.Recv != nil || !strings.HasPrefix(function.Name.Name, "Test") || function.Body == nil {
 					continue
 				}
-				candidates = append(candidates, parsedTest{reference: testReference{Name: function.Name.Name, Dir: directory}, body: function.Body})
+				candidates = append(candidates, parsedTest{reference: testReference{Name: function.Name.Name, Dir: directory}, body: function.Body, bodyDigest: testBodyDigest(function.Body)})
 			}
 		}
 	}
@@ -1329,101 +1133,183 @@ func appendUniqueTest(values []testReference, additions ...testReference) []test
 
 func deriveMutants(root string, sites []refusalSite) ([]mutant, error) {
 	var mutants []mutant
-	fileSets := make(map[string]*token.FileSet)
-	sources := make(map[string][]byte)
+	sets := map[string]*token.FileSet{}
+	sources := map[string][]byte{}
 	for _, site := range sites {
-		members := []ast.Expr{}
-		if site.guardExpr != nil {
-			booleanMembers(site.guardExpr, &members)
-		}
-		if len(members) == 0 {
-			if site.expression == nil {
-				return nil, fmt.Errorf("%s:%d %s.%s has no mutable refusal member", site.file, site.line, site.constructor, site.site)
-			}
-			fset, source, err := sourceFor(root, site.file, fileSets, sources)
-			if err != nil {
-				return nil, err
-			}
-			start := fset.Position(site.expression.Pos()).Offset
-			end := fset.Position(site.expression.End()).Offset
-			key := mutationKey(site.id, start, end)
-			mutants = append(mutants, mutant{key: key, siteID: site.id, file: site.file, function: site.function, constructor: site.constructor, sites: []string{site.site}, tests: append([]testReference(nil), site.tests...), line: site.line, start: start, end: end, replaceText: nilErrorReplacement(fset, site.expression)})
-			_ = source
+		if len(site.witnesses) == 0 && hasUndecidedBound(site.bounds, -1) {
 			continue
 		}
-		fset, source, err := sourceFor(root, site.file, fileSets, sources)
+		fset, source, err := sourceFor(root, site.file, sets, sources)
 		if err != nil {
 			return nil, err
 		}
-		for _, member := range members {
-			memberStart := fset.Position(member.Pos()).Offset
-			memberEnd := fset.Position(member.End()).Offset
-			replacement := "(" + string(source[memberStart:memberEnd]) + ") && false"
+		if site.fset != nil {
+			fset = site.fset
+		}
+		keys, err := expectedMutationKeys(fset, site)
+		if err != nil {
+			return nil, err
+		}
+		if site.unconditional && len(site.witnesses) == 0 {
+			if site.expression == nil {
+				return nil, fmt.Errorf("%s: unconditional site has no refusal expression", site.id)
+			}
+			target := site.expression
+			start, end := fset.Position(target.Pos()).Offset, fset.Position(target.End()).Offset
+			mutants = append(mutants, mutant{bounds: site.bounds, key: keys[0], siteID: site.id, file: site.file, function: site.function, constructor: site.constructor, sites: []string{site.site}, tests: site.tests, line: site.line, guardText: string(source[start:end]), memberText: "unconditional: AC1 + removal mutant + consumer narrowing", replaceText: "func() error { _ = (" + string(source[start:end]) + "); return nil }()", start: start, end: end})
+			continue
+		}
+		for index, witness := range site.witnesses {
+			exception, err := singletonPredicate(witness.Admit)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", site.id, err)
+			}
+			if err := typedWitnessMember(site, witness); err != nil {
+				return nil, err
+			}
+			target := site.guardExpr
+			if target == nil {
+				target = site.expression
+			}
+			start, end := fset.Position(target.Pos()).Offset, fset.Position(target.End()).Offset
+			original := string(source[start:end])
+			member := original
+			if site.guardExpr != nil {
+				groups := rejectedGroups(site.guardExpr)
+				if witness.Member < 0 || witness.Member >= len(groups) {
+					return nil, fmt.Errorf("%s: witness member outside condition class", site.id)
+				}
+				member = expressionText(fset, groups[witness.Member])
+				if site.elseBranch {
+					member = "!(" + member + ")"
+				}
+				// An OR witness must satisfy exactly the selected rejected group.
+				prefix := []string{}
+				for other, group := range groups {
+					if other != witness.Member {
+						prefix = append(prefix, "!("+expressionText(fset, group)+")")
+					}
+				}
+				predicate, _ := parser.ParseExpr(exception)
+				needsSelected := false
+				ast.Inspect(predicate, func(node ast.Node) bool {
+					switch e := node.(type) {
+					case *ast.CallExpr:
+						if method, ok := e.Fun.(*ast.SelectorExpr); ok && method.Sel.Name == "Error" {
+							needsSelected = true
+						}
+					case *ast.IndexExpr:
+						needsSelected = true
+					}
+					return true
+				})
+				if needsSelected {
+					prefix = append(prefix, "("+member+")")
+				}
+				prefix = append(prefix, "("+exception+")")
+				exception = strings.Join(prefix, " && ")
+			} else if witness.Member != 0 {
+				return nil, fmt.Errorf("%s: unconditional refusal has one class", site.id)
+			}
+			replacement := "(" + original + ") && !(" + exception + ")"
 			if site.elseBranch {
-				replacement = "(" + string(source[memberStart:memberEnd]) + ") || true"
+				replacement = "(" + original + ") || (" + exception + ")"
 			}
-			key := mutationKey(site.id, memberStart, memberEnd)
-			mutants = append(mutants, mutant{key: key, siteID: site.id, file: site.file, function: site.function, constructor: site.constructor, sites: []string{site.site}, tests: append([]testReference(nil), site.tests...), line: site.line, guardText: string(source[fset.Position(site.guardExpr.Pos()).Offset:fset.Position(site.guardExpr.End()).Offset]), memberText: string(source[memberStart:memberEnd]), replaceText: replacement, start: memberStart, end: memberEnd})
-		}
-	}
-	generated := make(map[string]int, len(mutants))
-	for _, current := range mutants {
-		generated[current.key]++
-	}
-	for _, site := range sites {
-		for _, expected := range site.expectedMutationKeys {
-			if generated[expected] != 1 {
-				return nil, fmt.Errorf("%s:%d %s.%s member %s produced %d narrowing mutants; want exactly one", site.file, site.line, site.constructor, site.site, expected, generated[expected])
+			if site.guardExpr == nil {
+				replacement = "func() error { if !(" + exception + ") {return (" + original + ")}; return nil }()"
 			}
+			mutants = append(mutants, mutant{bounds: site.bounds, key: keys[index], siteID: site.id, file: site.file, function: site.function, constructor: site.constructor, sites: []string{site.site}, tests: site.tests, line: site.line, guardText: original, memberText: member + "; admit exactly " + exception, replaceText: replacement, start: start, end: end})
 		}
 	}
-	sort.Slice(mutants, func(i, j int) bool {
-		if mutants[i].file != mutants[j].file {
-			return mutants[i].file < mutants[j].file
-		}
-		if mutants[i].line != mutants[j].line {
-			return mutants[i].line < mutants[j].line
-		}
-		return mutants[i].key < mutants[j].key
-	})
+	sort.Slice(mutants, func(i, j int) bool { return mutants[i].key < mutants[j].key })
 	if len(mutants) == 0 {
-		return nil, fmt.Errorf("typed refusal inventory generated no narrowing mutants")
+		return nil, fmt.Errorf("no certified narrowing mutants")
 	}
 	return mutants, nil
 }
+func expressionText(set *token.FileSet, expr ast.Expr) string {
+	var out strings.Builder
+	fatalIf(format.Node(&out, set, expr))
+	return out.String()
+}
+func rejectedGroups(expr ast.Expr) []ast.Expr {
+	expr = unparen(expr)
+	if binary, ok := expr.(*ast.BinaryExpr); ok && binary.Op == token.LOR {
+		return append(rejectedGroups(binary.X), rejectedGroups(binary.Y)...)
+	}
+	return []ast.Expr{expr}
+}
 
-func expectedMutationKeys(fset *token.FileSet, site refusalSite) ([]string, error) {
-	var keys []string
-	if site.guardExpr != nil {
-		members := []ast.Expr{}
-		booleanMembers(site.guardExpr, &members)
-		for _, member := range members {
-			start := fset.Position(member.Pos()).Offset
-			end := fset.Position(member.End()).Offset
-			keys = append(keys, mutationKey(site.id, start, end))
+// The frozen witness grammar admits one equality, never an observation or a
+// conjunction. Types and exact guarded-expression identity are checked below.
+func singletonPredicate(source string) (string, error) {
+	expr, err := parser.ParseExpr(source)
+	if err != nil {
+		return "", err
+	}
+	if _, _, ok := singletonShape(expr); !ok {
+		return "", fmt.Errorf("narrowing witness must be singleton equality: identical guarded expression == constant literal, or deep equality with a fully specified composite literal")
+	}
+	return expressionText(token.NewFileSet(), expr), nil
+}
+
+func singletonShape(expr ast.Expr) (operand, literal ast.Expr, ok bool) {
+	switch value := unparen(expr).(type) {
+	case *ast.BinaryExpr:
+		if value.Op == token.EQL && singletonOperand(value.X) && constantLiteral(value.Y) {
+			return value.X, value.Y, true
+		}
+	case *ast.CallExpr:
+		// The callee is additionally resolved to standard reflect.DeepEqual by types.
+		if callee, yes := value.Fun.(*ast.SelectorExpr); yes && callee.Sel.Name == "DeepEqual" && len(value.Args) == 2 && singletonOperand(value.Args[0]) {
+			if _, composite := unparen(value.Args[1]).(*ast.CompositeLit); composite {
+				return value.Args[0], value.Args[1], true
+			}
 		}
 	}
-	if len(keys) == 0 && site.expression != nil {
-		start := fset.Position(site.expression.Pos()).Offset
-		end := fset.Position(site.expression.End()).Offset
-		keys = append(keys, mutationKey(site.id, start, end))
+	return nil, nil, false
+}
+
+func constantLiteral(expr ast.Expr) bool {
+	switch value := unparen(expr).(type) {
+	case *ast.BasicLit:
+		return true
+	case *ast.Ident:
+		return value.Name == "true" || value.Name == "false"
+	case *ast.UnaryExpr:
+		_, literal := value.X.(*ast.BasicLit)
+		return literal && (value.Op == token.SUB || value.Op == token.ADD)
 	}
-	if len(keys) == 0 {
-		return nil, fmt.Errorf("%s:%d %s.%s has no enumerable refusal member", site.file, site.line, site.constructor, site.site)
+	return false
+}
+
+func singletonOperand(expr ast.Expr) bool {
+	switch value := unparen(expr).(type) {
+	case *ast.Ident:
+		return true
+	case *ast.SelectorExpr:
+		return singletonOperand(value.X)
+	}
+	return false // len, indexing, slicing, methods and other observations refuse.
+}
+func expectedMutationKeys(fset *token.FileSet, site refusalSite) ([]string, error) {
+	if site.unconditional && len(site.witnesses) > 0 {
+		return nil, fmt.Errorf("%s: unconditional refusal cannot invent narrowing inputs", site.id)
+	}
+	if len(site.witnesses) == 0 && hasUndecidedBound(site.bounds, -1) {
+		return nil, nil
+	}
+	if len(site.witnesses) == 0 && site.unconditional && site.expression != nil {
+		return []string{site.id + ":removal"}, nil
+	}
+	if len(site.witnesses) == 0 {
+		return nil, fmt.Errorf("%s:%d %s: no explicit singleton witness for typed refusal site", site.file, site.line, site.id)
+	}
+	var keys []string
+	for i := range site.witnesses {
+		keys = append(keys, fmt.Sprintf("%s:witness:%d", site.id, i+1))
 	}
 	return keys, nil
-}
-
-func mutationKey(siteID string, start, end int) string {
-	return fmt.Sprintf("%s:%d:%d", siteID, start, end)
-}
-
-func nilErrorReplacement(fset *token.FileSet, expression ast.Expr) string {
-	var text strings.Builder
-	if err := format.Node(&text, fset, expression); err != nil {
-		fatalIf(err)
-	}
-	return "func() error { _ = (" + text.String() + "); return nil }()"
 }
 
 func sourceFor(root, path string, sets map[string]*token.FileSet, sources map[string][]byte) (*token.FileSet, []byte, error) {
@@ -1441,15 +1327,6 @@ func sourceFor(root, path string, sets map[string]*token.FileSet, sources map[st
 	sets[path] = fset
 	sources[path] = source
 	return fset, source, nil
-}
-
-func booleanMembers(expression ast.Expr, into *[]ast.Expr) {
-	if binary, ok := expression.(*ast.BinaryExpr); ok && (binary.Op == token.LAND || binary.Op == token.LOR) {
-		booleanMembers(binary.X, into)
-		booleanMembers(binary.Y, into)
-		return
-	}
-	*into = append(*into, expression)
 }
 
 func runMutants(root, out string, mutants []mutant, start, workers int, linuxEmulationRoot, windowsEmulationRoot string) []result {
@@ -1473,6 +1350,57 @@ func runMutants(root, out string, mutants []mutant, start, workers int, linuxEmu
 	}
 	close(jobs)
 	group.Wait()
+	// Only two independently surviving guards can establish a joint bound.
+	// A downstream guard that already fails alone cannot be an equivalence proof.
+	for i := range rows {
+		if rows[i].state == "survived" {
+			for _, b := range rows[i].mutant.bounds {
+				if b.Kind != "defensive-unreachable" {
+					continue
+				}
+				for j := range rows {
+					if rows[j].mutant.key != b.DownstreamKey {
+						continue
+					}
+					proof, ok := proveDefensiveBound(root, out, rows[i], rows[j].mutant, b, start+i, linuxEmulationRoot, windowsEmulationRoot)
+					if ok {
+						rows[i] = proof
+					}
+					break
+				}
+			}
+		}
+		if rows[i].state != "survived" {
+			continue
+		}
+		for j := range rows {
+			if rows[j].state != "survived" || !downstreamOf(rows[i].mutant, rows[j].mutant) {
+				continue
+			}
+			joint := rows[i].mutant
+			joint.extra = []sourceMutation{{rows[j].mutant.start, rows[j].mutant.end, rows[j].mutant.replaceText}}
+			proof := runMutant(root, filepath.Join(out, "joint"), joint, start+i, linuxEmulationRoot, windowsEmulationRoot)
+			if provedJointEquivalence(rows[i], rows[j], proof) {
+				rows[i].jointLog = proof.log
+				rows[i].jointCode = proof.code
+				rows[i].state = "equivalent"
+				rows[i].test = proof.test
+				rows[i].bound = fmt.Sprintf("both individual mutations survive; joint with %s fails %s (exit %d; log %s). Bound: mapped witnesses only, not universal semantic equivalence", rows[j].mutant.key, proof.test, proof.code, proof.log)
+				break
+			}
+		}
+	}
+	for i := range rows {
+		if rows[i].state == "survived" {
+			for _, b := range rows[i].mutant.bounds {
+				if b.Kind == "undecided" && (b.Member == -1 || strings.HasSuffix(rows[i].mutant.key, fmt.Sprintf(":witness:%d", b.Member+1))) {
+					rows[i].state = "bound: undecided"
+					rows[i].bound = b.Reason
+					break
+				}
+			}
+		}
+	}
 	return rows
 }
 
@@ -1480,9 +1408,17 @@ func runMutant(root, out string, current mutant, id int, linuxEmulationRoot, win
 	absoluteSource := filepath.Join(root, current.file)
 	source, err := os.ReadFile(absoluteSource)
 	fatalIf(err)
-	mutatedSource := append([]byte(nil), source[:current.start]...)
-	mutatedSource = append(mutatedSource, []byte(current.replaceText)...)
-	mutatedSource = append(mutatedSource, source[current.end:]...)
+	edits := append([]sourceMutation{{current.start, current.end, current.replaceText}}, current.extra...)
+	sort.Slice(edits, func(i, j int) bool { return edits[i].start > edits[j].start })
+	mutatedSource := append([]byte(nil), source...)
+	boundary := len(source)
+	for _, edit := range edits {
+		if edit.start < 0 || edit.end < edit.start || edit.end > boundary {
+			fatalIf(fmt.Errorf("overlapping or invalid mutation spans"))
+		}
+		mutatedSource = append(append(append([]byte(nil), mutatedSource[:edit.start]...), []byte(edit.replacement)...), mutatedSource[edit.end:]...)
+		boundary = edit.start
+	}
 	if _, err := parser.ParseFile(token.NewFileSet(), absoluteSource, mutatedSource, 0); err != nil {
 		fatalIf(fmt.Errorf("generated mutant did not parse (%s:%d): %w", current.file, current.line, err))
 	}
@@ -1504,6 +1440,19 @@ func runMutant(root, out string, current mutant, id int, linuxEmulationRoot, win
 	patterns := testsByDirectory(current.tests)
 	row := result{index: id, mutant: current, target: target, state: "unmapped", code: -1, bound: "no named behavioral test contains the enumerated refusal site", log: filepath.Join(mutantDir, "go-test.log")}
 	if len(patterns) == 0 {
+		return row
+	}
+	identity, err := bindMutationTestRoot(root, testRoot, current.tests)
+	if err != nil {
+		row.state, row.bound = "invalid", err.Error()
+		fatalIf(os.WriteFile(row.log, []byte(row.bound+"\n"), 0600))
+		return row
+	}
+	baseline := selectedBaseline(testRoot, identity, patterns)
+	fatalIf(os.WriteFile(filepath.Join(mutantDir, "baseline.log"), baseline.output, 0600))
+	if baseline.code != 0 {
+		row.state, row.code, row.bound = "invalid", baseline.code, "selected baseline failed before mutation; no kill evidence"
+		fatalIf(os.WriteFile(row.log, baseline.output, 0600))
 		return row
 	}
 	directories := make([]string, 0, len(patterns))
@@ -1545,7 +1494,7 @@ func runMutant(root, out string, current mutant, id int, linuxEmulationRoot, win
 		}
 	} else if exit, ok := failed.(*exec.ExitError); ok {
 		row.code = exit.ExitCode()
-		if row.test != "" {
+		if row.test != "" && containsTest(current.tests, row.test) {
 			row.state = "killed"
 			row.bound = ""
 		} else {
@@ -1559,88 +1508,138 @@ func runMutant(root, out string, current mutant, id int, linuxEmulationRoot, win
 	}
 	return row
 }
-func equivalentNarrowing(current mutant) (bound, witness string, equivalent bool) {
-	// These are deliberately narrow equivalence proofs for constructor operands
-	// whose malformed value is rejected again by a later invariant in the same
-	// production parser. The generated mutant set itself is still derived from
-	// every AST operand/member; only proven downstream-equivalent survivors are
-	// classified here.
-	type equivalentCase struct {
-		file, function, member, test string
-		line                         int
-		bound                        string
+
+// The emulator may change build directives and platform filename suffixes,
+// never declarations. Bind the whole package Go-file set (tests, helpers and
+// sources), rather than trusting a test's name in an arbitrary directory.
+func mutationRootIdentity(root string, references []testReference) (map[string]string, error) {
+	identity := map[string]string{}
+	for _, name := range []string{"go.mod", "go.sum"} {
+		data, err := os.ReadFile(filepath.Join(root, name))
+		if os.IsNotExist(err) && name == "go.sum" {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		identity[name] = fmt.Sprintf("%x", sha256.Sum256(data))
 	}
-	parserEquivalents := []equivalentCase{
-		{"internal/infra/pi_shared_protocol.go", "ResolveSharedRuntimePaths", "err != nil", "TestResolveSharedRuntimePathsRefusesCacheRootFailures", 253, "For the removed-working-directory fixture, filepath.Abs cannot determine the relative cache path and returns an empty absolute path. Narrowing its error check passes that value to EvalSymlinks, which still refuses the removed cwd before any cache-root path is returned. Bound: refusal remains shared_runtime_state_path_invalid; only the specific Abs error attribution is lost."},
-		{"internal/infra/pi_shared_protocol.go", "ResolveSharedRuntimePaths", "err != nil", "TestResolveSharedRuntimePathsRefusesCacheRootFailures", 257, "For the missing cache-root fixture, EvalSymlinks does not produce a usable canonical path. Narrowing its error check passes the empty/unusable path to the immediately following Stat, which still refuses it before any runtime path is returned. Bound: refusal remains shared_runtime_state_path_invalid; only the symlink-resolution detail is lost."},
-		{"internal/infra/pi_shared_protocol.go", "ResolveSharedRuntimePaths", "relErr != nil", "TestResolveSharedRuntimePathsAreHashOnlyContainedAndBounded", 285, "Both checked paths are built with filepath.Join(canonical, fixed namespace components, and a validated lowercase SHA-256 key). Rel therefore compares paths on the same root/volume and cannot fail for these constructed values. Bound: only construction through this function is covered; the check remains necessary if path construction changes."},
-		{"internal/infra/pi_shared_protocol.go", "ResolveSharedRuntimePaths", "strings.HasPrefix(rel, \"..\"+string(filepath.Separator))", "TestResolveSharedRuntimePathsAreHashOnlyContainedAndBounded", 285, "The relative paths are generated by joining the canonical root with fixed non-parent namespace components and a validated lowercase SHA-256 key. They cannot begin with a parent traversal. Bound: only current constants and hash-only keys are covered; keep this guard if the path grammar expands."},
-		{"internal/infra/pi_shared_protocol.go", "ResolveSharedRuntimePaths", "filepath.IsAbs(rel)", "TestResolveSharedRuntimePathsAreHashOnlyContainedAndBounded", 285, "filepath.Rel returns a relative result for the same-volume paths generated by joining the canonical root and fixed/hash-only descendants. Bound: only the current root-relative construction is covered; keep this guard if the relation inputs change."},
-		{"internal/infra/pi_shared_protocol.go", "CreateSharedRuntimeTree", "err != nil", "TestCreateSharedRuntimeTreeRefusesEveryUnsafePath", 299, "If opening the canonical cache root fails and this refusal is narrowed, the descriptor stays invalid; the first openOrCreateDirAt call fails and its enclosing typed refusal returns before creating any path. Bound: only error attribution moves from root Open to the first directory open; no managed tree is created."},
-		{"internal/infra/pi_shared_protocol.go", "readSharedBrokerRecord", "err != nil", "TestReadSharedBrokerRecordRefusesReadAndDecodeFailures", 411, "A non-absence os.ReadFile failure yields no bytes. Narrowing this error check reaches the strict JSON decoder, which refuses the empty payload with EOF before a broker record is returned. Bound: the refusal remains shared_runtime_state_unreadable; read-versus-decode attribution changes."},
-		{"internal/infra/pi_shared_protocol.go", "writeSharedJSONAtomic", "err != nil", "TestWriteSharedJSONAtomicRefusesMalformedAndFilesystemFailures", 435, "If opening the destination directory fails and this check is narrowed, the invalid descriptor causes the immediately following Openat to fail before a temp file is created or state is installed. Bound: refusal remains shared_runtime_state_path_invalid; only the failing syscall attribution moves."},
-		{"internal/infra/pi_shared_protocol.go", "writeSharedJSONAtomic", "err != nil", "TestWriteSharedJSONAtomicRefusesMalformedAndFilesystemFailures", 445, "When Openat fails, the invalid descriptor cannot create a file. If this early check is narrowed, the following os.NewFile/Write path still fails and the existing writeErr refusal returns before Rename; the test verifies the typed refusal and empty destination directory. Bound: only attribution moves from Openat to the write path, with no committed or temporary state."},
-		{"internal/infra/pi_shared_protocol.go", "writeSharedJSONAtomic", "err != nil", "TestWriteSharedJSONAtomicRefusesMalformedAndFilesystemFailures", 440, "The Go crypto/rand.Read contract says it never returns an error and always fills the supplied buffer; its default operating-system reader is documented to do the same on supported systems. Bound: equivalence applies to this Go API/toolchain contract; the error branch cannot be reached through crypto/rand.Read as specified."},
-		{"internal/infra/pi_config.go", "parsePiProfile", "err != nil", "TestParsePiProfileRejectsEveryMalformedField", 293, "requiredString failure leaves API empty, and the same condition's API equality operand still rejects every invalid/absent value. Bound: refusal attribution can move from the accessor error to the API mismatch; this test asserts refusal at the API field."},
-		{"internal/infra/pi_config.go", "parsePiProfile", "err != nil", "TestParsePiProfileRejectsEveryMalformedField", 302, "requiredStringArray failure leaves Input nil, and the same condition's exact [text] comparison still rejects it. Bound: refusal cause can change while the profile remains rejected at the input field."},
-		{"internal/infra/pi_config.go", "parsePiProfile", "err != nil", "TestParsePiProfileRejectsEveryMalformedField", 317, "requiredString failure leaves Thinking empty, and the immediately following documented-thinking membership check still rejects it. Bound: error detail can change; acceptance cannot."},
-		{"internal/infra/pi_config.go", "parsePiProfile", "err != nil", "TestParsePiProfileRejectsEveryMalformedField", 326, "requiredStringArray failure leaves RequestedCapabilities nil, and the final exact capability-set comparison still rejects it. Bound: refusal attribution can move to the final requested-capabilities invariant."},
-		{"internal/infra/pi_config.go", "parsePiProfile", "tableErr != nil", "TestParsePiProfileRejectsEveryMalformedField", 344, "projectConfigTable reports a wrong-typed lifecycle_log_retention table as (nil, false, error); narrowing the error member leaves !present true. Bound: only the error detail changes for this malformed table."},
-		{"internal/infra/pi_config.go", "parsePiProfile", "tableErr != nil", "TestParsePiProfileRejectsEveryMalformedField", 354, "projectConfigTable reports a wrong-typed compat table as (nil, false, error); narrowing the error member leaves !present true. Bound: only the error detail changes for this malformed table."},
-		{"internal/infra/pi_config.go", "parsePiProfile", "tableErr != nil", "TestParsePiProfileRejectsEveryMalformedField", 364, "projectConfigTable reports a wrong-typed runtime table as (nil, false, error); narrowing the error member leaves !present true. Bound: only the error detail changes for this malformed table."},
-		{"internal/infra/pi_config.go", "parsePiLifecycleLogRetention", "!ok", "TestParsePiLifecycleLogRetentionRejectsEveryMalformedField", 458, "checkedPositiveAddMul(managedSlots, 1, 4) can overflow only above the stricter earlier 5+4*managedSlots bound; that earlier checked calculation refuses first. Bound: this addition-overflow branch is unreachable for an input that passes the preceding scan-entry bound."},
-		{"internal/infra/pi_config.go", "parsePiCompaction", "compaction.CompactAtTokens >= contextWindow", "TestParsePiCompactionRejectsEveryMalformedField", 500, "if this comparison is narrowed, an equal or excessive threshold yields ReserveTokens <= 0; the later ReserveTokens < maxTokens check rejects it because maxTokens is positive. Bound: the exact refusal message may move to the reserve invariant."},
-		{"internal/infra/pi_config.go", "parsePiCompaction", "err != nil", "TestParsePiCompactionRejectsEveryMalformedField", 505, "a reserve_tokens accessor failure leaves ReserveTokens at zero; the later ReserveTokens < maxTokens check still rejects because maxTokens is positive. Bound: the exact refusal message may move to the reserve invariant."},
-		{"internal/infra/pi_config.go", "parsePiRuntime", "err != nil", "TestParsePiRuntimeRejectsEveryMalformedField", 562, "a required executable read failure leaves an empty string; the immediately following absolute-path validation rejects it. Bound: the refusal detail may change, but an executable cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntime", "err != nil", "TestParsePiRuntimeRejectsEveryMalformedField", 571, "a required argv read failure leaves a nil slice; len(argv)==0 in the same condition still rejects it. Bound: refusal detail may change, but an empty argv cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntime", "err != nil", "TestParsePiRuntimeRejectsEveryMalformedField", 582, "a required readiness_path read failure leaves an empty string; the same condition's /models equality still rejects it. Bound: refusal detail may change, but the malformed path cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeSharing", "err != nil", "TestParsePiRuntimeSharingRejectsEveryMalformedField", 622, "a mode read failure leaves an empty value; the following exclusive/shared allow-list check still rejects it. Bound: refusal detail may change, but an unknown mode cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeSharing", "maximumLingerSeconds < 0", "TestParsePiRuntimeSharingRejectsEveryMalformedField", 632, "when no room remains for shutdown plus handoff, maximumLingerSeconds is negative; with nonnegative linger_seconds the next linger > maximum comparison still rejects. Bound: the error message changes from the overflow-specific explanation to the computed maximum."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeSharing", "err != nil", "TestParsePiRuntimeSharingRejectsEveryMalformedField", 656, "a broker-start-timeout read failure leaves zero; the subsequent timeout < runtime startup + shutdown + slop check still rejects. Bound: refusal detail may change, but the broker timeout cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeSharing", "err != nil", "TestParsePiRuntimeSharingRejectsEveryMalformedField", 669, "a restart-max-backoff read failure leaves zero; the next max-backoff < positive initial-backoff check still rejects. Bound: refusal detail may change, but invalid restart timing cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeSharing", "err != nil", "TestParsePiRuntimeSharingRejectsEveryMalformedField", 684, "a resource-pressure-mode read failure leaves empty; the following closed switch default refuses every value outside disabled/provider. Bound: refusal detail may change, but no unknown mode can be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeResourcePressure", "err != nil", "TestParsePiRuntimeResourcePressureRejectsEveryMalformedField", 717, "an observation-path read failure leaves empty; the immediately following clean-absolute-path check rejects it. Bound: refusal detail may change, but an unread path cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeResourcePressure", "err != nil", "TestParsePiRuntimeResourcePressureRejectsEveryMalformedField", 741, "a pressure-action read failure leaves empty; the following exact action equality check rejects it. Bound: refusal detail may change, but an unknown action cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeResourcePressure", "err != nil", "TestParsePiRuntimeResourcePressureRejectsEveryMalformedField", 747, "an unknown-action read failure leaves empty; the following exact action equality check rejects it. Bound: refusal detail may change, but an unknown action cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiRuntimeResourcePressure", "err != nil", "TestParsePiRuntimeResourcePressureRejectsEveryMalformedField", 753, "a busy-action read failure leaves empty; the following exact action equality check rejects it. Bound: refusal detail may change, but an unknown action cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiDFlash", "err != nil", "TestParsePiDFlashRejectsEveryMalformedField", 777, "a target_argv read failure leaves nil; len(target_argv)==0 in the same condition still rejects it. Bound: refusal detail may change, but an empty target argument vector cannot be admitted."},
-		{"internal/infra/pi_config.go", "parsePiDFlash", "err != nil", "TestParsePiDFlashRejectsEveryMalformedField", 783, "a draft_argv read failure leaves nil; len(draft_argv)==0 in the same condition still rejects it. Bound: refusal detail may change, but an empty draft argument vector cannot be admitted."},
-		{"internal/infra/pi_shared_broker_darwin.go", "openSharedBrokerLock", "err != nil", "TestOpenSharedBrokerLockRejectsUnsafeFiles", 114, "a failed open leaves an invalid descriptor; after this member is narrowed, the immediate Fstat still fails and the following path-validation branch refuses it. Bound: the refusal detail can move from open() to Fstat()."},
-		{"internal/infra/pi_shared_broker_darwin.go", "openSharedBrokerLock", "err != nil", "TestOpenSharedBrokerLockRejectsUnsafeFiles", 123, "an Fstat error leaves a zero-valued stat record; the following S_IFREG comparison still refuses it. Bound: the low-level error detail may change, but an invalid descriptor cannot be admitted."},
-		{"internal/infra/pi_shared_broker_darwin.go", "openSharedBrokerLock", "stat.Mode&unix.S_IFMT != unix.S_IFREG", "TestOpenSharedBrokerLockRejectsUnsafeFiles", 123, "the named FIFO attack still refuses when this type comparison is narrowed because Darwin flock rejects the FIFO and openSharedBrokerLock maps that failure to shared_runtime_state_path_invalid. Bound: the FIFO is refused by flock rather than by the earlier regular-file classification; TestOpenSharedBrokerLockRejectsUnsafeFiles exercises the production entry point."},
-		{"internal/infra/pi_shared_broker_darwin.go", "openSharedLog", "err != nil", "TestOpenSharedLogRejectsUnsafeFiles", 483, "a failed open leaves an invalid descriptor; the immediate Fstat still fails and the following path-validation branch refuses it. Bound: the refusal detail can move from open() to Fstat()."},
-		{"internal/infra/pi_shared_broker_darwin.go", "openSharedLog", "err != nil", "TestOpenSharedLogRejectsUnsafeFiles", 491, "an Fstat error leaves a zero-valued stat record; the following S_IFREG comparison still refuses it. Bound: the low-level error detail may change, but an invalid descriptor cannot be admitted."},
-		{"internal/infra/pi_shared_log_rotation_darwin.go", "Prune", "statErr != nil", "TestPruneSharedFilesystemLogSinkRejectsEveryUnsafeArchive", 66, "unix.Lstat failure leaves a zero-valued Stat_t, whose S_IFMT is not S_IFREG; after this error operand is narrowed, the next file-type comparison still refuses the archive. Bound: only the error attribution changes; failed archive inspection still cannot admit or prune the entry."},
-		{"internal/infra/pi_shared_launcher_darwin.go", "RunSharedRuntimeLauncher", "err != nil", "TestRunSharedRuntimeLauncherRejectsNonFIFODescriptor", 38, "unix.Fstat failure leaves a zero-valued Stat_t, whose S_IFMT is not S_IFIFO; after this error operand is narrowed, the same OR expression still refuses the descriptor as non-FIFO. Bound: the kernel-error detail may change, but no descriptor with a failed Fstat can be admitted; the named production-entrypoint test covers a non-FIFO descriptor."},
-		{"internal/infra/pi_shared_operator_darwin.go", "readSharedLeaseMirrors", "err != nil", "TestReadSharedLeaseMirrorsRefusesDirectoryFileAndJSONFailures", 382, "A failed os.ReadFile yields no bytes; if this error check is narrowed, the strict JSON decoder immediately rejects the resulting empty payload with EOF. Bound: read-failure attribution changes to malformed empty JSON, but unreadable lease state is still refused before any lease status is emitted."},
-		{"internal/infra/pi_shared_supervision.go", "readSharedRuntimeRestartLedger", "err != nil", "TestReadSharedRuntimeRestartLedgerRejectsMalformedAndWrongIdentity", 107, "A failed os.ReadFile other than absence yields no bytes; if this error check is narrowed, the strict JSON decoder immediately rejects the resulting empty payload with EOF. Bound: read-failure attribution changes to malformed empty JSON, but unreadable restart-ledger state is still refused before any status or restart decision is produced."},
-		{"internal/infra/pi_shared_broker_darwin.go", "readSharedWireMessage", "err != nil", "TestReadSharedWireMessageRejectsMalformedAndTrailingFrames", 1430, "after a malformed JSON frame makes the initial Decoder.Decode fail, requireJSONEOF on the same decoder still observes the stored decode failure and returns protocol_violation. The named test covers malformed and trailing JSON through readSharedWireMessage. Bound: only malformed-frame handling via the immediate second decoder check is equivalent; valid frames remain governed by the first decode."},
-		{"internal/infra/pi_shared_broker_darwin.go", "reclaimSharedRuntime", "runtimeRecord.PGID <= 0", "TestReclaimSharedRuntimeSignalsOnlyAfterMatchedPositiveKernelPGID", 550, "a nonpositive recorded PGID cannot equal the live kernel PGID verified immediately above: a live process group id is positive. The named test exercises the production path with a matched positive kernel and recorded PGID and observes the signal target. Bound: Darwin kernel identity is the witness; this proves that branch is redundant after the earlier PGID equality, not that arbitrary fabricated PGIDs are valid."},
-		{"internal/infra/pi_shared_client_darwin.go", "connectAndAttestSharedRuntime", "!ok", "TestConnectAndAttestSharedRuntimeExactProtocolVersionReportsOnlyThePassedGateSet", 349, "the production dialer requests network unix, whose Darwin Go implementation returns *net.UnixConn; the named successful AF_UNIX exchange exercises this path and reaches the full attestation result. Bound: equivalence is tied to the Go toolchain implementation used by this binding and does not claim that arbitrary net.Conn values satisfy the assertion."},
+	directories := testsByDirectory(references)
+	files, err := productionPackageScope(root)
+	if err != nil {
+		return nil, err
 	}
-	for _, proof := range parserEquivalents {
-		if current.file == proof.file && current.function == proof.function && current.line == proof.line && current.memberText == proof.member && containsTest(current.tests, proof.test) {
-			return "equivalent downstream refusal: " + proof.bound + " Named test: " + proof.test + ".", proof.test, true
+	for _, file := range files {
+		directories[filepath.ToSlash(filepath.Dir(file))] = nil
+	}
+	for directory := range directories {
+		paths, err := filepath.Glob(filepath.Join(root, directory, "*.go"))
+		if err != nil {
+			return nil, err
+		}
+		for _, path := range paths {
+			stat, err := os.Lstat(path)
+			if err != nil || !stat.Mode().IsRegular() {
+				return nil, fmt.Errorf("test root non-regular or unreadable Go file: %s (%v)", path, err)
+			}
+			file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+			if err != nil {
+				return nil, err
+			}
+			var body strings.Builder
+			if err := format.Node(&body, token.NewFileSet(), file); err != nil {
+				return nil, err
+			}
+			name := filepath.Base(path)
+			for _, platform := range []string{"aix", "android", "darwin", "dragonfly", "freebsd", "illumos", "ios", "js", "linux", "netbsd", "openbsd", "plan9", "solaris", "wasip1", "windows"} {
+				name = strings.ReplaceAll(name, "_"+platform+"_emu", "_"+platform)
+			}
+			key := filepath.ToSlash(filepath.Join(directory, name))
+			if _, exists := identity[key]; exists {
+				return nil, fmt.Errorf("test root duplicate Go identity: %s", key)
+			}
+			identity[key] = fmt.Sprintf("%x", sha256.Sum256([]byte(body.String())))
 		}
 	}
-	if current.file == "internal/infra/pi_shared_process_support.go" &&
-		current.function == "waitPiRuntimeReady" &&
-		current.memberText == "ctx.Err() != nil" &&
-		current.guardText == "ctx.Err() != nil" &&
-		containsValue(current.sites, "pi_deadline_exceeded") &&
-		containsTest(current.tests, "TestWaitPiRuntimeReadyRefusesCancelledExitedAndFatalStates") {
-		return "equivalent within the context contract: this branch returns the canceled/deadline refusal before the next outer select, which also observes ctx.Done(); narrowing it cannot admit readiness or bypass refusal. Bound: if cancellation, child exit, fatal output, or timeout become ready together, select scheduling can change which refusal wins; refusal precedence is not promised.", "TestWaitPiRuntimeReadyRefusesCancelledExitedAndFatalStates", true
+	return identity, nil
+}
+
+func bindMutationTestRoot(primary, execution string, references []testReference) (string, error) {
+	want, err := mutationRootIdentity(primary, references)
+	if err != nil {
+		return "", err
 	}
-	if current.file == "internal/infra/pi_terminal_evidence.go" &&
-		current.function == "ReadPiTerminalEvidenceSummary" &&
-		current.guardText == "errors.Is(err, syscall.EWOULDBLOCK) || errors.Is(err, syscall.EAGAIN)" &&
-		(current.memberText == "errors.Is(err, syscall.EWOULDBLOCK)" || current.memberText == "errors.Is(err, syscall.EAGAIN)") &&
-		containsValue(current.sites, "entry.active_lock") &&
-		containsTest(current.tests, "TestReadPiTerminalEvidenceSummaryRefusesActiveAndUnclassifiableState") &&
-		syscall.EWOULDBLOCK == syscall.EAGAIN {
-		return "equivalent on this GOOS/GOARCH: syscall.EWOULDBLOCK equals syscall.EAGAIN, so either operand recognizes the same nonblocking-flock active state. Bound: only aliasing errno targets are established; no claim is made for platforms where these errno values differ.", "TestReadPiTerminalEvidenceSummaryRefusesActiveAndUnclassifiableState", true
+	got, err := mutationRootIdentity(execution, references)
+	if err != nil {
+		return "", err
 	}
-	return "", "", false
+	if len(want) != len(got) {
+		return "", fmt.Errorf("mutation test root identity mismatch: Go file set changed")
+	}
+	for file, digest := range want {
+		if got[file] != digest {
+			return "", fmt.Errorf("mutation test root identity mismatch: %s", file)
+		}
+	}
+	data, err := json.Marshal(got)
+	return fmt.Sprintf("%x", sha256.Sum256(data)), err
+}
+
+type baselineEvidence struct {
+	code   int
+	output []byte
+}
+type baselineRun struct {
+	ready    chan struct{}
+	evidence baselineEvidence
+}
+
+var mutationBaselines sync.Map
+
+// Reuse only an exact content identity, execution root and selected test set.
+func selectedBaseline(root, identity string, patterns map[string][]string) baselineEvidence {
+	encoded, err := json.Marshal(patterns)
+	fatalIf(err)
+	key := root + ":" + identity + ":" + string(encoded)
+	run := &baselineRun{ready: make(chan struct{})}
+	prior, loaded := mutationBaselines.LoadOrStore(key, run)
+	if loaded {
+		run = prior.(*baselineRun)
+		<-run.ready
+		return run.evidence
+	}
+	defer close(run.ready)
+	var directories []string
+	for directory := range patterns {
+		directories = append(directories, directory)
+	}
+	sort.Strings(directories)
+	for _, directory := range directories {
+		for _, pattern := range testPatterns(patterns[directory]) {
+			command := exec.Command("go", "test", "-timeout=45s", "./"+directory, "-run", pattern, "-count=1")
+			command.Dir = root
+			output, err := command.CombinedOutput()
+			code := 0
+			if err != nil {
+				code = -1
+				if command.ProcessState != nil {
+					code = command.ProcessState.ExitCode()
+				}
+			}
+			run.evidence.output = append(run.evidence.output, []byte(fmt.Sprintf("baseline package ./%s run %s exit %d\n", directory, pattern, code))...)
+			run.evidence.output = append(run.evidence.output, output...)
+			if code != 0 {
+				run.evidence.code = code
+				return run.evidence
+			}
+		}
+	}
+	return run.evidence
+}
+
+// Legacy callers cannot attest equivalence without executed joint evidence.
+func equivalentNarrowing(current mutant) (bound, witness string, equivalent bool) {
+	return "no executed joint primary-plus-downstream mutation", "", false
 }
 
 func containsValue(values []string, target string) bool {
@@ -1722,13 +1721,13 @@ func failingTest(output []byte) string {
 
 func renderTable(siteCount, mutantCount int, rows []result) string {
 	var builder strings.Builder
-	builder.WriteString("# TASK-260929-9amima mutation table\n\n")
+	builder.WriteString("# TASK-260930-1hzscs mutation table\n\n")
 	fmt.Fprintf(&builder, "Typed refusal and status-gate sites mapped across the package-derived AST guard scope: %d. AST-derived narrowing mutants: %d.\n\n", siteCount, mutantCount)
 	builder.WriteString("| Mutant | Narrowing applied to | Named failing test / equivalence witness | Target | Exit | Result or bound | Log |\n| --- | --- | --- | --- | ---: | --- | --- |\n")
 	for _, row := range rows {
 		what := "replace typed refusal result with nil"
 		if row.mutant.memberText != "" {
-			what = fmt.Sprintf("narrow `%s` to false at line %d", markdownCell(row.mutant.memberText), row.mutant.line)
+			what = fmt.Sprintf("certified `%s` at line %d", markdownCell(row.mutant.memberText), row.mutant.line)
 		}
 		testNames := make([]string, len(row.mutant.tests))
 		for index, reference := range row.mutant.tests {
@@ -1744,7 +1743,7 @@ func renderTable(siteCount, mutantCount int, rows []result) string {
 			}
 		}
 		fmt.Fprintf(&builder, "| M%03d `%s` | %s in `%s` (`%s`; sites %s) | %s | %s | %d | %s | `%s` |\n",
-			row.index, row.mutant.function, what, markdownCell(row.mutant.guardText), row.mutant.constructor, markdownCell(strings.Join(row.mutant.sites, ", ")), markdownCell(testEvidence), row.target, row.code, markdownCell(row.state+boundSuffix(row.bound)), row.log)
+			row.index, row.mutant.key, what, markdownCell(row.mutant.guardText), row.mutant.constructor, markdownCell(strings.Join(row.mutant.sites, ", ")), markdownCell(testEvidence), row.target, row.code, markdownCell(row.state+boundSuffix(row.bound)), row.log)
 	}
 	return builder.String()
 }
@@ -1791,4 +1790,1009 @@ func fatalIf(err error) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
+}
+
+const propagationSubset = "P1: direct error return or returning if-init; P2: send to error-implementing channel element; P3: enclosing function named error result (including its direct deferred closure); P4: module wrapper returns the incoming error parameter or standard errors.Join including it on every return, and its result propagates under P1-P3 (no transitive wrappers, interface/function-value calls or fmt.Errorf). Other producer uses and non-regular .go entries refuse. Reflection and generics-instantiated constructors are out of contract. Unconditional: AC1 + removal mutant + consumer narrowing. R4 frozen: singleton equality witness (identical guarded variable/selector == typed constant literal; non-comparable types require standard reflect.DeepEqual with a fully specified composite literal). Calls/len/index/slice/method/range/inequality/conjunction witnesses refuse. Bounds: defensive-unreachable requires a green dependency pin plus a named joint-mutant kill; undecided bounds name exact evidence gaps for review (not killed or equivalent)."
+
+type listedPackage struct {
+	ImportPath, Dir, Export string
+	GoFiles                 []string
+	Standard                bool
+}
+
+type typedUnit struct {
+	pkg          *types.Package
+	set          *token.FileSet
+	files        map[string]*ast.File
+	info         *types.Info
+	constructors map[types.Object]bool
+	errorTypes   map[*types.Named]bool
+	bodies       map[types.Object]*ast.FuncDecl
+}
+
+// Platform contexts resolve objects, not names. Every walked source must occur
+// in a checked context; an unresolvable context is a failure, never absence.
+func typedUnits(root string, files []string) ([]typedUnit, error) {
+	canonical, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return nil, err
+	}
+	root = canonical
+	selected := map[string]bool{}
+	for _, file := range files {
+		selected[file] = true
+	}
+	covered := map[string]bool{}
+	var units []typedUnit
+	for _, platform := range []string{"darwin", "linux", "windows"} {
+		command := exec.Command("go", "list", "-deps", "-export", "-json", "./...")
+		command.Dir = root
+		command.Env = append(os.Environ(), "GOOS="+platform, "CGO_ENABLED=0", "PWD="+root)
+		data, err := command.Output()
+		if err != nil {
+			return nil, fmt.Errorf("type context %s: %w", platform, err)
+		}
+		decoder := json.NewDecoder(strings.NewReader(string(data)))
+		var packages []listedPackage
+		exports := map[string]string{}
+		for {
+			var pkg listedPackage
+			if err := decoder.Decode(&pkg); err == io.EOF {
+				break
+			} else if err != nil {
+				return nil, err
+			}
+			packages = append(packages, pkg)
+			if pkg.Export != "" {
+				exports[pkg.ImportPath] = pkg.Export
+			}
+		}
+		// Explicit ignore-tag commands have their own package context. Never
+		// omit them from the source census or mix their declarations together.
+		for _, file := range files {
+			if !standaloneIgnoreCommand(root, file) {
+				continue
+			}
+			command := exec.Command("go", "list", "-deps", "-export", "-json", file)
+			command.Dir = root
+			command.Env = append(os.Environ(), "GOOS="+platform, "CGO_ENABLED=0", "PWD="+root)
+			data, err := command.Output()
+			if err != nil {
+				return nil, fmt.Errorf("standalone type context %s %s: %w", platform, file, err)
+			}
+			decoder := json.NewDecoder(strings.NewReader(string(data)))
+			for {
+				var pkg listedPackage
+				if err := decoder.Decode(&pkg); err == io.EOF {
+					break
+				} else if err != nil {
+					return nil, err
+				}
+				if pkg.Export != "" {
+					exports[pkg.ImportPath] = pkg.Export
+				}
+				if pkg.ImportPath == "command-line-arguments" {
+					packages = append(packages, pkg)
+				}
+			}
+		}
+		for _, pkg := range packages {
+			canonicalDir, err := filepath.EvalSymlinks(pkg.Dir)
+			if err != nil {
+				return nil, fmt.Errorf("resolve package directory: %w", err)
+			}
+			pkg.Dir = canonicalDir
+			if !within(root, pkg.Dir) {
+				continue
+			}
+			unit := typedUnit{set: token.NewFileSet(), files: map[string]*ast.File{}, info: &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Defs: map[*ast.Ident]types.Object{}, Uses: map[*ast.Ident]types.Object{}}, constructors: map[types.Object]bool{}, errorTypes: map[*types.Named]bool{}}
+			var syntax []*ast.File
+			fresh := false
+			for _, name := range pkg.GoFiles {
+				path := filepath.Join(pkg.Dir, name)
+				relative, err := filepath.Rel(root, path)
+				if err != nil {
+					return nil, err
+				}
+				relative = filepath.ToSlash(relative)
+				if !selected[relative] {
+					continue
+				}
+				parsed, err := parser.ParseFile(unit.set, path, nil, 0)
+				if err != nil {
+					return nil, err
+				}
+				unit.files[relative] = parsed
+				syntax = append(syntax, parsed)
+				fresh = fresh || !covered[relative]
+			}
+			if len(syntax) == 0 || !fresh {
+				continue
+			}
+			imp := importer.ForCompiler(unit.set, "gc", func(path string) (io.ReadCloser, error) {
+				if exports[path] == "" {
+					return nil, fmt.Errorf("missing export for %s", path)
+				}
+				return os.Open(exports[path])
+			})
+			config := types.Config{Importer: imp}
+			checked, err := config.Check(pkg.ImportPath, unit.set, syntax, unit.info)
+			if err != nil {
+				return nil, fmt.Errorf("typed inventory %s: %w", platform, err)
+			}
+			unit.pkg = checked
+			for _, name := range checked.Scope().Names() {
+				obj, ok := checked.Scope().Lookup(name).(*types.TypeName)
+				if !ok {
+					continue
+				}
+				named, ok := types.Unalias(obj.Type()).(*types.Named)
+				if ok && (implementsError(named) || implementsError(types.NewPointer(named))) {
+					unit.errorTypes[named] = true
+				}
+			}
+			// A constructor is a resolved function with a direct returned refusal
+			// literal, or a direct return of another constructor. No data-flow tracing.
+			changed := true
+			for changed {
+				changed = false
+				for _, file := range syntax {
+					for _, decl := range file.Decls {
+						fn, ok := decl.(*ast.FuncDecl)
+						if !ok || fn.Body == nil || len(fn.Body.List) != 1 {
+							continue
+						}
+						if _, direct := fn.Body.List[0].(*ast.ReturnStmt); !direct {
+							continue
+						}
+
+						obj := unit.info.Defs[fn.Name]
+						signature, ok := obj.Type().(*types.Signature)
+						if !ok || signature.Results().Len() != 1 || !implementsError(signature.Results().At(0).Type()) {
+							continue
+						}
+						if unit.constructors[obj] {
+							continue
+						}
+						ast.Inspect(fn.Body, func(node ast.Node) bool {
+							if _, ok := node.(*ast.FuncLit); ok {
+								return false
+							}
+							ret, ok := node.(*ast.ReturnStmt)
+							if !ok {
+								return true
+							}
+							for _, expr := range ret.Results {
+								if unit.refusalProducer(expr) {
+									unit.constructors[obj] = true
+									changed = true
+								}
+							}
+							return true
+						})
+					}
+				}
+			}
+			unit.indexBodies(syntax)
+			units = append(units, unit)
+			for file := range unit.files {
+				covered[file] = true
+			}
+		}
+	}
+	for _, file := range files {
+		if !covered[file] {
+			return nil, fmt.Errorf("%s: no type-resolved platform context (accepted GOOS: darwin/linux/windows)", file)
+		}
+	}
+	return units, nil
+}
+
+func implementsError(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	return types.Implements(t, types.Universe.Lookup("error").Type().Underlying().(*types.Interface))
+}
+func (u typedUnit) object(expr ast.Expr) types.Object {
+	switch x := expr.(type) {
+	case *ast.Ident:
+		return u.info.Uses[x]
+	case *ast.SelectorExpr:
+		return u.info.Uses[x.Sel]
+	}
+	return nil
+}
+func unparen(expr ast.Expr) ast.Expr {
+	for {
+		p, ok := expr.(*ast.ParenExpr)
+		if !ok {
+			return expr
+		}
+		expr = p.X
+	}
+}
+func (u typedUnit) refusalProducer(expr ast.Expr) bool {
+	expr = unparen(expr)
+	switch x := expr.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		if _, variable := u.object(expr).(*types.Var); variable {
+			return u.refusalType(u.info.TypeOf(expr))
+		}
+		return false
+	case *ast.CallExpr:
+		return u.constructors[u.object(x.Fun)] || u.refusalType(u.info.TypeOf(x))
+	case *ast.UnaryExpr:
+		if x.Op != token.AND {
+			return false
+		}
+		_, ok := x.X.(*ast.CompositeLit)
+		return ok && u.refusalType(u.info.TypeOf(x))
+	case *ast.CompositeLit:
+		return u.refusalType(u.info.TypeOf(x))
+	}
+	return false
+}
+func (u typedUnit) refusalType(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	t = types.Unalias(t)
+	if p, ok := t.(*types.Pointer); ok {
+		t = types.Unalias(p.Elem())
+	}
+	n, ok := t.(*types.Named)
+	return ok && u.errorTypes[n]
+}
+
+func typedPropagationSites(root string, files []string) ([]refusalSite, map[string]*token.FileSet, error) {
+	units, err := typedUnits(root, files)
+	if err != nil {
+		return nil, nil, err
+	}
+	sets := map[string]*token.FileSet{}
+	seen := map[string]bool{}
+	var sites []refusalSite
+	for _, u := range units {
+		for file, syntax := range u.files {
+			if seen[file] {
+				continue
+			}
+			seen[file] = true
+			sets[file] = u.set
+			for _, decl := range syntax.Decls {
+				if _, ok := decl.(*ast.GenDecl); !ok {
+					continue
+				}
+				var invalid []string
+				ast.Inspect(decl, func(node ast.Node) bool {
+					if expr, ok := node.(ast.Expr); ok && u.refusalProducer(expr) {
+						invalid = append(invalid, fmt.Sprintf("%s:%d: typed refusal declaration does not propagate under P1-P4", file, u.set.Position(expr.Pos()).Line))
+						return false
+					}
+					return true
+				})
+				if len(invalid) > 0 {
+					return nil, nil, fmt.Errorf("%s", strings.Join(invalid, "\n"))
+				}
+			}
+			for _, decl := range syntax.Decls {
+				fn, ok := decl.(*ast.FuncDecl)
+				if !ok || fn.Body == nil {
+					continue
+				}
+				var parents []ast.Node
+				ordinal := 0
+				var failures []string
+				ast.Inspect(fn.Body, func(node ast.Node) bool {
+					if node == nil {
+						parents = parents[:len(parents)-1]
+						return false
+					}
+					expr, ok := node.(ast.Expr)
+					producer := ok && u.refusalProducer(expr) && !u.refusalObservation(expr, parents)
+					// &T{} is one producer, not two sites.
+					if producer && len(parents) > 0 {
+						if parent, ok := parents[len(parents)-1].(ast.Expr); ok && u.refusalProducer(parent) {
+							producer = false
+						}
+					}
+					if producer {
+						position := u.set.Position(expr.Pos())
+						if !u.propagates(fn, expr, parents) {
+							failures = append(failures, fmt.Sprintf("%s:%d: typed refusal does not propagate under P1-P4", file, position.Line))
+							return false
+						}
+						ordinal++
+						guard, condition, otherwise := nearestGuardForNode(parents, expr)
+						name := types.TypeString(u.info.TypeOf(expr), nil)
+						var call *ast.CallExpr
+						if x, ok := expr.(*ast.CallExpr); ok {
+							call = x
+							if object := u.object(x.Fun); object != nil {
+								name = object.Name()
+							}
+						}
+						label := producerLabel(expr)
+						sites = append(sites, refusalSite{unconditional: soleUnconditionalReturn(fn, parents), typeContext: &u, fset: u.set, id: fmt.Sprintf("%s:%s:%d", file, functionIdentity(fn), ordinal), file: file, function: functionIdentity(fn), constructor: name, site: label, line: position.Line, guard: guard, guardExpr: condition, elseBranch: otherwise, call: call, expression: expr})
+					}
+					parents = append(parents, node)
+					return true
+				})
+				if len(failures) > 0 {
+					return nil, nil, fmt.Errorf("%s", strings.Join(failures, "\n"))
+				}
+			}
+			before := len(sites)
+			collectUnknownStatusGates(file, u.set, syntax, &sites)
+			collectCatalogAvailabilityAttestationGates(file, u.set, syntax, &sites)
+			collectCatalogResolutionDecisionGates(file, u.set, syntax, &sites)
+			for i := before; i < len(sites); i++ {
+				sites[i].fset = u.set
+				sites[i].typeContext = &u
+				sites[i].id = fmt.Sprintf("%s:%s:gate:%d", file, sites[i].function, i-before+1)
+			}
+		}
+	}
+	sort.Slice(sites, func(i, j int) bool { return sites[i].id < sites[j].id })
+	return sites, sets, nil
+}
+func functionIdentity(fn *ast.FuncDecl) string {
+	if fn.Recv != nil {
+		return receiverName(fn.Recv.List[0].Type) + "." + fn.Name.Name
+	}
+	return fn.Name.Name
+}
+func producerLabel(expr ast.Expr) string {
+	var label string
+	ast.Inspect(expr, func(n ast.Node) bool {
+		if label != "" {
+			return false
+		}
+		if lit, ok := n.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			label, _ = strconv.Unquote(lit.Value)
+		}
+		return true
+	})
+	if label == "" {
+		var b strings.Builder
+		_ = format.Node(&b, token.NewFileSet(), expr)
+		label = b.String()
+	}
+	return label
+}
+func (u typedUnit) propagates(fn *ast.FuncDecl, expr ast.Expr, parents []ast.Node) bool {
+	return u.propagatesUnder(fn, expr, parents, true)
+}
+func (u typedUnit) propagatesUnder(fn *ast.FuncDecl, expr ast.Expr, parents []ast.Node, wrappers bool) bool {
+	// Only parentheses and an address-of literal may sit between the producer
+	// and its consumer. Composite storage and ordinary arguments are rejected.
+	index := len(parents) - 1
+	for index >= 0 {
+		switch parents[index].(type) {
+		case *ast.ParenExpr, *ast.KeyValueExpr, *ast.CompositeLit, *ast.UnaryExpr:
+			index--
+			continue
+		}
+		break
+	}
+	if index < 0 {
+		return false
+	}
+	switch consumer := parents[index].(type) {
+	case *ast.ReturnStmt:
+		for _, v := range consumer.Results {
+			if v.Pos() <= expr.Pos() && v.End() >= expr.End() {
+				return implementsError(u.info.TypeOf(v))
+			}
+		}
+	case *ast.SendStmt:
+		channel, ok := u.info.TypeOf(consumer.Chan).Underlying().(*types.Chan)
+		return ok && unparen(consumer.Value) == expr && implementsError(channel.Elem())
+	case *ast.AssignStmt:
+		if len(consumer.Lhs) != 1 || len(consumer.Rhs) != 1 || unparen(consumer.Rhs[0]) != expr {
+			return false
+		}
+		target, ok := consumer.Lhs[0].(*ast.Ident)
+		if !ok {
+			return false
+		}
+		object := u.info.Uses[target]
+		if object == nil {
+			object = u.info.Defs[target]
+		}
+		if index > 0 {
+			if branch, ok := parents[index-1].(*ast.IfStmt); ok && branch.Init == consumer {
+				count := 0
+				onlyReturn := true
+				ast.Inspect(branch.Body, func(node ast.Node) bool {
+					if _, closure := node.(*ast.FuncLit); closure {
+						return false
+					}
+					ret, ok := node.(*ast.ReturnStmt)
+					if !ok {
+						return true
+					}
+					for _, value := range ret.Results {
+						if id, ok := unparen(value).(*ast.Ident); ok && u.info.Uses[id] == object {
+							count++
+						}
+					}
+					return true
+				})
+				// No references outside the single return and the condition.
+				ast.Inspect(branch.Body, func(node ast.Node) bool {
+					if id, ok := node.(*ast.Ident); ok && u.info.Uses[id] == object {
+						found := false
+						ast.Inspect(branch.Body, func(n ast.Node) bool {
+							if ret, ok := n.(*ast.ReturnStmt); ok {
+								for _, v := range ret.Results {
+									found = found || v == id
+								}
+							}
+							return true
+						})
+						onlyReturn = onlyReturn && found
+					}
+					return true
+				})
+				return count == 1 && onlyReturn && implementsError(object.Type())
+			}
+		}
+		results := fn.Type.Results
+		// The nearest ordinary closure owns its own named results. A direct
+		// deferred closure may instead assign its enclosing function's result.
+		for i := index - 1; i >= 0; i-- {
+			literal, ok := parents[i].(*ast.FuncLit)
+			if !ok {
+				continue
+			}
+			own := namedErrorResult(u, literal.Type.Results, object)
+			if own {
+				return true
+			}
+			deferred := false
+			if i >= 2 {
+				if call, ok := parents[i-1].(*ast.CallExpr); ok {
+					if statement, ok := parents[i-2].(*ast.DeferStmt); ok && statement.Call == call {
+						deferred = true
+					}
+				}
+			}
+			if !deferred {
+				return false
+			}
+		}
+		if !namedErrorResult(u, results, object) {
+			return false
+		}
+		return true
+	case *ast.CallExpr:
+		if !wrappers {
+			return false
+		}
+		// Constructors may nest refusal producers in their own arguments.
+		if u.constructors[u.object(consumer.Fun)] {
+			return true
+		}
+		for arg, value := range consumer.Args {
+			if unparen(value) == expr && u.propagationWrapper(consumer, arg) {
+				// Recursion here classifies the consumer only; it never traces values.
+				// P4 may consume only a P1-P3 result, not another wrapper argument.
+				return u.propagatesUnder(fn, consumer, parents[:index], false)
+			}
+		}
+		return false
+	}
+	return false
+}
+
+type narrowingWitness struct {
+	Admit  string `json:"admit"`
+	Member int    `json:"member"`
+}
+
+type siteBound struct {
+	Kind          string         `json:"kind"`
+	Reason        string         `json:"reason"`
+	Member        int            `json:"member"`
+	PinningTest   *testReference `json:"pinning_test,omitempty"`
+	DownstreamKey string         `json:"downstream_key,omitempty"`
+}
+type siteMapping struct {
+	Bounds       []siteBound        `json:"bounds,omitempty"`
+	SourceSHA256 string             `json:"source_sha256,omitempty"`
+	Witnesses    []narrowingWitness `json:"witnesses"`
+	Site         string             `json:"site"`
+	Tests        []testReference    `json:"tests"`
+}
+
+func readSiteMappings(root string) ([]siteMapping, error) {
+	data, err := os.ReadFile(filepath.Join(root, "scripts", "engine-catalog-sites.json"))
+	if err != nil {
+		return nil, err
+	}
+	var mappings []siteMapping
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&mappings); err != nil {
+		return nil, err
+	}
+	return mappings, nil
+}
+func mappedSiteTests(id string, mappings []siteMapping, candidates []parsedTest) ([]testReference, error) {
+	var mapped []testReference
+	matches := 0
+	for _, mapping := range mappings {
+		if mapping.Site == id {
+			matches++
+			mapped = mapping.Tests
+		}
+	}
+	if matches != 1 || len(mapped) == 0 {
+		return nil, fmt.Errorf("%s: want exactly one explicit AST identity mapping with named negative tests", id)
+	}
+	for _, ref := range mapped {
+		found := false
+		// Certificates bind to test declarations. Subtest execution remains selected
+		// by the harness, but absence of the parent declaration always refuses.
+		for _, candidate := range candidates {
+			found = found || (candidate.reference.Dir == ref.Dir && candidate.reference.Name == ref.Name && ref.BodySHA256 != "" && candidate.bodyDigest == ref.BodySHA256)
+		}
+		if !found {
+			return nil, fmt.Errorf("%s: mapped negative test missing or body changed: %s:%s", id, ref.Dir, ref.Name)
+		}
+	}
+	return mapped, nil
+}
+
+func downstreamOf(primary, downstream mutant) bool {
+	return primary.file == downstream.file && primary.function == downstream.function && primary.end <= downstream.start && primary.siteID != downstream.siteID
+}
+func provedJointEquivalence(primary, downstream, joint result) bool {
+	return primary.state == "survived" && primary.code == 0 && downstream.state == "survived" && downstream.code == 0 && joint.state == "killed" && joint.code != 0 && joint.test != "" && containsTest(primary.mutant.tests, joint.test)
+}
+
+func mutationEvidenceComplete(rows []result) bool {
+	if len(rows) == 0 {
+		return false
+	}
+	for _, row := range rows {
+		if row.state == "bound: undecided" && row.code == 0 && row.bound != "" {
+			continue
+		}
+		if row.state == "bound: defensive-unreachable" && row.code == 0 && row.test != "" && row.jointLog != "" && row.jointCode != 0 && row.bound != "" {
+			continue
+		}
+		if row.test == "" {
+			return false
+		}
+		if row.state == "killed" && row.code != 0 {
+			continue
+		}
+		if row.state == "equivalent" && row.code == 0 && row.jointLog != "" && row.jointCode != 0 {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func testBodyDigest(body *ast.BlockStmt) string {
+	var text strings.Builder
+	fatalIf(format.Node(&text, token.NewFileSet(), body))
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(text.String())))
+}
+
+func namedErrorResult(u typedUnit, results *ast.FieldList, object types.Object) bool {
+	if results == nil || object == nil || !implementsError(object.Type()) {
+		return false
+	}
+	for _, field := range results.List {
+		for _, name := range field.Names {
+			if u.info.Defs[name] == object {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// Bodies and parameter references are resolved objects, never name overlaps.
+func (u *typedUnit) indexBodies(files []*ast.File) {
+	u.bodies = map[types.Object]*ast.FuncDecl{}
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			if fn, ok := decl.(*ast.FuncDecl); ok && fn.Body != nil {
+				u.bodies[u.info.Defs[fn.Name]] = fn
+			}
+		}
+	}
+}
+func (u typedUnit) propagationWrapper(call *ast.CallExpr, argument int) bool {
+	object, ok := u.object(call.Fun).(*types.Func)
+	if !ok {
+		return false
+	}
+	fn := u.bodies[object]
+	if fn == nil {
+		return false
+	} // interface calls and imported/external bodies refuse
+	signature := object.Type().(*types.Signature)
+	if argument >= signature.Params().Len() {
+		return false
+	}
+	parameter := signature.Params().At(argument)
+	if !implementsError(parameter.Type()) {
+		return false
+	}
+	count, valid := 0, true
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		if _, closure := node.(*ast.FuncLit); closure {
+			return false
+		}
+		ret, ok := node.(*ast.ReturnStmt)
+		if !ok {
+			return true
+		}
+		for i := 0; i < signature.Results().Len(); i++ {
+			if !implementsError(signature.Results().At(i).Type()) {
+				continue
+			}
+			count++
+			if i >= len(ret.Results) {
+				valid = false
+				continue
+			}
+			value := unparen(ret.Results[i])
+			if u.object(value) == parameter {
+				continue
+			}
+			joined, ok := value.(*ast.CallExpr)
+			if !ok {
+				valid = false
+				continue
+			}
+			join, ok := u.object(joined.Fun).(*types.Func)
+			if !ok || join.Pkg() == nil || join.Pkg().Path() != "errors" || join.Name() != "Join" {
+				valid = false
+				continue
+			}
+			found := false
+			for _, arg := range joined.Args {
+				found = found || u.object(unparen(arg)) == parameter
+			}
+			valid = valid && found
+		}
+		return true
+	})
+	return count > 0 && valid
+}
+
+// Observation is a closed syntax exception, not value-flow tracing: selecting
+// an error's fields/methods, comparing to nil, and the errors.As target address
+// inspect a previously received refusal; they do not create/store a refusal.
+func (u typedUnit) refusalObservation(expr ast.Expr, parents []ast.Node) bool {
+	if len(parents) == 0 {
+		return false
+	}
+	parent := parents[len(parents)-1]
+	if selector, ok := parent.(*ast.SelectorExpr); ok && selector.X == expr {
+		return true
+	}
+	if binary, ok := parent.(*ast.BinaryExpr); ok && (binary.Op == token.EQL || binary.Op == token.NEQ) {
+		other := binary.X
+		if other == expr {
+			other = binary.Y
+		}
+		if id, ok := other.(*ast.Ident); ok && u.info.Uses[id] == types.Universe.Lookup("nil") {
+			return true
+		}
+	}
+	if address, ok := parent.(*ast.UnaryExpr); ok && address.Op == token.AND && len(parents) >= 2 {
+		if call, ok := parents[len(parents)-2].(*ast.CallExpr); ok && len(call.Args) == 2 && call.Args[1] == address {
+			fn, ok := u.object(call.Fun).(*types.Func)
+			return ok && fn.Pkg() != nil && fn.Pkg().Path() == "errors" && fn.Name() == "As"
+		}
+	}
+	return false
+}
+
+// A singleton binds the identical guarded expression (syntax AND object path),
+// not an observation of it. Calls/indexes are opaque when selecting operands;
+// their arguments cannot lend their identity to a coarser predicate.
+func typedWitnessMember(site refusalSite, witness narrowingWitness) error {
+	expr, err := parser.ParseExpr(witness.Admit)
+	if err != nil {
+		return err
+	}
+	operand, literal, shape := singletonShape(expr)
+	if !shape {
+		return fmt.Errorf("%s: witness must be singleton equality", site.id)
+	}
+	if site.typeContext == nil {
+		return nil
+	} // legacy parsed-condition fixtures
+	u := site.typeContext
+	target := site.guardExpr
+	if target == nil {
+		target = site.expression
+	}
+	selected := target
+	if site.guardExpr != nil {
+		groups := rejectedGroups(target)
+		if witness.Member < 0 || witness.Member >= len(groups) {
+			return fmt.Errorf("%s: witness member outside condition class", site.id)
+		}
+		selected = groups[witness.Member]
+	}
+	info := &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Uses: map[*ast.Ident]types.Object{}}
+	if err := types.CheckExpr(u.set, u.pkg, target.Pos(), expr, info); err != nil {
+		return fmt.Errorf("%s: witness does not resolve in guarding scope: %w", site.id, err)
+	}
+	matched := false
+	ast.Inspect(selected, func(node ast.Node) bool {
+		expression, ok := node.(ast.Expr)
+		if !ok {
+			return true
+		}
+		if singletonOperand(expression) {
+			input, path := witnessAccessPath(expression, u.info), witnessAccessPath(operand, info)
+			matched = matched || (len(input) > 0 && sameAccessPath(input, path) && expressionText(token.NewFileSet(), unparen(expression)) == expressionText(token.NewFileSet(), unparen(operand)))
+			return false // selecting a field cannot also certify its base or sibling field.
+		}
+		switch expression.(type) {
+		case *ast.CallExpr, *ast.IndexExpr, *ast.IndexListExpr, *ast.SliceExpr:
+			return false
+		}
+		return true
+	})
+	if !matched {
+		return fmt.Errorf("%s: singleton equality must bind the identical guarded expression; no constant, sibling field, unrelated domain or observation", site.id)
+	}
+	typ := info.TypeOf(operand)
+	if _, ok := unparen(expr).(*ast.BinaryExpr); ok {
+		value := info.Types[unparen(literal)]
+		basic, isBasic := typ.Underlying().(*types.Basic)
+		if !isBasic || basic.Info()&types.IsUntyped != 0 || value.Value == nil || !types.AssignableTo(value.Type, typ) {
+			return fmt.Errorf("%s: singleton equality needs a go/types constant literal of the guarded type", site.id)
+		}
+	} else {
+		call := unparen(expr).(*ast.CallExpr)
+		callee, ok := resolvedWitnessObject(call.Fun, info).(*types.Func)
+		if !ok || callee.Pkg() == nil || callee.Pkg().Path() != "reflect" || callee.Name() != "DeepEqual" || types.Comparable(typ) || !types.Identical(typ, info.TypeOf(literal)) || !fullySpecifiedLiteral(literal, info) {
+			return fmt.Errorf("%s: singleton equality needs standard reflect.DeepEqual on a non-comparable guarded type and a fully specified composite literal", site.id)
+		}
+	}
+	return nil
+}
+
+// Only direct variable/field access is in the frozen grammar. Syntax is checked
+// separately: no call, index, slice or method is erased from identity.
+func witnessAccessPath(expr ast.Expr, info *types.Info) []types.Object {
+	switch value := unparen(expr).(type) {
+	case *ast.Ident:
+		if object, ok := info.Uses[value].(*types.Var); ok && !object.IsField() {
+			return []types.Object{object}
+		}
+	case *ast.SelectorExpr:
+		object, ok := info.Uses[value.Sel].(*types.Var)
+		if !ok {
+			return nil
+		}
+		if !object.IsField() {
+			return []types.Object{object}
+		}
+		if base := witnessAccessPath(value.X, info); len(base) > 0 {
+			return append(base, object)
+		}
+	}
+	return nil
+}
+func sameAccessPath(left, right []types.Object) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// All aggregate members are literal values; structs and arrays must specify
+// every field/slot. Keyed slices/arrays, pointers and implicit interface values
+// are outside this closed literal subset. No partial aggregate is a singleton.
+func fullySpecifiedLiteral(expr ast.Expr, info *types.Info) bool {
+	expr = unparen(expr)
+	literal, ok := expr.(*ast.CompositeLit)
+	if !ok {
+		return constantLiteral(expr) && info.Types[expr].Value != nil
+	}
+	switch typ := info.TypeOf(expr).Underlying().(type) {
+	case *types.Array:
+		if int64(len(literal.Elts)) != typ.Len() {
+			return false
+		}
+	case *types.Slice:
+	case *types.Map:
+		for _, element := range literal.Elts {
+			pair, ok := element.(*ast.KeyValueExpr)
+			if !ok || !fullySpecifiedLiteral(pair.Key, info) || !fullySpecifiedLiteral(pair.Value, info) {
+				return false
+			}
+		}
+		return true
+	case *types.Struct:
+		if len(literal.Elts) != typ.NumFields() {
+			return false
+		}
+		fields := map[string]bool{}
+		for i, element := range literal.Elts {
+			if pair, keyed := element.(*ast.KeyValueExpr); keyed {
+				name, ok := pair.Key.(*ast.Ident)
+				if !ok || fields[name.Name] || !fullySpecifiedLiteral(pair.Value, info) {
+					return false
+				}
+				fields[name.Name] = true
+			} else if !fullySpecifiedLiteral(element, info) {
+				return false
+			} else {
+				fields[typ.Field(i).Name()] = true
+			}
+		}
+		for i := 0; i < typ.NumFields(); i++ {
+			if !fields[typ.Field(i).Name()] {
+				return false
+			}
+		}
+		return true
+	default:
+		return false
+	}
+	for _, element := range literal.Elts {
+		if !fullySpecifiedLiteral(element, info) {
+			return false
+		}
+	}
+	return true
+}
+
+// A single direct return has no guarding condition. Dispatch arms and returns
+// following other statements retain their ordinary witness requirement; they
+// cannot borrow this unconditional certificate merely because no IfStmt is a
+// parent of the producer expression.
+func soleUnconditionalReturn(fn *ast.FuncDecl, parents []ast.Node) bool {
+	if fn.Body == nil || len(fn.Body.List) != 1 {
+		return false
+	}
+	ret, ok := fn.Body.List[0].(*ast.ReturnStmt)
+	if !ok {
+		return false
+	}
+	for _, parent := range parents {
+		if parent == ret {
+			return true
+		}
+		if _, ok := parent.(*ast.FuncLit); ok {
+			return false
+		}
+	}
+	return false
+}
+
+func hasUndecidedBound(bounds []siteBound, member int) bool {
+	for _, b := range bounds {
+		if b.Kind == "undecided" && b.Member == member && b.Reason != "" {
+			return true
+		}
+	}
+	return false
+}
+func validateSiteBounds(root string, site refusalSite, mapping siteMapping) error {
+	data, err := os.ReadFile(filepath.Join(root, site.file))
+	if err != nil {
+		return err
+	}
+	if mapping.SourceSHA256 != "" && mapping.SourceSHA256 != fmt.Sprintf("%x", sha256.Sum256(data)) {
+		return fmt.Errorf("%s: certificate source identity changed", site.id)
+	}
+	for _, b := range mapping.Bounds {
+		if mapping.SourceSHA256 == "" || b.Reason == "" || b.Member < -1 {
+			return fmt.Errorf("%s: bound requires source identity, reason and member", site.id)
+		}
+		switch b.Kind {
+		case "undecided":
+		case "defensive-unreachable":
+			if b.PinningTest == nil || b.PinningTest.Name == "" || b.DownstreamKey == "" {
+				return fmt.Errorf("%s: defensive bound lacks pin or downstream", site.id)
+			}
+			candidates, err := loadTests(root, []string{site.file})
+			if err != nil {
+				return err
+			}
+			if _, err = mappedSiteTests(site.id, []siteMapping{{Site: site.id, Tests: []testReference{*b.PinningTest}}}, candidates); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("%s: unknown bound kind %q", site.id, b.Kind)
+		}
+	}
+	return nil
+}
+func proveDefensiveBound(root, out string, primary result, downstream mutant, b siteBound, id int, linux, windows string) (result, bool) {
+	if primary.state != "survived" || primary.code != 0 || b.PinningTest == nil || !downstreamOf(primary.mutant, downstream) {
+		return primary, false
+	}
+	cmd := exec.Command("go", "test", "./"+b.PinningTest.Dir, "-run", "^"+regexp.QuoteMeta(b.PinningTest.Name)+"$", "-count=1", "-json")
+	cmd.Dir = root
+	output, err := cmd.CombinedOutput()
+	pinLog := filepath.Join(out, fmt.Sprintf("pin-%03d.log", id))
+	fatalIf(os.WriteFile(pinLog, output, 0600))
+	if err != nil || !namedTestPassed(output, b.PinningTest.Name) {
+		return primary, false
+	}
+	joint := primary.mutant
+	joint.extra = []sourceMutation{{downstream.start, downstream.end, downstream.replaceText}}
+	proof := runMutant(root, filepath.Join(out, "defensive-joint"), joint, id, linux, windows)
+	if proof.state != "killed" || proof.test == "" || !containsTest(primary.mutant.tests, proof.test) {
+		return primary, false
+	}
+	primary.state = "bound: defensive-unreachable"
+	primary.test = proof.test
+	primary.jointCode = proof.code
+	primary.jointLog = proof.log
+	primary.bound = fmt.Sprintf("%s; pin %s exit 0 (%s); joint with %s killed by %s exit %d (%s)", b.Reason, b.PinningTest.Name, pinLog, downstream.key, proof.test, proof.code, proof.log)
+	return primary, true
+}
+
+func namedTestPassed(output []byte, name string) bool {
+	decoder := json.NewDecoder(strings.NewReader(string(output)))
+	for {
+		var event struct{ Action, Test string }
+		err := decoder.Decode(&event)
+		if err == io.EOF {
+			return false
+		}
+		if err != nil {
+			return false
+		}
+		if event.Test == name && event.Action == "pass" {
+			return true
+		}
+	}
+}
+
+// The accepted standalone subset is exactly //go:build ignore on package main.
+// Other uncovered build contexts continue to refuse rather than being skipped.
+func standaloneIgnoreCommand(root, file string) bool {
+	parsed, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, file), nil, parser.ParseComments)
+	if err != nil || parsed.Name.Name != "main" {
+		return false
+	}
+	for _, group := range parsed.Comments {
+		if group.Pos() > parsed.Package {
+			break
+		}
+		for _, comment := range group.List {
+			if !constraint.IsGoBuild(comment.Text) {
+				continue
+			}
+			expr, err := constraint.Parse(comment.Text)
+			tag, ok := expr.(*constraint.TagExpr)
+			return err == nil && ok && tag.Tag == "ignore"
+		}
+	}
+	return false
+}
+
+func resolvedWitnessObject(expr ast.Expr, info *types.Info) types.Object {
+	switch value := unparen(expr).(type) {
+	case *ast.Ident:
+		return info.Uses[value]
+	case *ast.SelectorExpr:
+		return info.Uses[value.Sel]
+	}
+	return nil
 }

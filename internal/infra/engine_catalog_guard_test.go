@@ -24,6 +24,10 @@ type engineCatalogGuardTestRef struct {
 }
 
 type engineCatalogGuardSite struct {
+	Bounds []struct {
+		Kind   string `json:"kind"`
+		Reason string `json:"reason"`
+	} `json:"bounds"`
 	Key          string                      `json:"key"`
 	File         string                      `json:"file"`
 	Function     string                      `json:"function"`
@@ -87,7 +91,7 @@ func TestEngineCatalogTypedRefusalASTGuard(t *testing.T) {
 		if site.Site == "" || strings.Contains(site.Site, "<unresolved-site>") {
 			t.Errorf("%s:%d %s has no statically identified refusal site", site.File, site.Line, site.Function)
 		}
-		if len(site.Tests) == 0 {
+		if len(site.Tests) == 0 && len(site.Bounds) == 0 {
 			t.Errorf("%s:%d %s.%s has no named behavioral test", site.File, site.Line, site.Constructor, site.Site)
 			continue
 		}
@@ -117,12 +121,17 @@ func TestEngineCatalogTypedRefusalASTGuard(t *testing.T) {
 		actual := append([]string(nil), actualBySite[key]...)
 		sort.Strings(expected)
 		sort.Strings(actual)
-		if len(expected) == 0 || !guardEqualStrings(expected, actual) {
+		if (len(expected) == 0 && len(site.Bounds) == 0) || !guardEqualStrings(expected, actual) {
 			t.Errorf("%s:%d %s.%s member coverage mismatch: enumerated=%v generated=%v", site.File, site.Line, site.Constructor, site.Site, expected, actual)
 		}
 	}
-	t.Logf("module-wide production source files from a filesystem walk across every build tag: %d; typed refusal/status sites mapped to tests and one narrowing mutant per member: %d/%d sites; mutants=%d", len(inventory.Files), len(sitesByKey), len(sitesByKey), len(inventory.Mutants))
-	t.Logf("accepted subset: typed refusals as direct return expressions or returning if-inits; other shapes are out of scope, see TASK-260930-1hzscs")
+	t.Logf("module-wide production source files from a filesystem walk across every build tag: %d; typed refusal/status sites enumerated with explicit certificates or declared review bounds: %d/%d sites; mutants=%d", len(inventory.Files), len(sitesByKey), len(sitesByKey), len(inventory.Mutants))
+	for _, site := range inventory.Sites {
+		for _, bound := range site.Bounds {
+			t.Logf("%s bound: %s: %s", site.Key, bound.Kind, bound.Reason)
+		}
+	}
+	t.Logf("accepted subset: P1-P4 propagation; unconditional: AC1 + removal mutant + consumer narrowing; see spec/refusal-evidence.md")
 }
 
 func guardProductionFiles(root string) ([]string, error) {

@@ -37,7 +37,7 @@ func TestProductionPackageScopeIncludesWindowsTaggedRefusalsAndRejectsSymlinks(t
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("filesystem walk omitted build-tagged production files: got=%v want=%v", got, want)
 	}
-	sites, err := collectSites(root, got)
+	sites, _, err := typedPropagationSites(root, got)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,8 +232,8 @@ func TestEquivalentNarrowingUsesNamedDownstreamFilesystemWitnesses(t *testing.T)
 			tests: []testReference{{Name: "TestReadSharedLeaseMirrorsRefusesDirectoryFileAndJSONFailures", Dir: "internal/infra"}},
 		},
 	} {
-		if bound, witness, ok := equivalentNarrowing(mutant); !ok || bound == "" || witness == "" {
-			t.Fatalf("equivalent narrowing not documented for %#v: bound=%q witness=%q ok=%t", mutant, bound, witness, ok)
+		if bound, witness, ok := equivalentNarrowing(mutant); ok || bound == "" || witness != "" {
+			t.Fatalf("unexecuted string equivalence accepted for %#v: bound=%q witness=%q ok=%t", mutant, bound, witness, ok)
 		}
 	}
 }
@@ -433,6 +433,7 @@ func TestCuratorEnginesCatalogIdentifierLifecycleThroughRun(t *testing.T) {
 	}
 	candidate := parsedTest{reference: testReference{Name: "TestCuratorEnginesCatalogIdentifierLifecycleThroughRun", Dir: "cmd/curator-engines"}, body: testFile.Decls[0].(*ast.FuncDecl).Body}
 	callers := map[string][]string{"reportStatus": {"run"}}
+	sites[0].witnesses = []narrowingWitness{{Admit: "resolved.CatalogEntry == true"}}
 	sites[0].tests = testsForAvailabilityAttestationGate([]parsedTest{candidate}, callers, sites[0])
 	wantTests := []testReference{{Name: candidate.reference.Name, Dir: candidate.reference.Dir}}
 	if !reflect.DeepEqual(sites[0].tests, wantTests) {
@@ -443,7 +444,7 @@ func TestCuratorEnginesCatalogIdentifierLifecycleThroughRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(mutants) != 1 || mutants[0].memberText != "resolved.CatalogEntry" || !strings.Contains(mutants[0].replaceText, "&& false") {
+	if len(mutants) != 1 || !strings.Contains(mutants[0].memberText, "resolved.CatalogEntry") || !strings.Contains(mutants[0].replaceText, "&& !(") {
 		t.Fatalf("availability narrowing mutants=%#v want one CatalogEntry-to-false mutant", mutants)
 	}
 }
@@ -498,6 +499,7 @@ func TestResolveSharedProfileUsesCatalogForSelectedPrimaryProfile(t *testing.T) 
 		}
 	}
 	for index := range sites {
+		sites[index].witnesses = []narrowingWitness{{Admit: "state == 1"}}
 		sites[index].tests = testsForRefusalSite(candidates, nil, sites[index])
 	}
 	wantByConstructor := map[string]string{
@@ -513,7 +515,7 @@ func TestResolveSharedProfileUsesCatalogForSelectedPrimaryProfile(t *testing.T) 
 	}
 	for _, mutant := range mutants {
 		want := wantByConstructor[mutant.constructor]
-		if want == "" || len(mutant.tests) != 1 || mutant.tests[0].Name != want || !strings.Contains(mutant.replaceText, "&& false") {
+		if want == "" || len(mutant.tests) != 1 || mutant.tests[0].Name != want || !strings.Contains(mutant.replaceText, "&& !(") {
 			t.Fatalf("catalog decision mutant=%#v want mapped narrowing witness %q", mutant, want)
 		}
 	}
