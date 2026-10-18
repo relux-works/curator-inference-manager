@@ -19,6 +19,14 @@ func AcquireSharedRuntimeLease(ctx context.Context, options SharedRuntimeOperato
 	if err != nil {
 		return nil, err
 	}
+	if options.ExpectedWeightsID != "" {
+		if err := validateEngineWeightsID(options.ExpectedWeightsID); err != nil {
+			return nil, err
+		}
+		if resolved.CatalogObservation == nil || resolved.CatalogObservation.Weights == nil {
+			return nil, sharedRuntimeError("engine_weights_unpinned", errors.New("an expected weights id cannot certify an unpinned entry"))
+		}
+	}
 	if resolved.NotRunnableCode != "" {
 		return nil, engineCatalogNotRunnableError(resolved)
 	}

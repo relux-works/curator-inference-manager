@@ -200,11 +200,27 @@ func requiredMatrixBases() []requiredMatrixBase {
 			"resources":         requiredMatrixResources(),
 		}
 	}
+	// The optional runtime.weights object certifies an instance: both members
+	// are required whenever it is present, like the nested provider policy.
+	// Certified controls must admit before their missing/null mutations run.
+	observation := &EngineWeightsObservation{
+		ID: "gguf-sha256:" + strings.Repeat("a", 64), ObservedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+	withWeights := func(frame map[string]any) map[string]any {
+		frame["runtime"].(map[string]any)["weights"] = map[string]any{
+			"id": observation.ID, "observed_at": observation.ObservedAt.Format(time.RFC3339Nano),
+		}
+		return frame
+	}
+	attestedWeights := attested
+	attestedWeights.runtime.Weights = observation
 	return []requiredMatrixBase{
 		{name: "hello/disabled", frame: hello(false), kind: "hello_ok", attested: attested, resolved: resolved, attestedOK: true},
 		{name: "hello/provider", frame: hello(true), kind: "hello_ok", attested: attested, resolved: resolved, attestedOK: true},
 		{name: "status/disabled", frame: status(false), kind: "status", attested: attested, resolved: resolved, attestedOK: true},
 		{name: "status/provider", frame: status(true), kind: "status", attested: attested, resolved: resolved, attestedOK: true},
+		{name: "hello/verified-weights", frame: withWeights(hello(false)), kind: "hello_ok", attested: attestedWeights, resolved: resolved, attestedOK: true},
+		{name: "status/verified-weights", frame: withWeights(status(false)), kind: "status", attested: attestedWeights, resolved: resolved, attestedOK: true},
 		{name: "decode/hello", frame: map[string]any{
 			"type": "hello", "protocol_version": 7,
 			"client_exec":        map[string]any{"dev": 1, "ino": 2, "size": 3, "mode": 0o755},
@@ -416,6 +432,7 @@ func TestSharedWireRequiredMatchesOwnerTags(t *testing.T) {
 		"":                                     reflect.TypeOf(sharedWireMessage{}),
 		"broker":                               reflect.TypeOf(SharedBrokerIdentity{}),
 		"runtime":                              reflect.TypeOf(SharedRuntimeProcessRecord{}),
+		"runtime.weights":                      reflect.TypeOf(EngineWeightsObservation{}),
 		"sharing_effective":                    reflect.TypeOf(PiRuntimeSharing{}),
 		"sharing_configured":                   reflect.TypeOf(PiRuntimeSharing{}),
 		"sharing_effective.resource_pressure":  reflect.TypeOf(PiRuntimeResourcePressure{}),

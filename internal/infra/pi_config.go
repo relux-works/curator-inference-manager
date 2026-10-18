@@ -64,6 +64,7 @@ type PiPolicyStringListValue struct {
 }
 
 type PiProfile struct {
+	weightsID             string
 	Provider              string
 	Publisher             string
 	Family                string

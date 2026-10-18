@@ -33,6 +33,9 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 		return runInternal(args[1:], stdout, stderr)
 	}
 	command := args[0]
+	if command == "weights" {
+		return runWeights(args[1:], stdout, stderr)
+	}
 	if command == "check" {
 		return runCheck(args[1:], stdout, stderr)
 	}
@@ -57,6 +60,10 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 	flags.SetOutput(stderr)
 	engine := flags.String("engine", "", "engine entry name")
 	jsonOutput := flags.Bool("json", false, "write JSON output")
+	var expectedWeightsID *string
+	if command == "ensure" {
+		expectedWeightsID = flags.String("expected-weights-id", "", "required exact weights identity")
+	}
 	var leaseToken *string
 	var force *bool
 	var timeoutSeconds *int
@@ -72,6 +79,15 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 			return 0
 		}
 		return 2
+	}
+	emptyWeightsPin := false
+	flags.Visit(func(value *flag.Flag) {
+		if value.Name == "expected-weights-id" && value.Value.String() == "" {
+			emptyWeightsPin = true
+		}
+	})
+	if emptyWeightsPin {
+		return reportError(stderr, &infra.EngineCatalogError{State: infra.EngineCatalogMalformed, Site: "ensure.expected_weights_id", Err: errors.New("expected weights id must not be empty")})
 	}
 	if flags.NArg() != 0 {
 		if err := writeFormatted(stderr, "unexpected arguments: %s\n", strings.Join(flags.Args(), " ")); err != nil {
@@ -95,6 +111,7 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 		}
 		return 0
 	case "ensure":
+		options.ExpectedWeightsID = *expectedWeightsID
 		return runEnsure(parent, options, *jsonOutput, stdout, stderr)
 	case "release":
 		if leaseToken == nil || *leaseToken == "" {
@@ -239,6 +256,8 @@ func writeJSON(writer io.Writer, value any, stderr io.Writer) int {
 
 func writeUsage(writer io.Writer) {
 	_ = writeLine(writer, "Usage: curator-engines <check|status|ensure|release|stop> [--engine NAME] [--json]")
+	_ = writeLine(writer, "  weights compute requires --config FILE and --engine NAME [--json] (read-only)")
+	_ = writeLine(writer, "  ensure accepts --expected-weights-id ID")
 	_ = writeLine(writer, "  check requires --config FILE and --engine NAME (read-only)")
 	_ = writeLine(writer, "  import-legacy <preview|apply|resume|rollback> --config FILE [--evidence-root DIR]")
 	_ = writeLine(writer, "  legacy-evidence DIR (read-only)")

@@ -852,17 +852,6 @@ func legacyFixtureServedModelID(entry infra.EngineCatalogEntry) string {
 	return path.Base(model)
 }
 
-func buildCatalogFakeRuntime(t *testing.T) string {
-	t.Helper()
-	executable := filepath.Join(t.TempDir(), "catalog-fake-runtime")
-	command := exec.Command("go", "build", "-o", executable, "./testdata/fake-runtime")
-	output, err := command.CombinedOutput()
-	if err != nil {
-		t.Fatalf("build catalog fake runtime: %v\n%s", err, output)
-	}
-	return executable
-}
-
 func runCatalogEngineStatus(t *testing.T, executable, model string) infra.SharedRuntimeStatus {
 	t.Helper()
 	project := t.TempDir()

@@ -19,6 +19,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -199,6 +200,16 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 		if result == nil || !recordPublished {
 			return
 		}
+		var weightsFailure *SharedRuntimeError
+		if errors.As(result, &weightsFailure) && strings.HasPrefix(weightsFailure.Code, "engine_weights_") && (!runtimeOwned || runtimeReaped) {
+			record.StartupFailure = &engineWeightsFailureRecord{Code: weightsFailure.Code, Details: weightsFailure.Details, Message: weightsFailure.Err.Error()}
+			record.State = "refused"
+			record.Runtime = nil
+			if writeErr := writeSharedJSONAtomic(paths.BrokerState, record); writeErr != nil {
+				result = writeErr
+			}
+			return
+		}
 		if record.Runtime != nil && !runtimeReaped {
 			return
 		}
@@ -254,6 +265,10 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 		timer := time.NewTimer(delay)
 		<-timer.C
 	}
+	weights, weightsFile, err := verifyCatalogWeights(resolved)
+	if err != nil {
+		return err
+	}
 	if err := preflightPiListener(resolved.Profile.BaseURL); err != nil {
 		return err
 	}
@@ -262,6 +277,10 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 	var runtimeWait *piProcessWait
 	defer func() {
 		if result == nil || runtimeReady {
+			return
+		}
+		var weightsFailure *SharedRuntimeError
+		if errors.As(result, &weightsFailure) && strings.HasPrefix(weightsFailure.Code, "engine_weights_") {
 			return
 		}
 		fatalOutput := runtimeWait != nil && runtimeWait.output.firstFatalOutput() != ""
@@ -306,7 +325,8 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 	}
 	execPlanDigest := SharedRuntimeExecPlanDigest(resolved.Profile, resolved.Paths.RuntimeCWD)
 	record.Runtime = &SharedRuntimeProcessRecord{
-		PID: launcherObservation.PID, PGID: launcherObservation.PGID,
+		Weights: weights,
+		PID:     launcherObservation.PID, PGID: launcherObservation.PGID,
 		StartTime: launcherObservation.StartTime, UID: launcherObservation.UID,
 		PreExec:  ProcessExecShape{ExecPath: launcherObservation.ExecPath, Argv: append([]string(nil), launcherObservation.Argv...)},
 		PostExec: ProcessExecShape{ExecPath: resolved.Profile.Runtime.Executable, Argv: append([]string{resolved.Profile.Runtime.Executable}, resolved.Profile.Runtime.Argv...)},
@@ -335,6 +355,12 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 	}
 	servedModel, err := waitPiRuntimeReadyAndReportModel(context.Background(), options.HTTPClient, resolved.Profile.BaseURL+resolved.Profile.Runtime.ReadinessPath, wantModel, runtimeCommand.Process, runtimeWait, time.Duration(resolved.Profile.Runtime.StartupTimeoutSeconds)*time.Second)
 	if err != nil {
+		return err
+	}
+	if err := weightsFile.unchanged(); err != nil {
+		if cleanupErr := cleanupRuntime(); cleanupErr != nil {
+			return cleanupErr
+		}
 		return err
 	}
 	if resolved.CatalogEntry && resolved.Profile.Model == "" {

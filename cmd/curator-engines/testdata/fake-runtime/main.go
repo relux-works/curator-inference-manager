@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -27,6 +28,21 @@ func main() {
 	}
 	if pidPath := os.Getenv("CATALOG_FAKE_PID_FILE"); pidPath != "" {
 		if err := os.WriteFile(pidPath, []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if os.Getenv("CATALOG_FAKE_REPLACE_MODEL") == "1" {
+		replacement, err := os.CreateTemp(filepath.Dir(model), "replacement-*.gguf")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if _, err := replacement.WriteString("replaced model bytes"); err != nil {
+			log.Fatal(err)
+		}
+		if err := replacement.Close(); err != nil {
+			log.Fatal(err)
+		}
+		if err := os.Rename(replacement.Name(), model); err != nil {
 			log.Fatal(err)
 		}
 	}

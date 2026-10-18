@@ -10,15 +10,29 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type SharedRuntimeError struct {
-	Code string `json:"code"`
-	Err  error  `json:"-"`
+	Details map[string]any `json:"details,omitempty"`
+	Code    string         `json:"code"`
+	Err     error          `json:"-"`
 }
 
-func (e *SharedRuntimeError) Error() string { return e.Code + ": " + e.Err.Error() }
+func (e *SharedRuntimeError) Error() string {
+	if e.Details != nil || strings.HasPrefix(e.Code, "engine_weights_") {
+		data, err := json.Marshal(struct {
+			Code    string         `json:"code"`
+			Details map[string]any `json:"details"`
+			Message string         `json:"message"`
+		}{e.Code, e.Details, e.Err.Error()})
+		if err == nil {
+			return string(data)
+		}
+	}
+	return e.Code + ": " + e.Err.Error()
+}
 func (e *SharedRuntimeError) Unwrap() error { return e.Err }
 
 func SharedRuntimeExitCode(err error) (int, bool) {
@@ -135,11 +149,12 @@ type SharedRuntimeBrokerOptions struct {
 type SharedRuntimeLauncherOptions = SharedRuntimeBrokerOptions
 
 type SharedRuntimeOperatorOptions struct {
-	ProjectDir string
-	Profile    string
-	HomeDir    string
-	CacheRoot  string
-	HTTPClient *http.Client
+	ExpectedWeightsID string
+	ProjectDir        string
+	Profile           string
+	HomeDir           string
+	CacheRoot         string
+	HTTPClient        *http.Client
 }
 
 type SharedRuntimeBrokerStatus struct {
@@ -158,6 +173,7 @@ type SharedRuntimeSharingStatus struct {
 }
 
 type SharedRuntimeStatus struct {
+	Weights            EngineWeightsStatus         `json:"weights"`
 	Readings           EngineReadings              `json:"readings"`
 	ContractVersion    int                         `json:"contract_version"`
 	EngineIdentity     SharedRuntimeEngineIdentity `json:"engine_identity"`

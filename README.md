@@ -21,7 +21,7 @@ The inference-plane design remains a draft; curator-engines v0.x has adopted the
 | Engine catalog refusal/status mutator | Walk non-test `.go` files independently of build tags; reject non-regular entries; resolve refusal factories/types with `go/types` in Darwin/Linux/Windows contexts (including explicit-file contexts for standalone `//go:build ignore` commands). Enforce the closed P1–P4 propagation subset and explicit file/function/ordinal test certificates. R4 is frozen as singleton equality: identical guarded syntax and object path equals a typed constant literal (or standard deep equality with a fully specified non-comparable composite); observations and conjunction witnesses refuse. The original gate remains. Execution roots bind source/test content and require green selected baselines; equivalence requires executed joint downstream evidence. See [guard contract](spec/refusal-evidence.md) for the unconditional-refusal classification, defensive-unreachable and explicit undecided review bounds. | `go run scripts/engine-catalog-mutants.go -inventory`; `go test ./scripts -run TestRefusal -count=1 -v`; materialize platform trees with `scripts/test-nondarwin-emu.sh --materialize <linux\|windows> <source-root> <output-dir>`; run `go run scripts/engine-catalog-mutants.go -start N -count N -workers 8 -linux-emu-root <linux-dir> -windows-emu-root <windows-dir> -out .temp/<task>/mutants` | Inventory JSON/stdout and diagnostic stderr; tables, overlays and direct test logs under `.temp/`. A production inventory refusal is failing evidence, never green coverage. |
 | skill-agents-management catalog contract test | Verify manager-produced schema v1 catalogs with the pinned public `pkg/runtimecatalog` reader in an isolated nested module. | `(cd contracttest && go test ./...)` | Go module/test output goes to stdout/stderr; generated manager catalogs and fixture files are written under `t.TempDir()` and removed when the test exits. |
 | ShellCheck | Lint the validation script and compatibility shims | `shellcheck scripts/test-nondarwin-emu.sh scripts/qwen-infra scripts/model-harness` | Findings go to stdout/stderr; no repository artifacts are generated. |
-| `curator-engines` | Inspect or manage configured engine runtimes | `go build -o .temp/curator-engines ./cmd/curator-engines`, then `.temp/curator-engines check --config /path/to/engines.toml --engine NAME --json`, or `.temp/curator-engines status --json` (`ensure`, `release`, `stop` also available) | Binary at `.temp/curator-engines`; check reports typed failures and KV RAM; status is printed to stdout with separate `engine_availability`, `engine_availability_reason`, and broker state fields; wire details follow `spec/engines-protocol-v1.md`. |
+| `curator-engines` | Inspect or manage configured engine runtimes | `go build -o .temp/curator-engines ./cmd/curator-engines`, then `.temp/curator-engines check --config /path/to/engines.toml --engine NAME --json`, or `.temp/curator-engines status --json` (`ensure`, `release`, `stop` also available) | Binary at `.temp/curator-engines`; catalogs use mode `0600` and integer `knobs.kv_context_size`; optional `[engines.NAME.weights]` pins exact GGUF bytes. Compute with `.temp/curator-engines weights compute --config FILE --engine NAME [--json]`; ensure accepts `--expected-weights-id ID`; check reports typed failures, weights verification and KV RAM; status is printed to stdout with separate `engine_availability`, `engine_availability_reason`, and broker state fields; wire details follow `spec/engines-protocol-v1.1.md`. |
 | K0 evidence harness | Enumerate refusal sites from Go AST and run fourteen narrowing mutants against the production CLI tests | `go run scripts/check-k0-evidence.go -out .temp/k0-evidence` | AST inventory, mutant results and individual test logs under `.temp/k0-evidence`; source bytes are restored after each mutant. |
 | Task Board CLI | Track implementation status, checklist, notes, and task-scoped outcomes | `task-board q --format compact 'get(TASK-ID) { status checklist outcomeResources }'`; `task-board m 'set_status(TASK-ID, status=development)'`; `task-board resource add TASK-ID <file>` | Task state and attached outcomes go to the authoritative board selected by `TASK_BOARD_DIR`. |
 | GitHub CLI | File the curator-spec adoption issue for the manager catalog contract | `gh issue create --repo relux-works/curator-spec --title 'Adopt curator-engines engine catalog schema v1 in Decision 0020' --body-file <body-file>` | The issue is stored in curator-spec; body scratch files are kept under task-scoped `.temp/`. |
@@ -42,6 +42,52 @@ The inference-plane design remains a draft; curator-engines v0.x has adopted the
 The K0 argv subset accepts separated values only: `--parallel`/`-np`, `--kv-unified`/`-kvu`, `--no-kv-unified`/`-no-kvu`, `--cache-ram`/`-cram`, `--no-cache-idle-slots` (inverse refused), `--chat-template-file` or `--chat-template`, `--cache-type-k`/`-ctk`, `--cache-type-v`/`-ctv`, `--model`/`-m`, and `--ctx-size`/`-c`. Sleep-idle, router selectors, and template-disabling prefix/suffix flags are refused. Unknown argv tokens are refused as `argv_unsupported`; the exact pass-through flags are listed in `engineCheckFlags`. Value-taking options consume the next token verbatim, including option-looking data; a missing token is refused as `argv_missing_value`. Required value flags must occur once. Template pinning means an explicit argv selection; this offline check does not attest file contents or availability.
 
 KV bytes estimate the K/V tensor payload, excluding allocator overhead, weights, compute buffers, prompt cache and device placement. GGUF v2/v3 headers are read without tensor descriptors or tensor data. Ordinary llama/qwen2/qwen3 attention metadata with scalar dimensions is supported; hybrid/recurrent, sliding-window and other architectures report unknown. f16 uses two bytes per element; q8_0 uses 34 bytes per 32 elements. Other valid cache types report unknown. Total context is rounded to 256 cells; non-unified layout divides that total by parallel and rounds each stream to 256 cells. Missing context or explicit zero uses GGUF training context. Context/cells are bounded to 2^40 and layer/head dimensions to 10000 before arithmetic; out-of-bound or overflowing estimates report `unknown` (`kv_size_overflow`). These rules match the fixture's llama.cpp revision `c21284cdf`; `check` reports the configured estimate, not live allocation or backend fitting.
+
+## Exact model weights
+
+Catalogs are owner-private regular files, conventionally mode `0600` (group and
+other access is refused). `knobs.kv_context_size` is a positive TOML integer for
+llama-cpp, such as `kv_context_size = 16384`, never a quoted numeric string.
+Other supported engines may use the documented `"unbounded"` value.
+
+Local llama-cpp entries with one unsplit GGUF model file may declare:
+
+```toml
+[engines.local-model.weights]
+id = "gguf-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+```
+
+The example digest must be replaced with the file's actual id. Compute it with
+`curator-engines weights compute --config FILE --engine NAME [--json]`; this
+streams SHA-256 over all file bytes and never edits the catalog. Relative model
+paths resolve beside FILE. The table requires exactly `id`, matching
+`^gguf-sha256:[0-9a-f]{64}$`; no whitespace, normalization or version member is
+accepted. Other prefixes, engine kinds and SSH entries are unsupported.
+The shared GGUF reader validates v2/v3 headers and metadata (bounded to 32 MiB)
+through the same descriptor and bytes used for hashing. Non-GGUF bytes, unsupported
+versions and truncated metadata refuse with `engine_weights_not_gguf`.
+Metadata `split.count > 1` or any `split.no` refuses with
+`engine_weights_split_unsupported`, regardless of the filename. These codes apply
+to compute, pinned check and the ensure gate. Missing, unreadable and non-regular
+files also refuse compute.
+Legacy imports do not create an id; entries without weights remain unpinned.
+
+`check` verifies a declared id when the model exists. A missing model remains
+unknown. Weights catalog refusals preserve `code` and `site` in check JSON:
+`engine_catalog_malformed` at `catalog.weights`, `catalog.weights.keys` or
+`entry.weights.id`; `engine_catalog_unsupported` at
+`entry.weights.id.unsupported` or `entry.weights.scope`. Other catalog validation
+errors retain `engine_config_malformed` for compatibility.
+`ensure --engine NAME --expected-weights-id ID` additionally requires
+the operator pin, catalog id and actual id to agree; a pin cannot certify an
+unpinned entry. Before launch the broker hashes the file; after readiness it
+rechecks device, inode, size and mtime and stops its process if they changed.
+Shared ensures use that running instance's verified id without hashing again.
+`status --json` adds `weights` with `id` when declared, `verification`
+(`verified`, `mismatch`, `unknown`, `unpinned`), and, when verified,
+`observed_id` and `observed_at`. Verification describes the observation at
+launch, not continuous monitoring of the pathname. See the
+[protocol](spec/engines-protocol-v1.1.md) for refusal codes and provenance.
 
 ## Legacy import
 

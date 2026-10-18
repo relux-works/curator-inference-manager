@@ -129,6 +129,9 @@ func (b *sharedDigestBuilder) sum() string {
 func SharedRuntimeProfileDigest(profile PiProfile) string {
 	var digest sharedDigestBuilder
 	digest.addString("schema", sharedRuntimeProfileSchema)
+	if profile.weightsID != "" {
+		digest.addString("weights.id", profile.weightsID)
+	}
 	digest.addString("provider", profile.Provider)
 	digest.addString("model", profile.Model)
 	digest.addString("base_url", profile.BaseURL)
@@ -350,17 +353,18 @@ type ProcessExecShape struct {
 }
 
 type SharedRuntimeProcessRecord struct {
-	PID                int              `json:"pid"`
-	PGID               int              `json:"pgid"`
-	StartTime          ProcessStartTime `json:"start_time"`
-	UID                uint32           `json:"uid"`
-	PreExec            ProcessExecShape `json:"pre_exec"`
-	PostExec           ProcessExecShape `json:"post_exec"`
-	CWD                string           `json:"cwd"`
-	Endpoint           string           `json:"endpoint"`
-	ExecutableIdentity FileIdentity     `json:"executable_identity"`
-	ExecPlanDigest     string           `json:"exec_plan_digest"`
-	Stage              string           `json:"stage"`
+	Weights            *EngineWeightsObservation `json:"weights,omitempty"`
+	PID                int                       `json:"pid"`
+	PGID               int                       `json:"pgid"`
+	StartTime          ProcessStartTime          `json:"start_time"`
+	UID                uint32                    `json:"uid"`
+	PreExec            ProcessExecShape          `json:"pre_exec"`
+	PostExec           ProcessExecShape          `json:"post_exec"`
+	CWD                string                    `json:"cwd"`
+	Endpoint           string                    `json:"endpoint"`
+	ExecutableIdentity FileIdentity              `json:"executable_identity"`
+	ExecPlanDigest     string                    `json:"exec_plan_digest"`
+	Stage              string                    `json:"stage"`
 }
 
 type SharedBrokerIdentity struct {
@@ -375,6 +379,7 @@ type SharedBrokerIdentity struct {
 }
 
 type SharedBrokerRecord struct {
+	StartupFailure    *engineWeightsFailureRecord `json:"startup_failure,omitempty"`
 	Stage             string                      `json:"stage"`
 	State             string                      `json:"state"`
 	ProtocolVersion   int                         `json:"protocol_version"`

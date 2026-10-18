@@ -18,11 +18,12 @@ import (
 )
 
 type SharedRuntimeOperatorOptions struct {
-	ProjectDir string
-	Profile    string
-	HomeDir    string
-	CacheRoot  string
-	HTTPClient *http.Client
+	ExpectedWeightsID string
+	ProjectDir        string
+	Profile           string
+	HomeDir           string
+	CacheRoot         string
+	HTTPClient        *http.Client
 }
 
 var sharedRuntimeReadingsNow = time.Now
@@ -83,6 +84,7 @@ type SharedRuntimeSharingStatus struct {
 }
 
 type SharedRuntimeStatus struct {
+	Weights                  EngineWeightsStatus         `json:"weights"`
 	Readings                 EngineReadings              `json:"readings"`
 	ContractVersion          int                         `json:"contract_version"`
 	EngineIdentity           SharedRuntimeEngineIdentity `json:"engine_identity"`
@@ -158,6 +160,7 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 		if resolved.CatalogEntry {
 			report.EngineAvailability = "available"
 		}
+		report.Weights = observedEngineWeights(resolved.CatalogObservation, message.Runtime.Weights)
 		report.Runtime = sharedRuntimeProcessStatus(message.Runtime, "attested")
 		report.Leases = append([]SharedLeaseStatus(nil), message.Leases...)
 		if message.Resources == nil {
@@ -273,6 +276,7 @@ func resolveSharedRuntimeOperator(options SharedRuntimeOperatorOptions) (sharedR
 	if err != nil {
 		return sharedResolvedProfile{}, PiStatePaths{}, err
 	}
+	resolved.ExpectedWeightsID = options.ExpectedWeightsID
 	state, err := ResolvePiStatePaths(options.CacheRoot, resolved.Project, resolved.ProfileName)
 	if err != nil {
 		return sharedResolvedProfile{}, PiStatePaths{}, err
@@ -282,6 +286,7 @@ func resolveSharedRuntimeOperator(options SharedRuntimeOperatorOptions) (sharedR
 
 func newSharedRuntimeStatus(resolved sharedResolvedProfile) SharedRuntimeStatus {
 	status := SharedRuntimeStatus{
+		Weights:         declaredEngineWeights(resolved.CatalogObservation),
 		ContractVersion: SharedRuntimeStatusContractVersion,
 		EngineIdentity:  resolved.EngineIdentity,
 		RuntimeKey:      resolved.RuntimeKey, ProfileDigest: resolved.ProfileDigest,
@@ -320,6 +325,9 @@ func sharedRuntimeRecordStatus(resolved sharedResolvedProfile, report SharedRunt
 			report.Broker = SharedRuntimeBrokerStatus{State: "starting-unverified", Source: "kernel-candidate-reporting-only", CandidateHolders: candidates}
 		}
 		return report, nil
+	}
+	if record.StartupFailure != nil && record.StartupFailure.Code == "engine_weights_mismatch" {
+		report.Weights.Verification = "mismatch"
 	}
 	state := record.State
 	if state == "" {

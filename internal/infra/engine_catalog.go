@@ -43,11 +43,12 @@ const (
 type EngineCatalogState string
 
 const (
-	EngineCatalogPresent    EngineCatalogState = "present"
-	EngineCatalogAbsent     EngineCatalogState = "absent"
-	EngineCatalogMalformed  EngineCatalogState = "malformed"
-	EngineCatalogReadFailed EngineCatalogState = "read_failed"
-	EngineCatalogConflict   EngineCatalogState = "conflict"
+	EngineCatalogPresent     EngineCatalogState = "present"
+	EngineCatalogAbsent      EngineCatalogState = "absent"
+	EngineCatalogMalformed   EngineCatalogState = "malformed"
+	EngineCatalogReadFailed  EngineCatalogState = "read_failed"
+	EngineCatalogConflict    EngineCatalogState = "conflict"
+	EngineCatalogUnsupported EngineCatalogState = "unsupported"
 )
 
 // EngineCatalogError is the typed refusal returned by the catalog and
@@ -106,10 +107,16 @@ func MarshalEngineCatalog(document EngineCatalogDocument) ([]byte, error) {
 	return marshalEngineCatalogDocument(document)
 }
 
+// EngineCatalogWeights pins the complete bytes of one model file.
+type EngineCatalogWeights struct {
+	ID string `toml:"id"`
+}
+
 // EngineCatalogEntry is schema v1's closed transcription of a legacy
 // model-harness profile. Runtime-only broker settings are manager defaults;
 // they are not writable catalog fields.
 type EngineCatalogEntry struct {
+	Weights            *EngineCatalogWeights            `toml:"weights,omitempty"`
 	Engine             string                           `toml:"engine,omitempty"`
 	Model              string                           `toml:"model,omitempty"`
 	ServedModelID      string                           `toml:"served_model_id,omitempty"`
@@ -141,6 +148,7 @@ type sharedResolvedProfile struct {
 	Paths              SharedRuntimePaths
 	CatalogObservation *EngineCatalogEntry
 	CatalogEntry       bool
+	ExpectedWeightsID  string
 	CatalogMode        string
 	NotRunnableCode    string
 	NotRunnableReason  string
@@ -291,7 +299,7 @@ var engineCatalogDocumentKeys = [...]string{"schema_version", "engines"}
 var engineCatalogEntryKeys = [...]string{
 	"engine", "model", "served_model_id", "executable", "argv", "knobs", "mode", "ssh_executable",
 	"ssh_target", "remote_executable", "remote_config", "remote_profile", "remote_host", "remote_port",
-	"stress", "supervision", "pinned_distribution",
+	"stress", "supervision", "pinned_distribution", "weights",
 }
 var engineCatalogKnobKeys = [...]string{"kv_context_size", "prefill_chunk_size", "reasoning_effort", "speculative_decoding"}
 var engineCatalogStressKeys = [...]string{
@@ -420,6 +428,11 @@ func validateEngineCatalogExactKeys(data []byte) error {
 		if err := engineCatalogRejectUnknownKeys(entry, "entry "+name, engineCatalogEntryKeys[:]...); err != nil {
 			return err
 		}
+		if raw, present := entry["weights"]; present {
+			if err := validateEngineWeightsTable(raw); err != nil {
+				return err
+			}
+		}
 		for _, nested := range []struct {
 			name string
 			keys []string
@@ -498,7 +511,7 @@ func ReadEngineCatalogEntry(path, name string) (EngineCatalogEntry, EngineCatalo
 	}
 
 	if err := validateEngineCatalogExactKeys(data); err != nil {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, err
+		return EngineCatalogEntry{}, engineCatalogErrorState(err), err
 	}
 	decoder := toml.NewDecoder(bytes.NewReader(data)).DisallowUnknownFields()
 	var document EngineCatalogDocument
@@ -539,7 +552,7 @@ func ReadEngineCatalogEntry(path, name string) (EngineCatalogEntry, EngineCatalo
 		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.knobs", err)
 	}
 	if err := validateEngineCatalogEntry(name, entry); err != nil {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, err
+		return EngineCatalogEntry{}, engineCatalogErrorState(err), err
 	}
 	return entry, EngineCatalogPresent, nil
 }
@@ -547,6 +560,14 @@ func ReadEngineCatalogEntry(path, name string) (EngineCatalogEntry, EngineCatalo
 func validateEngineCatalogEntry(name string, entry EngineCatalogEntry) error {
 	if !validEngineCatalogName(name) {
 		return engineCatalogMalformed("entry.name", errors.New("engine name must be a safe shared-catalog identifier"))
+	}
+	if entry.Weights != nil {
+		if err := validateEngineWeightsID(entry.Weights.ID); err != nil {
+			return err
+		}
+		if err := engineWeightsScope(entry); err != nil {
+			return err
+		}
 	}
 	switch entry.Mode {
 	case "local":
@@ -967,7 +988,11 @@ func resolveCatalogProfile(project string, homeDir, cacheRoot, name string, entr
 	} else {
 		notRunnableCode, notRunnableReason = engineCatalogExecutableNotRunnable(entry)
 	}
-	argv := engineCatalogRuntimeArgv(entry, port, model)
+	runtimeEntry := entry
+	if entry.Weights != nil {
+		runtimeEntry.Model = engineWeightsModelPath(entry, catalogFile)
+	}
+	argv := engineCatalogRuntimeArgv(runtimeEntry, port, model)
 	executable := entry.Executable
 	if entry.Mode == "ssh" {
 		executable = entry.SSHExecutable
@@ -990,6 +1015,9 @@ func resolveCatalogProfile(project string, homeDir, cacheRoot, name string, entr
 		Model: model, BaseURL: engineCatalogEndpoint(port), API: "openai-completions",
 		Reasoning: false, Input: []string{"text"},
 		Runtime: runtime, Source: catalogFile,
+	}
+	if entry.Weights != nil {
+		profile.weightsID = entry.Weights.ID
 	}
 	runtimeKey, profileDigest := SharedRuntimeKey(profile)
 	paths, err := ResolveSharedRuntimePaths(cacheRoot, runtimeKey)

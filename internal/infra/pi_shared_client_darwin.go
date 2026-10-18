@@ -218,6 +218,16 @@ func acquireSharedRuntimeLease(resolved sharedResolvedProfile, state PiStatePath
 					brokerChild = nil
 					nextAttempt = time.Now()
 				} else {
+					failed, present, readErr := readSharedBrokerRecord(resolved.Paths.BrokerState)
+					if readErr != nil {
+						return nil, readErr
+					}
+					if present && failed.Broker.PID == brokerChild.ownership.brokerPID && failed.Broker.StartTime == brokerChild.ownership.brokerStartTime && failed.StartupFailure != nil {
+						if failed.StartupFailure.Code == "engine_weights_mismatch" && failed.StartupFailure.Details != nil {
+							failed.StartupFailure.Details["expected_weights_id"] = resolved.ExpectedWeightsID
+						}
+						return nil, &SharedRuntimeError{Code: failed.StartupFailure.Code, Details: failed.StartupFailure.Details, Err: errors.New(failed.StartupFailure.Message)}
+					}
 					ledger, ledgerErr := readSharedRuntimeRestartLedger(resolved.Paths.RestartLedger, resolved.RuntimeKey, resolved.ProfileDigest)
 					if ledgerErr != nil {
 						return nil, ledgerErr
@@ -232,6 +242,14 @@ func acquireSharedRuntimeLease(resolved sharedResolvedProfile, state PiStatePath
 		}
 
 		if brokerChild == nil && !time.Now().Before(nextAttempt) {
+			entry := resolved.CatalogObservation
+			if resolved.ExpectedWeightsID != "" && entry != nil && entry.Weights != nil && resolved.ExpectedWeightsID != entry.Weights.ID {
+				observed, _, hashErr := hashEngineWeights(engineWeightsModelPath(*entry, resolved.Profile.Source))
+				if hashErr != nil {
+					return nil, hashErr
+				}
+				return nil, engineWeightsMismatch(resolved.ExpectedWeightsID, entry.Weights.ID, observed.ID)
+			}
 			child, err := sharedRuntimeStartBroker(resolved, environ)
 			if err != nil {
 				return nil, err
@@ -317,6 +335,9 @@ func connectAndAcquireSharedRuntimeWithOwnership(resolved sharedResolvedProfile,
 			attested.close()
 		}
 	}()
+	if err := validateExpectedEngineWeights(resolved, attested.runtime.Weights); err != nil {
+		return nil, err
+	}
 	clientKey := exactStateKey(state.ProjectStateKey + "\x00" + state.ProfileStateKey + "\x00" + state.RunStateKey)
 	if err := sharedRuntimeAcquireWriteMessage(attested.connection, sharedWireMessage{Type: "acquire", ClientKey: clientKey, RequestedAt: time.Now().UTC()}); err != nil {
 		return nil, sharedRuntimeError("broker_unreachable", err)

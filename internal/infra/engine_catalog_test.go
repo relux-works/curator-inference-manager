@@ -998,7 +998,7 @@ func catalogCaseVariantDocument(table, key, variant string) string {
 		}
 		return strings.Replace(body, "[engines.qwen]", "["+variant+".qwen]", 1)
 	case "entry":
-		if slices.Contains([]string{"knobs", "stress", "supervision", "pinned_distribution"}, key) {
+		if slices.Contains([]string{"knobs", "stress", "supervision", "pinned_distribution", "weights"}, key) {
 			return strings.Replace(body, "[engines.qwen."+key+"]", "[engines.qwen."+variant+"]", 1)
 		}
 		return strings.Replace(body, "\n"+key+" = ", "\n"+variant+" = ", 1)
@@ -1023,7 +1023,8 @@ func catalogCaseVariantBaseEntry(table, key string) EngineCatalogEntry {
 		}
 	}
 	return EngineCatalogEntry{
-		Mode: "local", Engine: "llama-cpp", Model: "/models/qwen", ServedModelID: "qwen-served",
+		Weights: &EngineCatalogWeights{ID: "gguf-sha256:" + strings.Repeat("a", 64)},
+		Mode:    "local", Engine: "llama-cpp", Model: "/models/qwen", ServedModelID: "qwen-served",
 		Executable: "/bin/model-server", Argv: []string{"serve", "--host", "{host}", "--port", "{port}"},
 		Knobs: &EngineCatalogKnobs{
 			KVContextTokens: "4096", PrefillChunkTokens: "256", ReasoningEffort: "medium", SpeculativeDecoding: "off",

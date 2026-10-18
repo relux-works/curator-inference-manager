@@ -20,11 +20,12 @@ type SharedRuntimeBrokerOptions struct {
 type SharedRuntimeLauncherOptions = SharedRuntimeBrokerOptions
 
 type SharedRuntimeOperatorOptions struct {
-	ProjectDir string
-	Profile    string
-	HomeDir    string
-	CacheRoot  string
-	HTTPClient *http.Client
+	ExpectedWeightsID string
+	ProjectDir        string
+	Profile           string
+	HomeDir           string
+	CacheRoot         string
+	HTTPClient        *http.Client
 }
 
 type SharedRuntimeBrokerStatus struct {
@@ -43,6 +44,7 @@ type SharedRuntimeSharingStatus struct {
 }
 
 type SharedRuntimeStatus struct {
+	Weights            EngineWeightsStatus         `json:"weights"`
 	Readings           EngineReadings              `json:"readings"`
 	ContractVersion    int                         `json:"contract_version"`
 	EngineIdentity     SharedRuntimeEngineIdentity `json:"engine_identity"`

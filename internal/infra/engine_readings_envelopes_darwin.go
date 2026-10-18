@@ -5,6 +5,7 @@ package infra
 import (
 	"errors"
 	"strings"
+	"time"
 )
 
 // This file validates every evidence envelope consumed on the readings path
@@ -86,10 +87,11 @@ func sharedWireStrictSpec() *strictJSONSpec {
 		"pid", "pgid", "sid", "start_time", "uid",
 		"exec_path", "argv", "executable_identity",
 	}, nullable: []string{"argv"}}
+	weights := &strictJSONSpec{object: map[string]*strictJSONSpec{"id": nil, "observed_at": nil}, required: []string{"id", "observed_at"}}
 	runtime := &strictJSONSpec{object: map[string]*strictJSONSpec{
 		"pid": nil, "pgid": nil, "start_time": startTime, "uid": nil,
 		"pre_exec": execShape, "post_exec": execShape, "cwd": nil, "endpoint": nil,
-		"executable_identity": fileIdentity, "exec_plan_digest": nil, "stage": nil,
+		"executable_identity": fileIdentity, "exec_plan_digest": nil, "stage": nil, "weights": weights,
 	}, required: []string{
 		"pid", "pgid", "start_time", "uid",
 		"pre_exec", "post_exec", "cwd", "endpoint",
@@ -147,6 +149,9 @@ func sharedWireStrictSpec() *strictJSONSpec {
 // attestation does not cover: the runtime stage enum and every admitted
 // sharing object. Presence is checked by the caller.
 func validateAttestedHelloEnvelope(message sharedWireMessage, runtime PiRuntime) error {
+	if err := validateWireWeights(message.Runtime.Weights); err != nil {
+		return err
+	}
 	if message.Runtime.Stage != "authorizing" && message.Runtime.Stage != "running" {
 		return sharedRuntimeError("protocol_violation", errors.New("broker hello runtime stage invalid"))
 	}
@@ -215,6 +220,12 @@ func validateWireBrokerIdentity(broker, attested SharedBrokerIdentity) error {
 // validateWireRuntimeRecord ties the status runtime record back to the
 // attested hello identity and its closed stage enum.
 func validateWireRuntimeRecord(record, attested SharedRuntimeProcessRecord) error {
+	if err := validateWireWeights(record.Weights); err != nil {
+		return err
+	}
+	if (record.Weights == nil) != (attested.Weights == nil) || (record.Weights != nil && *record.Weights != *attested.Weights) {
+		return sharedRuntimeError("protocol_violation", errors.New("broker status weights differ from attested instance"))
+	}
 	if record.PID != attested.PID {
 		return sharedRuntimeError("protocol_violation", errors.New("broker status runtime identity differs from attested hello"))
 	}
@@ -446,6 +457,13 @@ func validateWireLease(lease SharedLeaseStatus, runtimePID int, resolved sharedR
 	}
 	if lease.State != "held" && lease.State != "held(stale)" {
 		return sharedRuntimeError("protocol_violation", errors.New("broker status lease state invalid"))
+	}
+	return nil
+}
+
+func validateWireWeights(weights *EngineWeightsObservation) error {
+	if weights != nil && (!engineWeightsIDPattern.MatchString(weights.ID) || weights.ObservedAt.IsZero() || weights.ObservedAt.After(time.Now())) {
+		return sharedRuntimeError("protocol_violation", errors.New("invalid weights observation"))
 	}
 	return nil
 }

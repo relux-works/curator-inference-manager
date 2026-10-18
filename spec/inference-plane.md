@@ -146,3 +146,16 @@ Status: **DRAFT**, 2026-09-27. Not normative. This document collects what earlie
 - first-party installation beside `curator`, or `curator provider install engines` (§2);
 - "engine profile" becomes "engine entry", `--profile NAME` becomes `--engine NAME`, and a runtime binding's `engine.profile` becomes `engine.name` (§2, §3, §5–§8);
 - `runtimes.toml` is `~/.curator/runtimes.toml` (§3).
+
+### Exact weights identity
+
+The optional schema v1 `[engines.NAME.weights]` table is specified in
+[broker protocol v1.1](engines-protocol-v1.1.md#exact-weights-identity-additive).
+It requires only `id = "gguf-sha256:<64 lowercase hex digits>"` for one local
+llama-cpp GGUF file. `weights compute --config FILE --engine NAME [--json]`
+computes the full-file digest without modifying the catalog. `ensure` accepts
+`--expected-weights-id ID`, verifies the recorded/actual/operator identities,
+and rechecks file identity after readiness. Status adds the instance-bound
+weights observation; absent tables remain unpinned, including legacy imports.
+Catalogs use mode `0600`; llama-cpp `knobs.kv_context_size` is a positive TOML
+integer, not a quoted numeric string.

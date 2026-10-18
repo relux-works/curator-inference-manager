@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/relux-works/skill-agents-management/pkg/inferenceengine"
 
@@ -21,6 +22,7 @@ type EngineCheckEntry struct {
 }
 
 type EngineCheckFailure struct {
+	Site    string `json:"site,omitempty"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
@@ -34,6 +36,7 @@ type EngineKVRAM struct {
 }
 
 type EngineCheckReport struct {
+	Weights  EngineWeightsStatus  `json:"weights"`
 	Engine   string               `json:"engine"`
 	Failures []EngineCheckFailure `json:"failures"`
 	KVRAM    EngineKVRAM          `json:"kv_ram"`
@@ -42,7 +45,7 @@ type EngineCheckReport struct {
 // CheckEngineFile reads ONLY the supplied file: schema v1 catalogs or legacy Pi
 // entries. Catalog validation and argv transcription use the existing owner.
 func CheckEngineFile(path, name string) EngineCheckReport {
-	report := EngineCheckReport{Engine: name, Failures: []EngineCheckFailure{}, KVRAM: EngineKVRAM{Status: "unknown", ReasonCode: "entry_unavailable"}}
+	report := EngineCheckReport{Weights: EngineWeightsStatus{Verification: "unpinned"}, Engine: name, Failures: []EngineCheckFailure{}, KVRAM: EngineKVRAM{Status: "unknown", ReasonCode: "entry_unavailable"}}
 	fail := func(code string) EngineCheckReport {
 		report.Failures = append(report.Failures, EngineCheckFailure{Code: code, Message: "cannot read selected engine entry"})
 		return report
@@ -75,6 +78,13 @@ func CheckEngineFile(path, name string) EngineCheckReport {
 			if state == EngineCatalogReadFailed {
 				return fail("engine_config_read_failed")
 			}
+			// Preserve weights refusal codes/sites additively; other catalog
+			// failures retain the established check error contract.
+			var refusal *EngineCatalogError
+			if errors.As(err, &refusal) && (refusal.Site == "catalog.weights" || strings.HasPrefix(refusal.Site, "catalog.weights.") || strings.HasPrefix(refusal.Site, "entry.weights.")) {
+				report.Failures = append(report.Failures, EngineCheckFailure{Code: "engine_catalog_" + string(refusal.State), Site: refusal.Site, Message: refusal.Err.Error()})
+				return report
+			}
 			return fail("engine_config_malformed")
 		}
 		if state != EngineCatalogPresent {
@@ -86,7 +96,20 @@ func CheckEngineFile(path, name string) EngineCheckReport {
 		}
 		// Endpoint placeholders do not affect KV sizing. Transcribe configured
 		// model/knobs without launching or rewriting legacy identity options.
-		return CheckEngineEntry(EngineCheckEntry{Name: name, Kind: kind, Argv: engineCatalogIdentityArgv(entry, 1), Directory: filepath.Dir(path)})
+		report = CheckEngineEntry(EngineCheckEntry{Name: name, Kind: kind, Argv: engineCatalogIdentityArgv(entry, 1), Directory: filepath.Dir(path)})
+		report.Weights = declaredEngineWeights(&entry)
+		if entry.Weights != nil {
+			observed, _, hashErr := hashEngineWeights(engineWeightsModelPath(entry, path))
+			report.Weights = observedEngineWeights(&entry, observed)
+			if hashErr == nil && observed.ID != entry.Weights.ID {
+				report.Failures = append(report.Failures, EngineCheckFailure{Code: "engine_weights_mismatch", Message: fmt.Sprintf("recorded weights id %s differs from actual weights id %s", entry.Weights.ID, observed.ID)})
+			}
+			var refusal *SharedRuntimeError
+			if errors.As(hashErr, &refusal) && refusal.Code != "engine_weights_file_missing" {
+				report.Failures = append(report.Failures, EngineCheckFailure{Code: refusal.Code, Message: refusal.Error()})
+			}
+		}
+		return report
 	}
 	profile, ok := config.Agents.Pi.Profiles[name]
 	if !ok {
@@ -175,7 +198,7 @@ func positiveEngineArg(values map[string][]string, name string) uint64 {
 
 // CheckEngineEntry reports all K0 refusals, independently of model availability.
 func CheckEngineEntry(entry EngineCheckEntry) EngineCheckReport {
-	report := EngineCheckReport{Engine: entry.Name, Failures: []EngineCheckFailure{}, KVRAM: EngineKVRAM{Status: "unknown", ReasonCode: "engine_kind_unsupported"}}
+	report := EngineCheckReport{Weights: EngineWeightsStatus{Verification: "unpinned"}, Engine: entry.Name, Failures: []EngineCheckFailure{}, KVRAM: EngineKVRAM{Status: "unknown", ReasonCode: "engine_kind_unsupported"}}
 	if entry.Kind != "llama-cpp" && entry.Kind != "llama.cpp" {
 		return report
 	}
