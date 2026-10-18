@@ -48,9 +48,16 @@ idle. A failed provider read is `readings_read_failed`. A wrong resource schema,
 or resource/memory/inference/admission/policy enum is `readings_malformed`; a missing timestamp or unexplained
 unknown inference is `readings_partial`. Provider timestamps outside the
 inclusive zero-to-30-second age window are `readings_stale` (future timestamps
-also refuse). These typed failures return no status/readings set. No partial
-observations are published and no successful values are derived from failed
-reads. Existing socket/identity refusals continue to propagate unchanged.
+also fail observation). These failures preserve the rest of status and publish
+all 17 facts as `not-observed`, with no values: `cause = "malformed"` for
+`readings_malformed`/`readings_partial`, or `cause = "read-failure"` for
+`readings_read_failed`/`readings_stale`. Each `reason` is the exact typed code
+and `source = "unavailable"`. Profile projection failures use the same shape
+and cannot be overwritten by later attested readings. V3 already supports this
+shape; no envelope member or contract version changes. Consumers can decode
+these rows and still refuse observation at their validator while reading broker
+availability independently. No partial successful readings are published.
+Existing socket/identity refusals continue to propagate unchanged.
 
 The live conformance test is read-only against the retained local engine. If
 any required observation is unavailable it skips with the exact unknown
@@ -75,8 +82,8 @@ NotObserved row, so launch stays fail-closed while status keeps working for
 designed NotRunnable states such as the legacy-import admission read. Degraded
 facts are probed with an unpublished schema-valid placeholder in the
 profile-only syntax check above, so that gate still checks every published
-value. Entry-own values outside the schema keep the typed `readings_malformed`
-refusal.
+value. Entry-own values outside the schema fail the readings set with the typed
+`readings_malformed` reason while retaining status.
 
 The entire resource-status envelope is validated before any attested reading is
 published: required fields and closed JSON member sets (including nested memory,
@@ -87,8 +94,9 @@ pressure hysteresis consistency and resource/admission classification. Disabled
 or unknown policies carry no provider settings. An unobserved source cannot
 carry timestamps or observed facts. Invalid numeric/types/member shapes retain
 the existing typed `protocol_violation` wire failure; semantic violations use
-`readings_malformed` or `readings_partial`. Status propagates those typed wire
-failures rather than wrapping them as an unreachable broker.
+`readings_malformed` or `readings_partial` inside the failed facts. Status
+propagates `protocol_violation` wire failures rather than wrapping them as an
+unreachable broker.
 
 Capacity extraction uses the same option table as `check`: llama-cpp
 `--ctx-size` / `-c` and `--ubatch-size` / `-ub`, plus MLX `--max-kv-size` and
@@ -249,3 +257,24 @@ does not hash large weights. Check JSON adds the same weights shape using its
 read-only observation. Launch verification is an observation at startup, not a
 continuous filesystem watch, and does not claim the engine's resident-memory
 contents or upgrade the separate `weight-artifact` readings fact.
+
+## Status publication compatibility
+
+The integer status contract remains v1. Before printing JSON, the producer
+checks the eleven joint broker state/source pairs, requested engine identity,
+required runtime key/profile digest/sharing members, nullable runtime
+start-time shape and bounds, complete restart cohorts, and v3 readings
+transcription shape (including typed non-observations), and rejects duplicate
+or case-variant aliases of the top-level members the readings consumer reads.
+A violation refuses with `status_contract_violation` on stderr and no status
+JSON on stdout. The guard mirrors the consumers exactly: like them, it accepts
+an omitted `max_leases`, an omitted or null `pid`, and `leases: null`.
+
+`broker.reason` is an optional additive typed code. Record states outside the
+consumer vocabulary (including a still-live startup `refused` record) project
+to `unverified-stale/record-derived-unverified`, with the recorded startup
+failure code when present or `broker_state_unrecognized` otherwise. This pair
+claims no admissible live broker evidence; it need not imply process death.
+Weights mismatch remains visible in `weights.verification`. Attested states
+still pass strict socket/identity validation before publication. No new broker
+pair or consumer schema change is required.

@@ -3,7 +3,6 @@
 package infra
 
 import (
-	"errors"
 	"io"
 	"testing"
 	"time"
@@ -11,6 +10,8 @@ import (
 	"github.com/relux-works/skill-agents-management/pkg/inferenceengine"
 )
 
+// Invalid observations preserve attested status and replace the entire readings
+// set with the specific failure code; the valid controls below still observe.
 func TestStatusReadingsRefusesInvalidLiveObservation(t *testing.T) {
 	now := time.Now()
 	stale, future := now.Add(-30*time.Second-time.Nanosecond), now.Add(time.Nanosecond)
@@ -44,13 +45,10 @@ func TestStatusReadingsRefusesInvalidLiveObservation(t *testing.T) {
 				return sharedWireMessage{Type: "status", State: "serving", Stage: "composed", Broker: &fixture.broker, Runtime: &fixture.record, EffectiveSharing: &fixture.resolved.Sharing, Resources: &r}, nil
 			}
 			report, err := SharedRuntimeStatusReport(sharedRuntimeOperatorOptionsForFixture(fixture))
-			var typed *SharedRuntimeError
-			if !errors.As(err, &typed) || typed.Code != tc.code {
-				t.Fatalf("wanted %s typed refusal, got %v", tc.code, err)
+			if err != nil || report.Broker.Source != "attested" || report.Runtime == nil {
+				t.Fatalf("readings failure lost broker status: %v", err)
 			}
-			if len(report.Readings.Facts) != 0 {
-				t.Fatal("refusal leaked partial readings")
-			}
+			requireFailedStatusReadings(t, report, tc.code)
 			if err := <-served; err != nil {
 				t.Fatal(err)
 			}

@@ -28,6 +28,7 @@ type SharedRuntimeOperatorOptions struct {
 }
 
 var sharedRuntimeReadingsNow = time.Now
+var sharedRuntimeStatusConnect = connectAndAttestSharedRuntime
 var sharedRuntimeStatusWriteMessage = writeSharedWireMessage
 var sharedRuntimeStatusReadMessage = readSharedWireMessage
 var sharedRuntimeStopWriteMessage = writeSharedWireMessage
@@ -57,6 +58,7 @@ type SharedRuntimeCandidate struct {
 
 type SharedRuntimeBrokerStatus struct {
 	State            string                   `json:"state"`
+	Reason           string                   `json:"reason,omitempty"`
 	Stage            string                   `json:"stage,omitempty"`
 	Source           string                   `json:"source"`
 	PID              int                      `json:"pid,omitempty"`
@@ -125,8 +127,9 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 	}
 	report := newSharedRuntimeStatus(resolved)
 	readings, err := profileEngineReadings(resolved)
+	profileReadingsFailed := err != nil
 	if err != nil {
-		return SharedRuntimeStatus{}, err
+		readings = failedEngineReadings(err)
 	}
 	report.Readings = readings
 	if resolved.NotRunnableCode != "" {
@@ -137,7 +140,7 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 		return SharedRuntimeStatus{}, err
 	}
 	applySharedRuntimeLedgerStatus(&report, ledger)
-	attested, err := connectAndAttestSharedRuntime(resolved, state, "", options.HTTPClient, time.Second)
+	attested, err := sharedRuntimeStatusConnect(resolved, state, "", options.HTTPClient, time.Second)
 	if err == nil {
 		defer attested.close()
 		if err := sharedRuntimeStatusWriteMessage(attested.connection, sharedWireMessage{Type: "status"}); err != nil {
@@ -163,7 +166,7 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 		}
 		report.Weights = observedEngineWeights(resolved.CatalogObservation, message.Runtime.Weights)
 		report.Runtime = sharedRuntimeProcessStatus(message.Runtime, "attested")
-		report.Leases = append([]SharedLeaseStatus(nil), message.Leases...)
+		report.Leases = append([]SharedLeaseStatus{}, message.Leases...)
 		if message.Resources == nil {
 			return SharedRuntimeStatus{}, sharedRuntimeError("protocol_violation", errors.New("broker status response lacks resource facts"))
 		}
@@ -177,8 +180,10 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 			return SharedRuntimeStatus{}, err
 		}
 		applySharedRuntimeLedgerStatus(&report, ledger)
-		if err := observeAttestedEngineReadings(&report.Readings, resolved.Profile.Runtime.ReadinessPath, report.Resources, sharedRuntimeReadingsNow()); err != nil {
-			return SharedRuntimeStatus{}, err
+		if !profileReadingsFailed {
+			if err := observeAttestedEngineReadings(&report.Readings, resolved.Profile.Runtime.ReadinessPath, report.Resources, sharedRuntimeReadingsNow()); err != nil {
+				report.Readings = failedEngineReadings(err)
+			}
 		}
 		return report, nil
 	}
@@ -334,10 +339,18 @@ func sharedRuntimeRecordStatus(resolved sharedResolvedProfile, report SharedRunt
 	if state == "" {
 		state = "starting"
 	}
+	reason := ""
+	if !validStatusBrokerPair(state, "record-derived-unverified") {
+		state, reason = "unverified-stale", "broker_state_unrecognized"
+	}
+	if record.StartupFailure != nil {
+		reason = record.StartupFailure.Code
+	}
 	if !sharedRecordedBrokerIsLive(record.Broker) {
 		state = "unverified-stale"
 	}
 	report.Broker = sharedBrokerStatus(state, record.Stage, "record-derived-unverified", record.Broker)
+	report.Broker.Reason = reason
 	if record.Runtime != nil {
 		report.Runtime = sharedRuntimeProcessStatus(record.Runtime, "record-derived-unverified")
 	}

@@ -48,7 +48,7 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 	if command == "compat" {
 		return runEngineCompatibility(parent, args[1:], stdout, stderr)
 	}
-	if command != "status" && command != "ensure" && command != "release" && command != "stop" {
+	if command != "status" && command != "ensure" && command != "release" && command != "stop" && command != "quarantine" && command != "unquarantine" {
 		if err := writeFormatted(stderr, "unknown curator-engines command %q\n", command); err != nil {
 			return 1
 		}
@@ -106,12 +106,18 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 			return reportError(stderr, err)
 		}
 		if *jsonOutput {
-			return writeJSON(stdout, status, stderr)
+			return writeStatusJSON(stdout, status, *engine, stderr)
 		}
 		if err := writeFormatted(stdout, "Engine: %s\nState: %s\nEndpoint: %s\nLeases: %d\n", status.EngineIdentity.Name, status.Broker.State, status.Endpoint, len(status.Leases)); err != nil {
 			return reportError(stderr, err)
 		}
 		return 0
+	case "quarantine", "unquarantine":
+		result, err := infra.SetSharedRuntimeManualQuarantine(options, command == "quarantine")
+		if err != nil {
+			return reportError(stderr, err)
+		}
+		return writeJSON(stdout, result, stderr)
 	case "ensure":
 		options.ExpectedWeightsID = *expectedWeightsID
 		return runEnsure(parent, options, *jsonOutput, stdout, stderr)
@@ -249,6 +255,27 @@ func reportError(stderr io.Writer, err error) int {
 	return 1
 }
 
+// Marshal and validate before writing any bytes to stdout.
+func writeStatusJSON(writer io.Writer, status infra.SharedRuntimeStatus, engine string, stderr io.Writer) int {
+	data, err := json.Marshal(status)
+	if err != nil {
+		err = &infra.SharedRuntimeError{Code: "status_contract_violation", Err: err}
+	}
+	if engine == "" {
+		engine = status.EngineIdentity.Name
+	}
+	if err == nil {
+		err = infra.ValidateSharedRuntimeStatusJSON(data, engine)
+	}
+	if err != nil {
+		return reportError(stderr, err)
+	}
+	if _, err := writer.Write(append(data, '\n')); err != nil {
+		return reportError(stderr, err)
+	}
+	return 0
+}
+
 func writeJSON(writer io.Writer, value any, stderr io.Writer) int {
 	if err := json.NewEncoder(writer).Encode(value); err != nil {
 		_ = writeLine(stderr, err.Error())
@@ -258,8 +285,8 @@ func writeJSON(writer io.Writer, value any, stderr io.Writer) int {
 }
 
 func writeUsage(writer io.Writer) {
-	_ = writeLine(writer, "Usage: curator-engines <check|status|ensure|release|stop> [--engine NAME] [--json]")
-	_ = writeLine(writer, "  status, ensure, release and stop accept --config FILE and --cache-root DIR (absolute paths)")
+	_ = writeLine(writer, "Usage: curator-engines <check|status|ensure|release|stop|quarantine|unquarantine> [--engine NAME] [--json]")
+	_ = writeLine(writer, "  status, ensure, release, stop, quarantine and unquarantine accept --config FILE and --cache-root DIR (absolute paths)")
 	_ = writeLine(writer, "  weights compute requires --config FILE and --engine NAME [--json] (read-only)")
 	_ = writeLine(writer, "  ensure accepts --expected-weights-id ID")
 	_ = writeLine(writer, "  check requires --config FILE and --engine NAME (read-only)")

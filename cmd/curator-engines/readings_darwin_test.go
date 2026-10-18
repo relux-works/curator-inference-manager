@@ -223,6 +223,7 @@ func TestRetainedLocalEngineReadingsConformanceV3(t *testing.T) {
 	}
 }
 
+// Invalid profile values produce typed failed facts while cold broker status survives.
 func TestStatusReadingsRefusesCatalogValuesOutsidePinnedSchema(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
@@ -236,9 +237,7 @@ func TestStatusReadingsRefusesCatalogValuesOutsidePinnedSchema(t *testing.T) {
 			prepareCatalogCLIEntry(t, "readings", entry)
 			var stdout, stderr bytes.Buffer
 			code := run([]string{"status", "--engine", "readings", "--json"}, &stdout, &stderr)
-			if code == 0 || stdout.Len() != 0 || !strings.Contains(stderr.String(), `"code":"readings_malformed"`) {
-				t.Fatalf("malformed profile escaped typed failure: exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
-			}
+			requireCLIReadingsFailure(t, code, stdout.String(), stderr.String(), "readings_malformed")
 		})
 	}
 }
@@ -339,15 +338,13 @@ func TestStatusReadingsDegradesUnrepresentableResolvedArgv(t *testing.T) {
 }
 
 // The profile-shape gate still guards every published value when local argv
-// degrades: a second entry-own value outside the schema refuses the report.
+// degrades: a second entry-own value outside the schema fails all readings.
 func TestStatusReadingsDegradedArgvKeepsGateOnOtherValues(t *testing.T) {
 	entry := infra.EngineCatalogEntry{Engine: "mlx-swift", Mode: "local", Executable: "/missing/../mlx", Argv: []string{"serve", "--host", "{host}", "--port", "{port}"}}
 	prepareCatalogCLIEntry(t, "readings", entry)
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"status", "--engine", "readings", "--json"}, &stdout, &stderr)
-	if code == 0 || stdout.Len() != 0 || !strings.Contains(stderr.String(), `"code":"readings_malformed"`) {
-		t.Fatalf("second malformed profile value escaped typed failure: exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
-	}
+	requireCLIReadingsFailure(t, code, stdout.String(), stderr.String(), "readings_malformed")
 }
 
 // A model-carrying swift entry resolves to a schema-valid argv and publishes
@@ -364,6 +361,25 @@ func TestStatusReadingsModelCarryingSwiftPublishesLocalArgv(t *testing.T) {
 			if row.Outcome != inferenceengine.OutcomeObservedValue || !reflect.DeepEqual(argv[len(argv)-2:], []string{"--model-id", "qwen"}) {
 				t.Fatal(argv)
 			}
+		}
+	}
+}
+
+func requireCLIReadingsFailure(t *testing.T, code int, stdout, stderr, reason string) {
+	t.Helper()
+	var status infra.SharedRuntimeStatus
+	if err := json.Unmarshal([]byte(stdout), &status); err != nil || code != 0 || stderr != "" {
+		t.Fatalf("exit=%d out=%s err=%s decode=%v", code, stdout, stderr, err)
+	}
+	if err := infra.ValidateSharedRuntimeStatusJSON([]byte(stdout), status.EngineIdentity.Name); err != nil {
+		t.Fatal(err)
+	}
+	if len(status.Readings.Facts) != len(inferenceengine.MeasuredFacts()) {
+		t.Fatal("partial readings")
+	}
+	for _, row := range status.Readings.Facts {
+		if row.Outcome != inferenceengine.OutcomeNotObserved || row.Reason != reason || row.Value != "" {
+			t.Fatalf("failed readings escaped: %#v", row)
 		}
 	}
 }

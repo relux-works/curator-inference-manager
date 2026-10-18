@@ -27,6 +27,26 @@ type EngineReading struct {
 	Source  string                           `json:"source"`
 }
 
+// A failed observation publishes no successful facts. V3 already represents
+// failures without extending its closed envelope; reason is the typed code only.
+func failedEngineReadings(err error) EngineReadings {
+	code := "readings_read_failed"
+	cause := inferenceengine.NotObservedReadFailure
+	var typed *SharedRuntimeError
+	if errors.As(err, &typed) {
+		code = typed.Code
+	}
+	if code == "readings_malformed" || code == "readings_partial" {
+		cause = inferenceengine.NotObservedMalformed
+	}
+	result := EngineReadings{ContractVersion: inferenceengine.ContractVersionV3}
+	for _, definition := range inferenceengine.MeasuredFacts() {
+		result.Facts = append(result.Facts, EngineReading{Fact: definition.Fact,
+			Outcome: inferenceengine.OutcomeNotObserved, Cause: cause, Reason: code, Source: "unavailable"})
+	}
+	return result
+}
+
 func profileEngineReadings(resolved sharedResolvedProfile) (EngineReadings, error) {
 	values := map[inferenceengine.Fact]any{}
 	absent := map[inferenceengine.Fact]bool{}

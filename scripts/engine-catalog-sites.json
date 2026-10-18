@@ -5895,7 +5895,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "shared.Code == \"broker_election_lost\"",
@@ -5919,7 +5919,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:1",
     "tests": []
@@ -5932,7 +5932,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:2",
     "tests": []
@@ -5945,7 +5945,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:3",
     "tests": []
@@ -5958,7 +5958,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:4",
     "tests": []
@@ -5971,7 +5971,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "resolved.CatalogEntry == true",
@@ -5988,7 +5988,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "timeout == 0",
@@ -6012,7 +6012,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:StopSharedRuntime:2",
     "tests": [
@@ -6031,7 +6031,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:StopSharedRuntime:3",
     "tests": [
@@ -6043,7 +6043,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "response.Type == \"refused\"",
@@ -6060,7 +6060,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "response.Type == \"unexpected\"",
@@ -6077,7 +6077,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "remaining == 0",
@@ -6094,7 +6094,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "remaining == 0",
@@ -6111,7 +6111,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "force == false",
@@ -6135,7 +6135,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:forceStopUnreachableSharedRuntime:1",
     "tests": []
@@ -6148,7 +6148,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:probeSharedBrokerLock:1",
     "tests": []
@@ -6161,7 +6161,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:1",
     "tests": []
@@ -6174,7 +6174,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:2",
     "tests": []
@@ -6192,7 +6192,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:3",
     "tests": [
@@ -6211,7 +6211,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:sharedRuntimeBrokerCandidates:1",
     "tests": [
@@ -6230,7 +6230,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:sharedRuntimeBrokerCandidates:2",
     "tests": [
@@ -6242,7 +6242,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "brokerObservation.UID == 0",
@@ -6266,7 +6266,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:2",
     "tests": [
@@ -6278,7 +6278,7 @@
     ]
   },
   {
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [
       {
         "admit": "ownIdentity.Dev == 16777234",
@@ -6302,7 +6302,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:4",
     "tests": [
@@ -6321,7 +6321,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:waitRecordedBrokerGone:1",
     "tests": [
@@ -6340,7 +6340,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
+    "source_sha256": "7429c32eecff4afa5aabd8a89397a3a6ab38bf9dd7e9a896fb421ef0887cc7db",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:waitRecordedBrokerGone:2",
     "tests": []
@@ -14850,12 +14850,12 @@
         "member": -1
       }
     ],
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": null,
     "site": "internal/infra/engine_readings.go:profileEngineReadings:1",
     "tests": [
       {
-        "body_sha256": "9445715c23760a51d9dbcd48d2b28a2039a5c217d3ffa5e9a269da2591d8a6f1",
+        "body_sha256": "35b8db2d6c93820df9efab1e35b1ccc956621562e7096af6babdfc0a825afcf9",
         "name": "TestStatusReadingsRefusesCatalogValuesOutsidePinnedSchema",
         "dir": "cmd/curator-engines"
       }
@@ -14869,19 +14869,19 @@
         "member": -1
       }
     ],
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": null,
     "site": "internal/infra/engine_readings.go:profileEngineReadings:2",
     "tests": [
       {
-        "body_sha256": "9445715c23760a51d9dbcd48d2b28a2039a5c217d3ffa5e9a269da2591d8a6f1",
+        "body_sha256": "35b8db2d6c93820df9efab1e35b1ccc956621562e7096af6babdfc0a825afcf9",
         "name": "TestStatusReadingsRefusesCatalogValuesOutsidePinnedSchema",
         "dir": "cmd/curator-engines"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Schema == \"__mutant__\"",
@@ -14891,24 +14891,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:1",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Inference.Reason == \"\"",
@@ -14918,24 +14918,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:10",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Inference.Reason == \"__mutant__\"",
@@ -14945,24 +14945,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:11",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Policy.Mode == \"__mutant__\"",
@@ -14972,17 +14972,17 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:12",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
@@ -14996,7 +14996,7 @@
         "member": 1
       }
     ],
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Policy.EvictionGraceSeconds == -1",
@@ -15006,24 +15006,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:13",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Policy.PressureAction == \"__mutant__\"",
@@ -15033,24 +15033,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:14",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Policy.UnknownAction == \"__mutant__\"",
@@ -15060,24 +15060,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:15",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Policy.BusyAction == \"__mutant__\"",
@@ -15087,24 +15087,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:16",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.LoadedModelMemory.RecoveryAtBytes == 0",
@@ -15118,24 +15118,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:17",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.LoadedModelMemory.State == \"healthy\"",
@@ -15149,24 +15149,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:18",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Policy.EvictionGraceSeconds == 1",
@@ -15196,24 +15196,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:19",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Source == \"__mutant__\"",
@@ -15223,24 +15223,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:2",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Policy.Mode == \"disabled\"",
@@ -15250,17 +15250,17 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:20",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
@@ -15274,29 +15274,29 @@
         "member": -1
       }
     ],
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": null,
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:21",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "age == -1",
@@ -15310,17 +15310,17 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:22",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
@@ -15334,7 +15334,7 @@
         "member": 0
       }
     ],
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.LoadedModelMemory.State == \"healthy\"",
@@ -15348,24 +15348,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:23",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.State == \"busy\"",
@@ -15379,24 +15379,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:24",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Source == \"provider-observation-failed\"",
@@ -15406,24 +15406,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:3",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Reason == \"\"",
@@ -15433,24 +15433,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:4",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Reason == \"__mutant__\"",
@@ -15460,24 +15460,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:5",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.LoadedModelMemory.State == \"__mutant__\"",
@@ -15487,17 +15487,17 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:6",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
@@ -15511,7 +15511,7 @@
         "member": 0
       }
     ],
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.LoadedModelMemory.Reason == \"\"",
@@ -15521,17 +15521,17 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:7",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
@@ -15550,7 +15550,7 @@
         "member": 1
       }
     ],
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.LoadedModelMemory.Reason == \"__mutant__\"",
@@ -15560,24 +15560,24 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:8",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "b5635a2cabb40410e09eb32c3b1b93c2be3f11e481a2db0bd3aca7419fd5c02c",
+    "source_sha256": "69c38a451c8a96f6cc8b57b1d8035949a9d5f489fbf636bb2952b6e905cf93d4",
     "witnesses": [
       {
         "admit": "resources.Inference.State == \"__mutant__\"",
@@ -15587,17 +15587,17 @@
     "site": "internal/infra/engine_readings.go:validateEngineResourceReadings:9",
     "tests": [
       {
-        "body_sha256": "66d6cead052c32d3ac9e24b98efdff2783696ee2061a5eb336aa412ab09e654c",
+        "body_sha256": "d1c9fd81826dfd15bac2bc327fd7f15b1c46b70f941cd21bda656f9876146f31",
         "name": "TestReviewMalformedResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f676cd45c041ee0c6903d3cc68d6e4fb26e309d9761c7f0174e5b1e63e3401d4",
+        "body_sha256": "290d5c106a0648d8e92f36b53ea31772b853ea65c2fc385248b96514f9925789",
         "name": "TestStatusReadingsInactiveResourceEnvelope",
         "dir": "cmd/curator-engines"
       },
       {
-        "body_sha256": "f7171b5a177ff6d372f02967ca233cea1471fcf49baa210e134d6884419747c5",
+        "body_sha256": "9d01910a5a335d8cfa3018719235aafe767c51c585c15fbe5f1466af043bc4bf",
         "name": "TestStatusReadingsRefusesInvalidLiveObservation",
         "dir": "internal/infra"
       }
@@ -17323,7 +17323,7 @@
     "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:1",
     "tests": [
       {
-        "body_sha256": "57393179c5a45a5461db6e74941f5509e89b57fba47a0a7a750b9a47974c65c8",
+        "body_sha256": "d261757c49b2ef885a83b4b090789b8cfcc9b73effba6a4211a792d9199b9ede",
         "name": "TestOperatorPathsRejectRelative",
         "dir": "cmd/curator-engines"
       }
@@ -17342,7 +17342,7 @@
     "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:2",
     "tests": [
       {
-        "body_sha256": "57393179c5a45a5461db6e74941f5509e89b57fba47a0a7a750b9a47974c65c8",
+        "body_sha256": "d261757c49b2ef885a83b4b090789b8cfcc9b73effba6a4211a792d9199b9ede",
         "name": "TestOperatorPathsRejectRelative",
         "dir": "cmd/curator-engines"
       }
@@ -17364,6 +17364,25 @@
         "body_sha256": "6461efe065642e0b628bd2da13a4a0c034c15fb4e1a51b9ae83f8ddbe96122b1",
         "name": "TestOperatorPathsStrictCatalog",
         "dir": "cmd/curator-engines"
+      }
+    ]
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "Status compatibility site added in this change. Focused status guard and generated producer fixtures cover rejection; no mutation execution or singleton narrowing witness is claimed.",
+        "member": -1
+      }
+    ],
+    "source_sha256": "f5e306bcd8d4b31ab9281f85830a2067e205dbce2e1ae900672ead43bad52f3c",
+    "witnesses": [],
+    "site": "internal/infra/engine_status_contract.go:ValidateSharedRuntimeStatusJSON:1",
+    "tests": [
+      {
+        "body_sha256": "5f6f5a74842b7554e7ba0d64ef249b68df22d55e3bb7f54b0250b666ac129c94",
+        "name": "TestStatusContractGuard",
+        "dir": "internal/infra"
       }
     ]
   }

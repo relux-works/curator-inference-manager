@@ -67,7 +67,7 @@ func runEngineCompatibility(parent context.Context, args []string, stdout, stder
 			_ = writeJSON(stdout, map[string]string{"engine_availability": "unknown", "reason": "status_read_failed"}, stderr)
 			return reportError(stderr, err)
 		}
-		return writeJSON(stdout, status, stderr)
+		return writeStatusJSON(stdout, status, *engine, stderr)
 	case "run", "ensure":
 		return runEnsure(parent, options, true, stdout, stderr)
 	case "stress":

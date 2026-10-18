@@ -36,7 +36,7 @@ func operatorPathFixture(t *testing.T, executable string) (string, string) {
 	return config, cache
 }
 
-// All four commands refuse relative operator paths with specific typed codes,
+// All operator commands refuse relative operator paths with specific typed codes,
 // before creating state; the valid cold status is the positive control.
 func TestOperatorPathsRejectRelative(t *testing.T) {
 	config, cache := operatorPathFixture(t, "/bin/echo")
@@ -50,7 +50,7 @@ func TestOperatorPathsRejectRelative(t *testing.T) {
 	if err := os.Mkdir("cache", 0o700); err != nil {
 		t.Fatal(err)
 	}
-	for _, command := range []string{"status", "ensure", "release", "stop"} {
+	for _, command := range []string{"status", "ensure", "release", "stop", "quarantine", "unquarantine"} {
 		for _, invalid := range []struct{ flag, value, code string }{
 			{"--config", "selected.toml", "engine_catalog_read_failed"},
 			{"--cache-root", "cache", "shared_runtime_state_path_invalid"},

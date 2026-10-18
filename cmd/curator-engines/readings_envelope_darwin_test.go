@@ -118,6 +118,8 @@ func readingsEnvelopeFixture(t *testing.T) (func(map[string]any) (int, string, s
 	return execute, resources
 }
 
+// Semantic resource failures preserve status with typed failed facts; malformed
+// wire shapes still refuse the entire response with protocol_violation.
 func TestReviewMalformedResourceEnvelope(t *testing.T) {
 	execute, resources := readingsEnvelopeFixture(t)
 	if code, stdout, stderr := execute(resources); code != 0 || !strings.Contains(stdout, `"readings"`) {
@@ -238,6 +240,10 @@ func TestReviewMalformedResourceEnvelope(t *testing.T) {
 			r["observed_at"] = time.Now().UTC()
 			tc.change(r)
 			code, stdout, stderr := execute(r)
+			if strings.HasPrefix(tc.code, "readings_") {
+				requireCLIReadingsFailure(t, code, stdout, stderr, tc.code)
+				return
+			}
 			if code != 1 || stdout != "" || !strings.Contains(stderr, `"code":"`+tc.code+`"`) {
 				t.Fatalf("exit=%d stdout=%s stderr=%s want %s", code, stdout, stderr, tc.code)
 			}
@@ -245,6 +251,7 @@ func TestReviewMalformedResourceEnvelope(t *testing.T) {
 	}
 }
 
+// Inactive resource contradictions fail all facts without dropping broker status.
 func TestStatusReadingsInactiveResourceEnvelope(t *testing.T) {
 	execute, _ := readingsEnvelopeFixture(t)
 	baseline := map[string]any{"schema": infra.SharedRuntimeResourceStatusSchema, "source": "broker-config", "state": "unknown", "admission": "not-enforced", "reason": "resource_pressure_disabled", "loaded_model_memory": map[string]any{"state": "unknown", "reason": "resource_pressure_disabled"}, "inference": map[string]any{"state": "unknown", "reason": "resource_pressure_disabled"}, "policy": map[string]any{"mode": "disabled", "eviction_grace_seconds": 0}}
@@ -288,9 +295,7 @@ func TestStatusReadingsInactiveResourceEnvelope(t *testing.T) {
 				delete(target, "reason")
 			}
 			code, stdout, stderr := execute(r)
-			if code != 1 || stdout != "" || !strings.Contains(stderr, `"code":"readings_malformed"`) {
-				t.Fatalf("exit=%d stdout=%s stderr=%s", code, stdout, stderr)
-			}
+			requireCLIReadingsFailure(t, code, stdout, stderr, "readings_malformed")
 		})
 	}
 }
