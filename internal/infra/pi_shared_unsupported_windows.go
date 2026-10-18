@@ -138,6 +138,7 @@ func ResolveSharedRuntimePaths(string, string) (SharedRuntimePaths, error) {
 }
 
 type SharedRuntimeBrokerOptions struct {
+	ConfigPath     string
 	RuntimeKey     string
 	ProfileProject string
 	ProfileName    string
@@ -149,6 +150,7 @@ type SharedRuntimeBrokerOptions struct {
 type SharedRuntimeLauncherOptions = SharedRuntimeBrokerOptions
 
 type SharedRuntimeOperatorOptions struct {
+	ConfigPath        string
 	ExpectedWeightsID string
 	ProjectDir        string
 	Profile           string

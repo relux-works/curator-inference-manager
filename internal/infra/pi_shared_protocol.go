@@ -293,7 +293,7 @@ func ResolveSharedRuntimePaths(cacheRoot, runtimeKey string) (SharedRuntimePaths
 		}
 	}
 	if len(paths.RendezvousSocket) > 103 {
-		return SharedRuntimePaths{}, sharedRuntimeError("broker_rendezvous_path_too_long", fmt.Errorf("rendezvous path is %d bytes", len(paths.RendezvousSocket)))
+		return SharedRuntimePaths{}, sharedRuntimeError("broker_rendezvous_path_too_long", fmt.Errorf("rendezvous path is %d bytes; limit is 103 bytes", len(paths.RendezvousSocket)))
 	}
 	return paths, nil
 }

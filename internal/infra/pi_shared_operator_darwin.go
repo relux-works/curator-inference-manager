@@ -18,6 +18,7 @@ import (
 )
 
 type SharedRuntimeOperatorOptions struct {
+	ConfigPath        string
 	ExpectedWeightsID string
 	ProjectDir        string
 	Profile           string
@@ -272,7 +273,7 @@ func StopSharedRuntime(options SharedRuntimeOperatorOptions, force bool, timeout
 }
 
 func resolveSharedRuntimeOperator(options SharedRuntimeOperatorOptions) (sharedResolvedProfile, PiStatePaths, error) {
-	resolved, err := resolveSharedProfile(options.ProjectDir, options.HomeDir, options.CacheRoot, options.Profile)
+	resolved, err := resolveSharedProfileWithCatalog(options.ProjectDir, options.HomeDir, options.CacheRoot, options.Profile, options.ConfigPath)
 	if err != nil {
 		return sharedResolvedProfile{}, PiStatePaths{}, err
 	}

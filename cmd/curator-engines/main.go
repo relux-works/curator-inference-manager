@@ -59,6 +59,8 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 	flags := flag.NewFlagSet("curator-engines "+command, flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	engine := flags.String("engine", "", "engine entry name")
+	config := flags.String("config", "", "absolute engine catalog file")
+	cache := flags.String("cache-root", "", "absolute state and cache root directory")
 	jsonOutput := flags.Bool("json", false, "write JSON output")
 	var expectedWeightsID *string
 	if command == "ensure" {
@@ -95,7 +97,7 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 		}
 		return 2
 	}
-	options := infra.SharedRuntimeOperatorOptions{ProjectDir: currentProjectDir(), Profile: *engine}
+	options := infra.SharedRuntimeOperatorOptions{ProjectDir: currentProjectDir(), Profile: *engine, ConfigPath: *config, CacheRoot: *cache}
 
 	switch command {
 	case "status":
@@ -204,6 +206,7 @@ func runInternal(args []string, stdout, stderr io.Writer) int {
 	project := flags.String("profile-project", "", "")
 	profile := flags.String("profile", "", "")
 	home := flags.String("home-dir", "", "")
+	config := flags.String("config", "", "")
 	cache := flags.String("cache-root", "", "")
 	if err := flags.Parse(args[1:]); err != nil {
 		return 2
@@ -214,7 +217,7 @@ func runInternal(args []string, stdout, stderr io.Writer) int {
 	}
 	options := infra.SharedRuntimeBrokerOptions{
 		RuntimeKey: *runtimeKey, ProfileProject: *project, ProfileName: *profile,
-		HomeDir: *home, CacheRoot: *cache, Environ: os.Environ(),
+		HomeDir: *home, CacheRoot: *cache, ConfigPath: *config, Environ: os.Environ(),
 	}
 	var err error
 	if command == "broker" {
@@ -223,7 +226,7 @@ func runInternal(args []string, stdout, stderr io.Writer) int {
 		err = infra.RunSharedRuntimeLauncher(infra.SharedRuntimeLauncherOptions{
 			RuntimeKey: options.RuntimeKey, ProfileProject: options.ProfileProject,
 			ProfileName: options.ProfileName, HomeDir: options.HomeDir,
-			CacheRoot: options.CacheRoot, Environ: options.Environ,
+			CacheRoot: options.CacheRoot, ConfigPath: options.ConfigPath, Environ: options.Environ,
 		})
 	}
 	if err != nil {
@@ -256,6 +259,7 @@ func writeJSON(writer io.Writer, value any, stderr io.Writer) int {
 
 func writeUsage(writer io.Writer) {
 	_ = writeLine(writer, "Usage: curator-engines <check|status|ensure|release|stop> [--engine NAME] [--json]")
+	_ = writeLine(writer, "  status, ensure, release and stop accept --config FILE and --cache-root DIR (absolute paths)")
 	_ = writeLine(writer, "  weights compute requires --config FILE and --engine NAME [--json] (read-only)")
 	_ = writeLine(writer, "  ensure accepts --expected-weights-id ID")
 	_ = writeLine(writer, "  check requires --config FILE and --engine NAME (read-only)")

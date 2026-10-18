@@ -21,12 +21,39 @@ The inference-plane design remains a draft; curator-engines v0.x has adopted the
 | Engine catalog refusal/status mutator | Walk non-test `.go` files independently of build tags; reject non-regular entries; resolve refusal factories/types with `go/types` in Darwin/Linux/Windows contexts (including explicit-file contexts for standalone `//go:build ignore` commands). Enforce the closed P1–P4 propagation subset and explicit file/function/ordinal test certificates. R4 is frozen as singleton equality: identical guarded syntax and object path equals a typed constant literal (or standard deep equality with a fully specified non-comparable composite); observations and conjunction witnesses refuse. The original gate remains. Execution roots bind source/test content and require green selected baselines; equivalence requires executed joint downstream evidence. See [guard contract](spec/refusal-evidence.md) for the unconditional-refusal classification, defensive-unreachable and explicit undecided review bounds. | `go run scripts/engine-catalog-mutants.go -inventory`; `go test ./scripts -run TestRefusal -count=1 -v`; materialize platform trees with `scripts/test-nondarwin-emu.sh --materialize <linux\|windows> <source-root> <output-dir>`; run `go run scripts/engine-catalog-mutants.go -start N -count N -workers 8 -linux-emu-root <linux-dir> -windows-emu-root <windows-dir> -out .temp/<task>/mutants` | Inventory JSON/stdout and diagnostic stderr; tables, overlays and direct test logs under `.temp/`. A production inventory refusal is failing evidence, never green coverage. |
 | skill-agents-management catalog contract test | Verify manager-produced schema v1 catalogs with the pinned public `pkg/runtimecatalog` reader in an isolated nested module. | `(cd contracttest && go test ./...)` | Go module/test output goes to stdout/stderr; generated manager catalogs and fixture files are written under `t.TempDir()` and removed when the test exits. |
 | ShellCheck | Lint the validation script and compatibility shims | `shellcheck scripts/test-nondarwin-emu.sh scripts/qwen-infra scripts/model-harness` | Findings go to stdout/stderr; no repository artifacts are generated. |
-| `curator-engines` | Inspect or manage configured engine runtimes | `go build -o .temp/curator-engines ./cmd/curator-engines`, then `.temp/curator-engines check --config /path/to/engines.toml --engine NAME --json`, or `.temp/curator-engines status --json` (`ensure`, `release`, `stop` also available) | Binary at `.temp/curator-engines`; catalogs use mode `0600` and integer `knobs.kv_context_size`; optional `[engines.NAME.weights]` pins exact GGUF bytes. Compute with `.temp/curator-engines weights compute --config FILE --engine NAME [--json]`; ensure accepts `--expected-weights-id ID`; check reports typed failures, weights verification and KV RAM; status is printed to stdout with separate `engine_availability`, `engine_availability_reason`, and broker state fields; wire details follow `spec/engines-protocol-v1.1.md`. |
+| `curator-engines` | Inspect or manage configured engine runtimes | `go build -o .temp/curator-engines ./cmd/curator-engines`, then `.temp/curator-engines check --config /path/to/engines.toml --engine NAME --json`, or `.temp/curator-engines status --json` (`ensure`, `release`, `stop` also available); all four accept `[--config FILE] [--cache-root DIR]` | Binary at `.temp/curator-engines`; catalogs use mode `0600` and integer `knobs.kv_context_size`; optional `[engines.NAME.weights]` pins exact GGUF bytes. Compute with `.temp/curator-engines weights compute --config FILE --engine NAME [--json]`; ensure accepts `--expected-weights-id ID`; check reports typed failures, weights verification and KV RAM; status is printed to stdout with separate `engine_availability`, `engine_availability_reason`, and broker state fields; wire details follow `spec/engines-protocol-v1.1.md`. |
 | K0 evidence harness | Enumerate refusal sites from Go AST and run fourteen narrowing mutants against the production CLI tests | `go run scripts/check-k0-evidence.go -out .temp/k0-evidence` | AST inventory, mutant results and individual test logs under `.temp/k0-evidence`; source bytes are restored after each mutant. |
 | Task Board CLI | Track implementation status, checklist, notes, and task-scoped outcomes | `task-board q --format compact 'get(TASK-ID) { status checklist outcomeResources }'`; `task-board m 'set_status(TASK-ID, status=development)'`; `task-board resource add TASK-ID <file>` | Task state and attached outcomes go to the authoritative board selected by `TASK_BOARD_DIR`. |
 | GitHub CLI | File the curator-spec adoption issue for the manager catalog contract | `gh issue create --repo relux-works/curator-spec --title 'Adopt curator-engines engine catalog schema v1 in Decision 0020' --body-file <body-file>` | The issue is stored in curator-spec; body scratch files are kept under task-scoped `.temp/`. |
 | Non-Darwin file-set emulator | Run Linux and Windows file-set validation on the current host | `./scripts/test-nondarwin-emu.sh` | Temporary trees under `${TMPDIR:-/tmp}` are removed at exit; commands and results are printed to stdout/stderr. For an isolated mutant, `./scripts/test-nondarwin-emu.sh --materialize linux <source-root> <output-dir>` materializes one verified file set and retains it at `<output-dir>`. Each tree retains the unprojected candidate under `.temp/canonical-source`; full-module census tests bind its Go bodies and module inputs to the executing tree before checking all platform contexts. |
 | Python 3 standard library | Parse `go list -json` manifests and compare the target and emulated `GoFiles`/`TestGoFiles` sets | Invoked by `./scripts/test-nondarwin-emu.sh`; no separate project command | Comparison metadata and helper are created under the script's temporary directory and removed at exit. |
+
+`status`, `ensure`, `release` and `stop` accept `--config FILE` to select an
+absolute catalog path and `--cache-root DIR` to select an existing absolute
+state/cache directory for broker state, leases and the rendezvous socket.
+Catalogs retain the private `0600` convention and strict reader. Relative config
+paths refuse with `engine_catalog_read_failed`; relative cache roots refuse with
+`shared_runtime_state_path_invalid`. An explicit missing catalog or entry refuses
+instead of falling back to the default catalog or legacy configuration.
+
+Catalog entries shut down immediately after the last lease is released.
+Release acknowledgement can precede shutdown completion; a hello interrupted
+by shutdown refuses with typed `shared_runtime_unavailable`, even with
+`stop --force`. After shutdown completes, `stop --force` is a successful
+`absent` no-op with both termination flags false. Non-forced stop refuses an
+absent broker with `shared_runtime_broker_unreachable_use_force`, or active
+leases with `shared_runtime_leases_active`.
+
+Without these flags the catalog remains `$HOME/.curator/engines.toml` and state
+remains under the user cache directory. The broker and runtime launcher receive
+the same selection. The rendezvous socket path has a 103-byte limit after cache
+root canonicalization: a long `--cache-root` can refuse with
+`broker_rendezvous_path_too_long`, reporting the actual length and the limit;
+the socket is never relocated automatically.
+
+Catalog location alone is excluded from runtime/engine identity. Pinned weights
+with a relative model path resolve against the catalog directory; moving such a
+catalog can change the expanded model path and therefore the runtime key.
 
 ## How it fits
 

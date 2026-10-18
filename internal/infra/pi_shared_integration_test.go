@@ -109,13 +109,13 @@ func TestMain(m *testing.M) {
 			options := SharedRuntimeLauncherOptions{
 				RuntimeKey: values["--runtime-key"], ProfileProject: values["--profile-project"],
 				ProfileName: values["--profile"], HomeDir: values["--home-dir"],
-				CacheRoot: values["--cache-root"], Environ: os.Environ(),
+				CacheRoot: values["--cache-root"], ConfigPath: values["--config"], Environ: os.Environ(),
 			}
 			if os.Args[2] == "broker" {
 				err = RunSharedRuntimeBroker(SharedRuntimeBrokerOptions{
 					RuntimeKey: options.RuntimeKey, ProfileProject: options.ProfileProject,
 					ProfileName: options.ProfileName, HomeDir: options.HomeDir,
-					CacheRoot: options.CacheRoot, Environ: options.Environ,
+					CacheRoot: options.CacheRoot, ConfigPath: options.ConfigPath, Environ: options.Environ,
 				})
 			} else {
 				err = RunSharedRuntimeLauncher(options)
@@ -134,12 +134,12 @@ func TestMain(m *testing.M) {
 }
 
 func parseSharedTestInternalArgs(args []string) (map[string]string, error) {
-	if len(args) != 6 && len(args) != 10 {
-		return nil, fmt.Errorf("expected three or five internal flag pairs, got %q", args)
+	if len(args) != 6 && len(args) != 10 && len(args) != 12 {
+		return nil, fmt.Errorf("expected three, five or six internal flag pairs, got %q", args)
 	}
 	values := map[string]string{}
 	for index := 0; index < len(args); index += 2 {
-		if args[index] != "--runtime-key" && args[index] != "--profile-project" && args[index] != "--profile" && args[index] != "--home-dir" && args[index] != "--cache-root" {
+		if args[index] != "--runtime-key" && args[index] != "--profile-project" && args[index] != "--profile" && args[index] != "--home-dir" && args[index] != "--cache-root" && args[index] != "--config" {
 			return nil, fmt.Errorf("unexpected internal flag %q", args[index])
 		}
 		if values[args[index]] != "" || args[index+1] == "" {

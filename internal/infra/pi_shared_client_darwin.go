@@ -607,6 +607,9 @@ func startSharedRuntimeBroker(resolved sharedResolvedProfile, environ []string) 
 		"--profile-project", resolved.Project, "--profile", resolved.ProfileName,
 		"--home-dir", resolved.HomeDir, "--cache-root", resolved.Paths.CanonicalCacheRoot,
 	}
+	if resolved.ConfigPath != "" {
+		args = append(args, "--config", resolved.ConfigPath)
+	}
 	command := exec.Command(executable, args...)
 	command.Dir = resolved.Paths.RuntimeCWD
 	command.Stdin = devNull

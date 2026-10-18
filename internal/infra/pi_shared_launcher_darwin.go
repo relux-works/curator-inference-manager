@@ -15,6 +15,7 @@ import (
 )
 
 type SharedRuntimeLauncherOptions struct {
+	ConfigPath     string
 	RuntimeKey     string
 	ProfileProject string
 	ProfileName    string
@@ -38,7 +39,7 @@ func RunSharedRuntimeLauncher(options SharedRuntimeLauncherOptions) error {
 		return sharedRuntimeReason("runtime_launch_unauthorized", "no_authorization_descriptor", err)
 	}
 
-	resolved, err := resolveSharedProfile(options.ProfileProject, options.HomeDir, options.CacheRoot, options.ProfileName)
+	resolved, err := resolveSharedProfileWithCatalog(options.ProfileProject, options.HomeDir, options.CacheRoot, options.ProfileName, options.ConfigPath)
 	if err != nil {
 		return &SharedRuntimeError{Code: "runtime_launch_identity_unresolvable", Err: err}
 	}

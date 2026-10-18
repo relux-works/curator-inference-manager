@@ -137,6 +137,7 @@ type EngineCatalogEntry struct {
 }
 
 type sharedResolvedProfile struct {
+	ConfigPath         string
 	Project            string
 	HomeDir            string
 	ProfileName        string

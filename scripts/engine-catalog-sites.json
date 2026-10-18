@@ -7,7 +7,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:MarshalEngineCatalog:1",
     "tests": []
@@ -20,7 +20,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:1",
     "tests": [
@@ -39,7 +39,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:10",
     "tests": [
@@ -51,7 +51,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "document.SchemaVersion == 2",
@@ -75,7 +75,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:12",
     "tests": []
@@ -88,7 +88,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:13",
     "tests": [
@@ -107,7 +107,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "candidateEntry.Engine == \"\"",
@@ -131,7 +131,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:15",
     "tests": [
@@ -150,7 +150,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:2",
     "tests": [
@@ -169,7 +169,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:3",
     "tests": [
@@ -188,7 +188,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:4",
     "tests": [
@@ -207,7 +207,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:5",
     "tests": [
@@ -226,7 +226,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:6",
     "tests": [
@@ -245,7 +245,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:7",
     "tests": [
@@ -264,7 +264,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:8",
     "tests": [
@@ -283,7 +283,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:ReadEngineCatalogEntry:9",
     "tests": [
@@ -295,7 +295,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:engineCatalogConflict:1",
     "tests": [
@@ -307,7 +307,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:engineCatalogMalformed:1",
     "tests": [
@@ -319,7 +319,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:engineCatalogNotRunnableError:1",
     "tests": [
@@ -338,7 +338,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:engineCatalogPath:1",
     "tests": [
@@ -357,7 +357,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:engineCatalogPath:2",
     "tests": [
@@ -369,7 +369,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:engineCatalogReadFailed:1",
     "tests": [
@@ -381,7 +381,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "ok == false",
@@ -405,7 +405,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:1",
     "tests": []
@@ -418,13 +418,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:10",
     "tests": []
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "entry.Model == \"model\"",
@@ -448,7 +448,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:12",
     "tests": [
@@ -467,7 +467,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:13",
     "tests": [
@@ -479,7 +479,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "entry.SSHExecutable == \"ssh\"",
@@ -503,7 +503,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:15",
     "tests": [
@@ -515,7 +515,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "entry.RemoteConfig == \"config.toml\"",
@@ -539,7 +539,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:17",
     "tests": [
@@ -551,7 +551,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "entry.RemoteHost == \"0.0.0.0\"",
@@ -568,7 +568,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "entry.RemotePort == 0",
@@ -592,7 +592,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:2",
     "tests": [
@@ -604,7 +604,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "entry.RemoteProfile == \"qwen-tiny\"",
@@ -628,7 +628,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:21",
     "tests": []
@@ -641,7 +641,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:22",
     "tests": []
@@ -654,7 +654,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:3",
     "tests": []
@@ -667,7 +667,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:4",
     "tests": [
@@ -686,7 +686,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:5",
     "tests": []
@@ -699,13 +699,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:6",
     "tests": []
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "hostCount == 0",
@@ -729,13 +729,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogEntry:8",
     "tests": []
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "ok == false",
@@ -759,7 +759,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogExactKeys:1",
     "tests": [
@@ -778,7 +778,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogExactKeys:2",
     "tests": [
@@ -790,7 +790,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "ok == false",
@@ -814,7 +814,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogExactKeys:4",
     "tests": []
@@ -827,13 +827,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogExactKeys:5",
     "tests": []
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "number == 0",
@@ -850,7 +850,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "engine == \"llama-cpp\"",
@@ -874,7 +874,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogKnobs:3",
     "tests": [
@@ -886,7 +886,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "value == \"high\"",
@@ -903,7 +903,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "engine == \"mlx-lm\"",
@@ -920,7 +920,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "value == \"draft\"",
@@ -944,7 +944,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogPinnedDistribution:1",
     "tests": [
@@ -963,7 +963,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogPinnedDistribution:2",
     "tests": [
@@ -982,7 +982,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogPinnedDistribution:3",
     "tests": [
@@ -994,7 +994,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.PromptTokens == 1023",
@@ -1011,7 +1011,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.MaxOutputTokens == 0",
@@ -1028,7 +1028,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.StartupTimeoutSeconds == 0",
@@ -1045,7 +1045,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.RequestTimeoutSeconds == 0",
@@ -1062,7 +1062,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.SampleIntervalMilliseconds == 49",
@@ -1086,7 +1086,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogSupervision:1",
     "tests": [
@@ -1105,7 +1105,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [],
     "site": "internal/infra/engine_catalog.go:validateEngineCatalogSupervision:2",
     "tests": [
@@ -1117,7 +1117,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.MaxRestarts == 0",
@@ -1134,7 +1134,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.RestartWindowSeconds == 0",
@@ -1151,7 +1151,7 @@
     ]
   },
   {
-    "source_sha256": "52b20785e2d0fc7049146a7fb32142409ec38256b190187478fa0ea080b80efe",
+    "source_sha256": "cefd2a7b8b6af8ae0b8e39215f41fcbed1f392c58ffacda27619dc5aa4996fe6",
     "witnesses": [
       {
         "admit": "policy.RestartDelayMilliseconds == -1",
@@ -3688,7 +3688,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:1",
     "tests": [
@@ -3707,7 +3707,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:10",
     "tests": [
@@ -3726,7 +3726,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:11",
     "tests": [
@@ -3745,7 +3745,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:12",
     "tests": [
@@ -3764,7 +3764,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "sessionID == 38733",
@@ -3788,7 +3788,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:3",
     "tests": [
@@ -3807,7 +3807,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:4",
     "tests": [
@@ -3826,13 +3826,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:5",
     "tests": []
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "decision.Quarantined == true",
@@ -3856,7 +3856,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:7",
     "tests": [
@@ -3875,7 +3875,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:8",
     "tests": [
@@ -3894,7 +3894,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:9",
     "tests": [
@@ -3913,7 +3913,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:cleanupSharedRuntimeState:1",
     "tests": [
@@ -3937,7 +3937,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedBrokerLock:1",
     "tests": [
@@ -3949,7 +3949,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "stat.Nlink == 2",
@@ -3973,7 +3973,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedBrokerLock:3",
     "tests": [
@@ -3992,7 +3992,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedBrokerLock:4",
     "tests": [
@@ -4016,7 +4016,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedLog:1",
     "tests": [
@@ -4028,7 +4028,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "stat.Nlink == 2",
@@ -4052,7 +4052,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:1",
     "tests": [
@@ -4076,7 +4076,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:2",
     "tests": [
@@ -4095,7 +4095,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:3",
     "tests": [
@@ -4114,7 +4114,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:1",
     "tests": [
@@ -4126,7 +4126,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "observation.UID == 0",
@@ -4150,7 +4150,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:3",
     "tests": [
@@ -4162,7 +4162,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "full.PGID == 0",
@@ -4186,7 +4186,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:5",
     "tests": []
@@ -4199,7 +4199,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:6",
     "tests": []
@@ -4212,7 +4212,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:removeStaleRendezvous:1",
     "tests": [
@@ -4231,7 +4231,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:1",
     "tests": [
@@ -4243,7 +4243,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "resources.State == \"pressured\"",
@@ -4260,7 +4260,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "server.resourceAdmissionGeneration == 2",
@@ -4277,7 +4277,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "server.state == \"draining\"",
@@ -4301,7 +4301,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:5",
     "tests": [
@@ -4320,7 +4320,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:6",
     "tests": [
@@ -4339,7 +4339,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:7",
     "tests": [
@@ -4351,7 +4351,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "uid == 0",
@@ -4368,7 +4368,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "hello.ClientPID == 0",
@@ -4392,7 +4392,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:3",
     "tests": [
@@ -4411,7 +4411,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:4",
     "tests": [
@@ -4423,7 +4423,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "clientExec.Dev == 8",
@@ -4440,7 +4440,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "hello.ProtocolVersion == 6",
@@ -4457,7 +4457,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "hello.RuntimeKey == \"\"",
@@ -4474,7 +4474,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "hello.ProfileDigest == \"\"",
@@ -4498,7 +4498,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:9",
     "tests": [
@@ -4510,7 +4510,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "decision.Quarantined == true",
@@ -4534,7 +4534,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.serve:2",
     "tests": [
@@ -4553,7 +4553,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.serve:3",
     "tests": [
@@ -4565,7 +4565,7 @@
     ]
   },
   {
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [
       {
         "admit": "runtimeWait.pid == 0",
@@ -4589,7 +4589,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:startUnauthorizedRuntimeWithSystem:1",
     "tests": [
@@ -4608,7 +4608,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:startUnauthorizedRuntimeWithSystem:2",
     "tests": [
@@ -4627,7 +4627,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:startUnauthorizedRuntimeWithSystem:3",
     "tests": [
@@ -4646,7 +4646,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:waitRecordedRuntimeGone:1",
     "tests": [
@@ -4665,7 +4665,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:waitRecordedRuntimeGone:2",
     "tests": []
@@ -4678,7 +4678,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:waitSharedEndpointFree:1",
     "tests": []
@@ -4691,7 +4691,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:writeSharedWireMessage:1",
     "tests": [
@@ -4715,7 +4715,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:1",
     "tests": [
@@ -4727,7 +4727,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "exitCode == 77",
@@ -4744,7 +4744,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "ledger.RestartCount == 0",
@@ -4768,13 +4768,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:6",
     "tests": []
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "electionLostSeen == true",
@@ -4798,7 +4798,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:8",
     "tests": []
@@ -4811,7 +4811,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:9",
     "tests": []
@@ -4824,7 +4824,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:checkSharedRuntimeModel:1",
     "tests": [
@@ -4836,7 +4836,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "response.StatusCode == 500",
@@ -4860,7 +4860,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:checkSharedRuntimeModel:3",
     "tests": [
@@ -4872,7 +4872,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "item.ID == \"two\"",
@@ -4889,7 +4889,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "servedModel == \"\"",
@@ -4913,7 +4913,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:checkSharedRuntimeModel:6",
     "tests": [
@@ -4932,7 +4932,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAcquireSharedRuntimeWithOwnership:1",
     "tests": [
@@ -4951,7 +4951,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAcquireSharedRuntimeWithOwnership:2",
     "tests": [
@@ -4963,7 +4963,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "leaseResponse.Type == \"refused\"",
@@ -4987,7 +4987,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAcquireSharedRuntimeWithOwnership:4",
     "tests": [
@@ -5006,13 +5006,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:1",
     "tests": []
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "ownIdentity.Dev == 16777234",
@@ -5036,7 +5036,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:11",
     "tests": [
@@ -5060,7 +5060,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:12",
     "tests": [
@@ -5079,7 +5079,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:13",
     "tests": [
@@ -5098,7 +5098,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "response.Type == \"refused\"",
@@ -5122,7 +5122,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:15",
     "tests": [
@@ -5141,7 +5141,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:16",
     "tests": []
@@ -5154,7 +5154,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "response.Broker.PID == 38735",
@@ -5171,7 +5171,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "response.ProtocolVersion == 6",
@@ -5188,7 +5188,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "response.RuntimeKey == \"\"",
@@ -5212,7 +5212,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:2",
     "tests": []
@@ -5225,7 +5225,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "resolved.EngineIdentity.Key == \"1fc1f9350e1b58bdd691bb1c7ff4c34b474118c019d0cba0317216f2c45857c3\"",
@@ -5242,7 +5242,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "response.ProfileDigest == \"\"",
@@ -5259,7 +5259,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "response.Runtime.Endpoint == \"\"",
@@ -5283,7 +5283,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:23",
     "tests": [
@@ -5302,7 +5302,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:24",
     "tests": [
@@ -5314,7 +5314,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "runtimeProcess.UID == 0",
@@ -5338,7 +5338,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:26",
     "tests": []
@@ -5351,7 +5351,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:3",
     "tests": []
@@ -5364,7 +5364,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:4",
     "tests": []
@@ -5377,7 +5377,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:5",
     "tests": [
@@ -5389,7 +5389,7 @@
     ]
   },
   {
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [
       {
         "admit": "uid == 0",
@@ -5413,7 +5413,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:7",
     "tests": [
@@ -5432,7 +5432,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:8",
     "tests": [
@@ -5451,7 +5451,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:9",
     "tests": [
@@ -5470,7 +5470,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:1",
     "tests": []
@@ -5483,7 +5483,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:2",
     "tests": []
@@ -5496,7 +5496,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:3",
     "tests": []
@@ -5509,7 +5509,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:4",
     "tests": []
@@ -5522,7 +5522,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:5",
     "tests": []
@@ -5535,7 +5535,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:startSharedRuntimeBroker:1",
     "tests": [
@@ -5554,7 +5554,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:startSharedRuntimeBroker:2",
     "tests": [
@@ -5573,7 +5573,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853",
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:startSharedRuntimeBroker:3",
     "tests": []
@@ -5670,7 +5670,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:1",
     "tests": []
@@ -5683,7 +5683,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:2",
     "tests": []
@@ -5696,7 +5696,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:3",
     "tests": []
@@ -5709,7 +5709,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:4",
     "tests": []
@@ -5722,7 +5722,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:5",
     "tests": []
@@ -5735,7 +5735,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:6",
     "tests": []
@@ -5748,7 +5748,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:7",
     "tests": []
@@ -5761,7 +5761,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "c285790067abfdb51a8230a33d7eb7d608bdf06faa312d4184c21d6ddf1b9322",
+    "source_sha256": "fc5ce467d14cfa37e6798b6dd31f27ae930819d82b742132e1319bf5a7519997",
     "witnesses": [],
     "site": "internal/infra/pi_shared_launcher_darwin.go:RunSharedRuntimeLauncher:8",
     "tests": []
@@ -5895,7 +5895,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "shared.Code == \"broker_election_lost\"",
@@ -5919,7 +5919,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:1",
     "tests": []
@@ -5932,7 +5932,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:2",
     "tests": []
@@ -5945,7 +5945,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:3",
     "tests": []
@@ -5958,7 +5958,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:4",
     "tests": []
@@ -5971,7 +5971,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "resolved.CatalogEntry == true",
@@ -5988,7 +5988,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "timeout == 0",
@@ -6012,7 +6012,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:StopSharedRuntime:2",
     "tests": [
@@ -6031,7 +6031,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:StopSharedRuntime:3",
     "tests": [
@@ -6043,7 +6043,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "response.Type == \"refused\"",
@@ -6060,7 +6060,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "response.Type == \"unexpected\"",
@@ -6077,7 +6077,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "remaining == 0",
@@ -6094,7 +6094,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "remaining == 0",
@@ -6111,7 +6111,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "force == false",
@@ -6135,7 +6135,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:forceStopUnreachableSharedRuntime:1",
     "tests": []
@@ -6148,7 +6148,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:probeSharedBrokerLock:1",
     "tests": []
@@ -6161,7 +6161,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:1",
     "tests": []
@@ -6174,7 +6174,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:2",
     "tests": []
@@ -6192,7 +6192,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:3",
     "tests": [
@@ -6211,7 +6211,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:sharedRuntimeBrokerCandidates:1",
     "tests": [
@@ -6230,7 +6230,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:sharedRuntimeBrokerCandidates:2",
     "tests": [
@@ -6242,7 +6242,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "brokerObservation.UID == 0",
@@ -6266,7 +6266,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:2",
     "tests": [
@@ -6278,7 +6278,7 @@
     ]
   },
   {
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [
       {
         "admit": "ownIdentity.Dev == 16777234",
@@ -6302,7 +6302,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:4",
     "tests": [
@@ -6321,7 +6321,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:waitRecordedBrokerGone:1",
     "tests": [
@@ -6340,7 +6340,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "cc5a0ed8f466d8a22c881bf43eb388e0a39624124970d4e4d26c4ffcfb974484",
+    "source_sha256": "396bf5e4d0cf8ed06704b83f9764144ccdb3ff3ba82815e90cc30107c6396209",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:waitRecordedBrokerGone:2",
     "tests": []
@@ -6666,7 +6666,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:CreateSharedRuntimeTree:1",
     "tests": [
@@ -6685,7 +6685,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:CreateSharedRuntimeTree:2",
     "tests": [
@@ -6704,7 +6704,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:CreateSharedRuntimeTree:3",
     "tests": [
@@ -6723,7 +6723,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:CreateSharedRuntimeTree:4",
     "tests": [
@@ -6742,7 +6742,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:ResolveSharedRuntimePaths:1",
     "tests": [
@@ -6761,7 +6761,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:ResolveSharedRuntimePaths:2",
     "tests": [
@@ -6780,7 +6780,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:ResolveSharedRuntimePaths:3",
     "tests": []
@@ -6793,7 +6793,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:ResolveSharedRuntimePaths:4",
     "tests": []
@@ -6806,7 +6806,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:ResolveSharedRuntimePaths:5",
     "tests": [
@@ -6825,7 +6825,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:ResolveSharedRuntimePaths:6",
     "tests": []
@@ -6843,7 +6843,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:ResolveSharedRuntimePaths:7",
     "tests": [
@@ -6855,7 +6855,7 @@
     ]
   },
   {
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [
       {
         "admit": "verdict.Accepted == false",
@@ -6879,7 +6879,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:readSharedBrokerRecord:1",
     "tests": []
@@ -6897,7 +6897,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:readSharedBrokerRecord:2",
     "tests": [
@@ -6916,7 +6916,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:readSharedBrokerRecord:3",
     "tests": [
@@ -6935,7 +6935,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:removeSharedLeaseMirrors:1",
     "tests": []
@@ -6948,7 +6948,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:removeSharedLeaseMirrors:2",
     "tests": []
@@ -6961,13 +6961,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:removeSharedLeaseMirrors:3",
     "tests": []
   },
   {
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:sharedRuntimeMismatch:1",
     "tests": [
@@ -6986,7 +6986,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:sharedRuntimeReason:1",
     "tests": []
@@ -6999,7 +6999,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:writeSharedJSONAtomic:1",
     "tests": [
@@ -7023,7 +7023,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:writeSharedJSONAtomic:2",
     "tests": [
@@ -7042,7 +7042,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:writeSharedJSONAtomic:3",
     "tests": []
@@ -7060,7 +7060,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:writeSharedJSONAtomic:4",
     "tests": [
@@ -7079,7 +7079,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:writeSharedJSONAtomic:5",
     "tests": [
@@ -7098,7 +7098,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:writeSharedJSONAtomic:6",
     "tests": [
@@ -7117,7 +7117,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "ccf4964b946bed1bcaa6c3a98b92495ef21fd23ea84d1ba50d3e31b08afdd7b7",
+    "source_sha256": "3cd0c6060538ecadd7b4724acd9d23abbb77c84ec2b9069e9ee4ce829b7a5fbf",
     "witnesses": [],
     "site": "internal/infra/pi_shared_protocol.go:writeSharedJSONAtomic:7",
     "tests": [
@@ -7136,7 +7136,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:1",
     "tests": []
@@ -7149,7 +7149,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:10",
     "tests": []
@@ -7162,7 +7162,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:11",
     "tests": []
@@ -7175,7 +7175,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:12",
     "tests": []
@@ -7188,7 +7188,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:13",
     "tests": []
@@ -7201,7 +7201,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:2",
     "tests": []
@@ -7214,7 +7214,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:3",
     "tests": []
@@ -7227,7 +7227,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:4",
     "tests": []
@@ -7240,7 +7240,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:5",
     "tests": []
@@ -7253,7 +7253,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:6",
     "tests": []
@@ -7266,7 +7266,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:7",
     "tests": []
@@ -7279,7 +7279,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:8",
     "tests": []
@@ -7292,7 +7292,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiIdentity:9",
     "tests": []
@@ -7305,7 +7305,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiProfiles:1",
     "tests": []
@@ -7318,7 +7318,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiProfiles:2",
     "tests": []
@@ -7331,7 +7331,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiProfiles:3",
     "tests": []
@@ -7344,7 +7344,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
     "site": "internal/infra/pi_shared_resolve.go:readPiProfiles:4",
     "tests": []
@@ -7357,9 +7357,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfile:1",
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:3",
     "tests": []
   },
   {
@@ -7370,9 +7370,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfile:2",
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:4",
     "tests": []
   },
   {
@@ -7383,9 +7383,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfile:3",
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:6",
     "tests": []
   },
   {
@@ -7396,9 +7396,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfile:4",
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:7",
     "tests": []
   },
   {
@@ -7409,20 +7409,20 @@
         "member": -1
       }
     ],
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfile:gate:1",
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:gate:1",
     "tests": []
   },
   {
-    "source_sha256": "2a85c7bf63547596c4c3e74090d2df07940b098a49a27b667c7c5f5e31e8f7ac",
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
     "witnesses": [
       {
         "admit": "state == \"present\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfile:gate:2",
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:gate:2",
     "tests": [
       {
         "body_sha256": "a798fc366cb24e13fc5afdf26781a51323d5d8e4637495e0b0454ae5d9d51a37",
@@ -7536,7 +7536,7 @@
     "tests": []
   },
   {
-    "source_sha256": "e2ae3b27014bc1701ffcbffb23a57927102a3244222ae0f87c258495a186aeb9",
+    "source_sha256": "50d6cb8db8a6cfac0ecaec1ecebc5c013b8cabe50778ef1b3b65e23bb737aa70",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_posix.go:RunSharedRuntimeBroker:1",
     "tests": [
@@ -7548,7 +7548,7 @@
     ]
   },
   {
-    "source_sha256": "e2ae3b27014bc1701ffcbffb23a57927102a3244222ae0f87c258495a186aeb9",
+    "source_sha256": "50d6cb8db8a6cfac0ecaec1ecebc5c013b8cabe50778ef1b3b65e23bb737aa70",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_posix.go:RunSharedRuntimeLauncher:1",
     "tests": [
@@ -7560,7 +7560,7 @@
     ]
   },
   {
-    "source_sha256": "e2ae3b27014bc1701ffcbffb23a57927102a3244222ae0f87c258495a186aeb9",
+    "source_sha256": "50d6cb8db8a6cfac0ecaec1ecebc5c013b8cabe50778ef1b3b65e23bb737aa70",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_posix.go:SetSharedRuntimeManualQuarantine:1",
     "tests": [
@@ -7572,7 +7572,7 @@
     ]
   },
   {
-    "source_sha256": "e2ae3b27014bc1701ffcbffb23a57927102a3244222ae0f87c258495a186aeb9",
+    "source_sha256": "50d6cb8db8a6cfac0ecaec1ecebc5c013b8cabe50778ef1b3b65e23bb737aa70",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_posix.go:SharedRuntimeStatusReport:1",
     "tests": [
@@ -7584,7 +7584,7 @@
     ]
   },
   {
-    "source_sha256": "e2ae3b27014bc1701ffcbffb23a57927102a3244222ae0f87c258495a186aeb9",
+    "source_sha256": "50d6cb8db8a6cfac0ecaec1ecebc5c013b8cabe50778ef1b3b65e23bb737aa70",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_posix.go:StopSharedRuntime:1",
     "tests": [
@@ -7596,7 +7596,7 @@
     ]
   },
   {
-    "source_sha256": "e2ae3b27014bc1701ffcbffb23a57927102a3244222ae0f87c258495a186aeb9",
+    "source_sha256": "50d6cb8db8a6cfac0ecaec1ecebc5c013b8cabe50778ef1b3b65e23bb737aa70",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_posix.go:unsupportedSharedRuntimePlatform:1",
     "tests": [
@@ -7615,7 +7615,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:DecodeSharedRuntimeStatus:1",
     "tests": [
@@ -7627,7 +7627,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [
       {
         "admit": "probe.ContractVersion == 0",
@@ -7651,7 +7651,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:DecodeSharedRuntimeStatus:3",
     "tests": [
@@ -7663,7 +7663,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:ResolveSharedRuntimePaths:1",
     "tests": [
@@ -7675,7 +7675,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:RunSharedRuntimeBroker:1",
     "tests": [
@@ -7687,7 +7687,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:RunSharedRuntimeLauncher:1",
     "tests": [
@@ -7699,7 +7699,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:SetSharedRuntimeManualQuarantine:1",
     "tests": [
@@ -7711,7 +7711,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:SharedRuntimeStatusReport:1",
     "tests": [
@@ -7723,7 +7723,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:StopSharedRuntime:1",
     "tests": [
@@ -7735,7 +7735,7 @@
     ]
   },
   {
-    "source_sha256": "9e411ee3e47307d23cdf9be43730923355e0a7acadabf0704dd58835c197fe7a",
+    "source_sha256": "6422beb77749fd5fad8f379b4548daf05b2c3c9fe002f65a34a759771ceddd69",
     "witnesses": [],
     "site": "internal/infra/pi_shared_unsupported_windows.go:unsupportedSharedRuntimePlatform:1",
     "tests": [
@@ -12946,7 +12946,7 @@
         "dir": "internal/infra"
       },
       {
-        "body_sha256": "31c159279faef0405d7c697ae1cda64ed77d4221c617a631f9440f5f3b16d50a",
+        "body_sha256": "808fb79ce0756cad36ba69f657cd77daba2499c04b2ed03b34e28694fc9e63d4",
         "name": "TestMain",
         "dir": "internal/infra"
       },
@@ -16517,7 +16517,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "56a4a9375bd667ecd6adcc6aa24302707b0662ca2758bcac33c40f3485567f9d",
+    "source_sha256": "693d9492096f98c21818773c777ea396adc84760a1691a32a92d2cfae78100d2",
     "witnesses": null,
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:4",
     "tests": [
@@ -17217,7 +17217,7 @@
         "dir": "cmd/curator-engines"
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853"
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86"
   },
   {
     "bounds": [
@@ -17236,7 +17236,7 @@
         "dir": "cmd/curator-engines"
       }
     ],
-    "source_sha256": "1ce4e998e1c26ce648ea056a710fb60b1f00bc400153cc212460482b8f202853"
+    "source_sha256": "d210db3db8f030ab1a54290a244a5f23da6bccb477d06e63c489f2e771943c86"
   },
   {
     "site": "internal/infra/engine_weights.go:hashEngineWeights:6",
@@ -17309,5 +17309,62 @@
       }
     ],
     "source_sha256": "61d124566c81316219040b24d9a33d5d4dbca1121b86e63cbfd7b2c91226698e"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "Operator path refusals have named behavioral tests; narrowing mutation witnesses have not been certified or executed.",
+        "member": -1
+      }
+    ],
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:1",
+    "tests": [
+      {
+        "body_sha256": "57393179c5a45a5461db6e74941f5509e89b57fba47a0a7a750b9a47974c65c8",
+        "name": "TestOperatorPathsRejectRelative",
+        "dir": "cmd/curator-engines"
+      }
+    ]
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "Operator path refusals have named behavioral tests; narrowing mutation witnesses have not been certified or executed.",
+        "member": -1
+      }
+    ],
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:2",
+    "tests": [
+      {
+        "body_sha256": "57393179c5a45a5461db6e74941f5509e89b57fba47a0a7a750b9a47974c65c8",
+        "name": "TestOperatorPathsRejectRelative",
+        "dir": "cmd/curator-engines"
+      }
+    ]
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "Operator path refusals have named behavioral tests; narrowing mutation witnesses have not been certified or executed.",
+        "member": -1
+      }
+    ],
+    "source_sha256": "872006760c84109f4733330151add12a6dd6ba534521479e42968f25682e790a",
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_resolve.go:resolveSharedProfileWithCatalog:5",
+    "tests": [
+      {
+        "body_sha256": "6461efe065642e0b628bd2da13a4a0c034c15fb4e1a51b9ae83f8ddbe96122b1",
+        "name": "TestOperatorPathsStrictCatalog",
+        "dir": "cmd/curator-engines"
+      }
+    ]
   }
 ]

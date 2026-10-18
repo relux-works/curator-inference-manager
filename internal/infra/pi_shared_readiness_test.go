@@ -178,7 +178,9 @@ func startReadinessChild(t *testing.T) (*exec.Cmd, *piProcessWait) {
 	}
 	wait := waitForPiProcessAndClose(child, io.NopCloser(strings.NewReader("")))
 	t.Cleanup(func() {
-		if child.ProcessState == nil {
+		select {
+		case <-wait.done:
+		default:
 			_ = terminateProcessGroup(child.Process.Pid, wait, 50*time.Millisecond)
 		}
 	})

@@ -9,13 +9,45 @@ This document names the extracted broker surface v1. The existing private socket
 The public binary is `curator-engines`. Its lifecycle commands are:
 
 ```text
-curator-engines status  [--engine NAME] [--json]
-curator-engines ensure  [--engine NAME] [--json]
-curator-engines release [--engine NAME] --lease-token TOKEN [--json]
-curator-engines stop    [--engine NAME] [--json] [--force] [--timeout SECONDS]
+curator-engines status  [--engine NAME] [--config FILE] [--cache-root DIR] [--json]
+curator-engines ensure  [--engine NAME] [--config FILE] [--cache-root DIR] [--json]
+curator-engines release [--engine NAME] [--config FILE] [--cache-root DIR] --lease-token TOKEN [--json]
+curator-engines stop    [--engine NAME] [--config FILE] [--cache-root DIR] [--json] [--force] [--timeout SECONDS]
 ```
 
 `--engine` selects the existing managed profile entry. If it is omitted, the selected project entry is used. Project engine configuration remains at `.agents/.configs/project-config.toml`; the extraction does not move model files, model configuration, or engine executable configuration. `status --json` returns the v7 status object. `ensure --json` writes the granted lease record, including the token, before holding the lease for the lifetime of the caller process. SIGINT, SIGTERM, process exit, and connection loss release that process's lease. A caller can use the emitted token with `release` from another process. `stop` refuses active leases unless `--force` is supplied.
+
+Catalog entries use zero linger: releasing the last lease starts shutdown
+immediately. Release acknowledgement does not wait for broker shutdown.
+During shutdown, a connected peer may close before replying to hello; this is
+the typed `shared_runtime_unavailable` refusal (including EOF or connection
+reset), not proof of broker absence. `--force` does not bypass a failed
+post-connection attestation. After shutdown completes and the socket is absent,
+`stop --force --json` succeeds with `state: "absent"`, zero/omitted PIDs and both
+termination flags false. Without `--force`, absent-broker stop refuses with
+`shared_runtime_broker_unreachable_use_force`. A reachable broker with active
+leases refuses non-forced stop with `shared_runtime_leases_active` and retains
+those leases.
+
+`--config FILE` selects an absolute catalog path using the same private catalog
+permissions and strict reader as the default `$HOME/.curator/engines.toml`.
+A relative config path refuses with `engine_catalog_read_failed` (site
+`catalog.selection`); a missing explicitly selected catalog or entry also
+refuses there, without legacy fallback. `--cache-root DIR` selects an existing
+absolute state/cache directory; relative paths refuse with
+`shared_runtime_state_path_invalid`. It controls broker state, leases and the
+rendezvous socket. Omitting either flag preserves that path's existing default.
+The client passes the selection to the broker and the broker passes it to the
+runtime launcher. Canonical rendezvous socket paths longer than 103 bytes refuse
+with `broker_rendezvous_path_too_long`, naming the actual length and limit.
+No alternate socket location is chosen.
+
+The catalog location is not itself part of runtime or engine identity. Pinned
+relative model paths resolve against the selected catalog directory, so relocating
+such a catalog can legitimately change the expanded argv and runtime identity.
+Darwin executable attestation obtains the inspected PID's absolute executable
+vnode path via `PROC_PIDPATHINFO`, independently of the invocation spelling in
+`kern.procargs2` or argv[0]; the same device/inode equality checks still apply.
 
 `release` uses a bearer `lease_token`; a visible `lease_id` is not authority to release. The existing owner-connection release message by `lease_id` remains for orderly cleanup by the process that owns that connection. Tokens are distinct from lease IDs, compared as bearer values, and omitted from status lease rows. A valid external release removes that lease and notifies its owner connection with `released` so a waiting `ensure` exits cleanly.
 

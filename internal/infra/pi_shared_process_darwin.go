@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -118,6 +119,23 @@ func readDarwinProcessArgs(pid int) (string, []string, error) {
 	return execPath, argv, nil
 }
 
+// readDarwinProcessExecutablePath uses the kernel's executable vnode path, as
+// proc_pidpath does (PROC_INFO_CALL_PIDINFO / PROC_PIDPATHINFO). kern.procargs2
+// can retain a relative exec path; resolving it in the broker's cwd identifies
+// the wrong file. Keep argv inspection separate from executable identity.
+func readDarwinProcessExecutablePath(pid int) (string, error) {
+	var buffer [4096]byte // PROC_PIDPATHINFO_MAXSIZE
+	_, _, errno := unix.Syscall6(unix.SYS_PROC_INFO, 2, uintptr(pid), 11, 0, uintptr(unsafe.Pointer(&buffer[0])), uintptr(len(buffer)))
+	if errno != 0 {
+		return "", errno
+	}
+	end := bytes.IndexByte(buffer[:], 0)
+	if end <= 0 || !filepath.IsAbs(string(buffer[:end])) {
+		return "", errors.New("kernel executable path is absent or not absolute")
+	}
+	return string(buffer[:end]), nil
+}
+
 func resolvedExecutableIdentity(path string) (string, FileIdentity, error) {
 	resolved, err := filepath.EvalSymlinks(path)
 	if err != nil {
@@ -171,6 +189,10 @@ func sharedUnixPeerIdentity(connection *net.UnixConn) (uint32, int, error) {
 }
 
 func processExecIdentity(observation sharedProcessObservation) (FileIdentity, error) {
-	_, identity, err := resolvedExecutableIdentity(observation.ExecPath)
+	path, err := readDarwinProcessExecutablePath(observation.PID)
+	if err != nil {
+		return FileIdentity{}, err
+	}
+	_, identity, err := resolvedExecutableIdentity(path)
 	return identity, err
 }

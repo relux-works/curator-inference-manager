@@ -17,6 +17,17 @@ const projectConfigFileName = "project-config.toml"
 var readLegacyPiIdentityConfigFile = os.ReadFile
 
 func resolveSharedProfile(projectDir, homeDir, cacheRoot, profileName string) (sharedResolvedProfile, error) {
+	return resolveSharedProfileWithCatalog(projectDir, homeDir, cacheRoot, profileName, "")
+}
+
+func resolveSharedProfileWithCatalog(projectDir, homeDir, cacheRoot, profileName, catalogFile string) (sharedResolvedProfile, error) {
+	if catalogFile != "" && !filepath.IsAbs(catalogFile) {
+		return sharedResolvedProfile{}, engineCatalogReadFailed("catalog.selection", errors.New("config path must be absolute"))
+	}
+	if cacheRoot != "" && !filepath.IsAbs(cacheRoot) {
+		return sharedResolvedProfile{}, sharedRuntimeError("shared_runtime_state_path_invalid", errors.New("cache root must be absolute"))
+	}
+	explicitCatalog := catalogFile != ""
 	project, err := CanonicalProjectDir(projectDir)
 	if err != nil {
 		return sharedResolvedProfile{}, err
@@ -42,9 +53,11 @@ func resolveSharedProfile(projectDir, homeDir, cacheRoot, profileName string) (s
 	if profileName == "" {
 		return sharedResolvedProfile{}, sharedRuntimeError("shared_runtime_not_configured", errors.New("no managed Pi profile is selected"))
 	}
-	catalogFile, pathErr := engineCatalogPath(homeDir)
-	if pathErr != nil {
-		return sharedResolvedProfile{}, pathErr
+	if !explicitCatalog {
+		catalogFile, err = engineCatalogPath(homeDir)
+		if err != nil {
+			return sharedResolvedProfile{}, err
+		}
 	}
 	entry, state, catalogErr := ReadEngineCatalogEntry(catalogFile, profileName)
 	if catalogErr != nil {
@@ -58,7 +71,14 @@ func resolveSharedProfile(projectDir, homeDir, cacheRoot, profileName string) (s
 		if present && !catalogPiIdentityAndArgvAgree(profileName, entry, legacy) {
 			return sharedResolvedProfile{}, engineCatalogConflict("resolution.identity_argv", errors.New("catalog and legacy Pi profile disagree on model identity or executable/argv"))
 		}
-		return resolveCatalogProfile(project, homeDir, cacheRoot, profileName, entry, catalogFile)
+		resolved, err := resolveCatalogProfile(project, homeDir, cacheRoot, profileName, entry, catalogFile)
+		if explicitCatalog {
+			resolved.ConfigPath = catalogFile
+		}
+		return resolved, err
+	}
+	if explicitCatalog {
+		return sharedResolvedProfile{}, engineCatalogReadFailed("catalog.selection", errors.New("selected catalog file or engine entry is absent"))
 	}
 	if profiles == nil {
 		profiles, _, err = readPiProfiles(project, homeDir)

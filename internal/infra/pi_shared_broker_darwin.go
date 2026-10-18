@@ -28,6 +28,7 @@ import (
 )
 
 type SharedRuntimeBrokerOptions struct {
+	ConfigPath     string
 	RuntimeKey     string
 	ProfileProject string
 	ProfileName    string
@@ -218,7 +219,7 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 		}
 	}()
 
-	resolved, err := resolveSharedProfile(options.ProfileProject, options.HomeDir, options.CacheRoot, options.ProfileName)
+	resolved, err := resolveSharedProfileWithCatalog(options.ProfileProject, options.HomeDir, options.CacheRoot, options.ProfileName, options.ConfigPath)
 	if err != nil {
 		return err
 	}
@@ -455,6 +456,9 @@ func startUnauthorizedRuntimeWithSystem(resolved sharedResolvedProfile, environ 
 		"runtime", "runtime-launch", "--runtime-key", resolved.RuntimeKey,
 		"--profile-project", resolved.Project, "--profile", resolved.ProfileName,
 		"--home-dir", resolved.HomeDir, "--cache-root", resolved.Paths.CanonicalCacheRoot,
+	}
+	if resolved.ConfigPath != "" {
+		args = append(args, "--config", resolved.ConfigPath)
 	}
 	command := exec.Command(executable, args...)
 	command.Dir = resolved.Paths.RuntimeCWD

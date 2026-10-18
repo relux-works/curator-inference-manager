@@ -451,19 +451,60 @@ func startTestBrokerChild(t *testing.T, script string) (*sharedBrokerChild, *exe
 		t.Fatal(err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
+	waited := make(chan struct{})
+	go func() {
+		done <- command.Wait()
+		close(waited)
+	}()
 	child := &sharedBrokerChild{command: command, done: done}
 	t.Cleanup(func() {
-		if command.ProcessState == nil {
+		// The acquisition path may already have consumed done's single result.
+		// Wait completion, rather than Cmd.ProcessState, is safe to observe here.
+		select {
+		case <-waited:
+		default:
 			_ = command.Process.Kill()
 			select {
-			case <-done:
+			case <-waited:
 			case <-time.After(2 * time.Second):
 				t.Errorf("test child %d did not exit", command.Process.Pid)
 			}
 		}
 	})
 	return child, command
+}
+
+// Cleanup reaps a running child and tolerates an exit result already consumed
+// by acquisition; -race checks that cleanup never races with Cmd.Wait.
+func TestStartTestBrokerChildCleanup(t *testing.T) {
+	for _, exited := range []bool{false, true} {
+		name, script := "running", "exec sleep 30"
+		if exited {
+			name, script = "exit result consumed", "exit 42"
+		}
+		var command *exec.Cmd
+		if !t.Run(name, func(t *testing.T) {
+			var child *sharedBrokerChild
+			child, command = startTestBrokerChild(t, script)
+			if exited {
+				select {
+				case err := <-child.done:
+					var exit *exec.ExitError
+					if !errors.As(err, &exit) || exit.ExitCode() != 42 {
+						t.Fatalf("child exit=%v, want exit status 42", err)
+					}
+				case <-time.After(2 * time.Second):
+					t.Fatal("test child did not exit")
+				}
+			}
+		}) {
+			continue
+		}
+		// Subtest cleanup has synchronized with Wait before this state read.
+		if command.ProcessState == nil || command.ProcessState.Success() {
+			t.Fatalf("cleanup did not reap the killed/failed child: %v", command.ProcessState)
+		}
+	}
 }
 
 func TestAcquireSharedRuntimeLeaseRefusesBrokerChildFailureLedgerStates(t *testing.T) {
