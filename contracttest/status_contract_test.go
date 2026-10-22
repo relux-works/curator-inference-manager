@@ -3,10 +3,13 @@ package contracttest_test
 import (
 	"encoding/json"
 	"errors"
+	"github.com/relux-works/skill-agents-management/pkg/inferenceengine"
+	"github.com/relux-works/skill-agents-management/pkg/plugin"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -24,13 +27,16 @@ func TestGeneratedStatusConsumerContract(t *testing.T) {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("producer fixture generation: %v\n%s", err, output)
 	}
-	for _, name := range []string{"idle", "absent", "serving-with-leases", "quarantined", "refused-weights", "readings-failure", "readings-malformed", "readings-partial", "readings-stale", "record-starting", "record-serving", "record-lingering", "record-draining", "record-unverified-stale", "record-unknown-state", "record-", "record-absent", "record-starting-unverified", "profile-readings-failure"} {
+	for _, name := range []string{"verified-weights", "verified-weights-cleaned", "verified-weights-bin", "idle", "absent", "serving-with-leases", "quarantined", "refused-weights", "readings-failure", "readings-malformed", "readings-partial", "readings-stale", "record-starting", "record-serving", "record-lingering", "record-draining", "record-unverified-stale", "record-unknown-state", "record-", "record-absent", "record-starting-unverified", "profile-readings-failure"} {
 		t.Run(name, func(t *testing.T) {
 			raw, err := os.ReadFile(filepath.Join(outputDir, name+".json"))
 			if err != nil {
 				t.Fatal(err)
 			}
 			engine := "profile"
+			if strings.HasPrefix(name, "verified-weights") {
+				engine = name
+			}
 			if name == "profile-readings-failure" {
 				engine = "catalog"
 			}
@@ -50,6 +56,9 @@ func TestGeneratedStatusConsumerContract(t *testing.T) {
 			}
 			checkConsumerNegativeControls(t, raw, engine)
 			checkReadingsShape(t, raw)
+			if strings.HasPrefix(name, "verified-weights") {
+				checkWeightArtifactValue(t, raw, name)
+			}
 		})
 	}
 }
@@ -161,5 +170,70 @@ func checkReadingsShape(t *testing.T, raw []byte) {
 		default:
 			t.Fatal("unknown outcome")
 		}
+	}
+}
+
+// The consumer's actual value validator accepts cleaned paths and the status
+// decoder accepts a degraded .bin fact. Probe only artifact/profile syntax;
+// this does not assert complete runtime observation or readiness.
+func checkWeightArtifactValue(t *testing.T, raw []byte, name string) {
+	t.Helper()
+	fields := statusFields(t, raw)
+	var readings struct {
+		Facts []struct{ Fact, Outcome, Value, Cause, Reason, Source string }
+	}
+	if err := json.Unmarshal(fields["readings"], &readings); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, row := range readings.Facts {
+		if row.Fact != "weight-artifact" {
+			continue
+		}
+		found = true
+		if name == "verified-weights-bin" {
+			if row.Outcome != "not-observed" || row.Cause != "unsupported" || row.Value != "" || row.Reason == "" {
+				t.Fatalf("invalid .bin degradation: %+v", row)
+			}
+			continue
+		}
+		if row.Outcome != "observed-value" || row.Source != "broker-verified-weights" {
+			t.Fatal(row)
+		}
+		var shape struct {
+			ModelPath string `json:"model_path"`
+		}
+		if err := json.Unmarshal([]byte(row.Value), &shape); err != nil || shape.ModelPath != "/models/fixture.gguf" {
+			t.Fatalf("artifact path %q: %v", row.Value, err)
+		}
+		probe := func(value string) error {
+			var facts []inferenceengine.Reading
+			for _, definition := range inferenceengine.MeasuredFacts() {
+				read := inferenceengine.ReadAbsent()
+				switch definition.Fact {
+				case inferenceengine.FactLocalExecutable:
+					read = inferenceengine.ReadValue("/bin/echo")
+				case inferenceengine.FactLocalArgv:
+					read = inferenceengine.ReadValue(`["--port","18012"]`)
+				case inferenceengine.FactWeightArtifact:
+					read = inferenceengine.ReadValue(value)
+				}
+				facts = append(facts, inferenceengine.NewReading(definition.Fact, read))
+			}
+			_, err := inferenceengine.ValidateReadings(plugin.ID("fixture"), inferenceengine.EngineKindGGUFServer, facts)
+			return err
+		}
+		if err := probe(row.Value); err != nil {
+			t.Fatalf("consumer artifact contract: %v", err)
+		}
+		// Bounded plants prove this validator rejects both original violations.
+		for _, invalid := range []string{`{"format":"gguf","model_path":"/models/model.bin"}`, `{"format":"gguf","model_path":"/models/../models/fixture.gguf"}`} {
+			if err := probe(invalid); !errors.Is(err, inferenceengine.ErrObservationMalformed) {
+				t.Fatalf("invalid artifact escaped consumer: %v", err)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("artifact reading missing")
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -334,6 +335,24 @@ func degradeUnrepresentableLocalArgv(resolved sharedResolvedProfile, values map[
 			degraded[inferenceengine.FactLocalArgv] = fmt.Sprintf("resolved local argv token %d empty (%s engine %q; engines.toml/v1)", index, entry.Engine, runnable)
 			delete(values, inferenceengine.FactLocalArgv)
 			return
+		}
+	}
+}
+
+// A verified instance supplies artifact shape, not residency or memory accounting.
+func observeEngineWeightsReadings(readings *EngineReadings, weights EngineWeightsStatus, modelPath string) {
+	if weights.Verification != "verified" {
+		return
+	}
+	modelPath = filepath.Clean(modelPath)
+	row := EngineReading{Fact: inferenceengine.FactWeightArtifact, Outcome: inferenceengine.OutcomeNotObserved, Cause: inferenceengine.NotObservedUnsupported, Reason: "verified weights path does not represent a GGUF artifact", Source: "broker-verified-weights"}
+	if filepath.IsAbs(modelPath) && strings.EqualFold(filepath.Ext(modelPath), ".gguf") {
+		raw, _ := json.Marshal(map[string]string{"format": "gguf", "model_path": modelPath})
+		row = EngineReading{Fact: inferenceengine.FactWeightArtifact, Outcome: inferenceengine.OutcomeObservedValue, Value: string(raw), Source: "broker-verified-weights"}
+	}
+	for i := range readings.Facts {
+		if readings.Facts[i].Fact == inferenceengine.FactWeightArtifact {
+			readings.Facts[i] = row
 		}
 	}
 }

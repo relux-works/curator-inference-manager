@@ -137,7 +137,7 @@ package pass with no named pin execution is refused. This classification is
 separate from EQUIVALENT and does not borrow a downstream failure as proof
 that the primary was exercised.
 
-`internal/infra/engine_catalog.go:validateEngineCatalogExactKeys:2` checks
+`internal/infra/engine_catalog.go:validateEngineCatalogKeysForSelection:2` checks
 `rawDocument == nil` after successful `toml.Unmarshal` into `map[string]any`.
 Pinned go-toml v2.4.3 initializes the generic map on every success. The named
 `TestEngineCatalogDecoderInitializesMapAndRejectsMissingEngines` pins this
@@ -241,3 +241,50 @@ to the executing tree using the existing content identity check before resolving
 all three original platform contexts. Projected build tags cannot supply those
 contexts themselves. `TestLegacyMutationCensusRejectsChangedCanonicalSnapshot`
 refuses a changed test body or incomplete snapshot; no context or guard is skipped.
+
+## Reasoning, cache, socket-budget and build metadata updates
+
+The current full-module census is **750 sites**, previously 747. The socket
+length refusal moved from `ResolveSharedRuntimePaths` to
+`ValidateEngineCacheRoot`; three catalog refusal sites were added for invalid
+raw reasoning values, engine/value validation and literal-argv conflicts.
+Retained expression certificates keep their witnesses and named test mappings;
+shifted ordinals and changed source/test identities are refreshed together.
+New compound/length sites carry named behavioral coverage with explicit
+undecided singleton-narrowing bounds, not invented mutation-kill credit.
+
+Bounded guard-removal overlays each produced the intended named assertion
+failure; the original source remained intact and the same tests passed without
+overlays:
+
+| Removed guard | Detecting negative test | Observed violation |
+| --- | --- | --- |
+| Typed reasoning value rejection | `TestEngineReasoningKnob` | `yes` accepted without a typed refusal |
+| Exact verification-cache key equality | `TestEngineWeightsVerificationCacheKey/ctime` | Rewritten file with restored mtime accepted a stale digest |
+| Socket length rejection | `TestCacheRootLength/ensure` | Request reached catalog resolution instead of the early typed length refusal |
+| Empty build field fallback | `TestVersion` | Empty module/Go versions emitted instead of `unknown` |
+
+These controls supplement the product negative tests. They are whole-guard
+removal evidence, not singleton narrowing certificates for the census harness.
+Weights cache tests also pair unchanged-file reuse with size, mtime, ctime,
+inode, path and device-key invalidation, and refuse unsafe cache permissions,
+ownership, symlinks and corrupt JSON as digest authority. Status consumer
+fixtures include broker-verified weights with the closed artifact reading;
+failed readings envelopes retain the all-NotObserved rule.
+
+## Verification cache and reasoning review corrections
+
+Matching same-owner private cache entries are authoritative, not authenticated.
+`TestEngineWeightsVerificationCacheOptOut` pins that behavior and demonstrates
+that the opt-out hashes and refuses a forged matching entry, with a valid pin
+control and no cache write. `TestWeightsEnsureNoCacheRejectsForgedEntry` exercises
+the CLI flag and verifies the actual digest in its refusal before process start.
+`TestEngineReasoningSelectedEntryIsolation` limits semantic validation to the
+selected entry; `TestEngineReasoningArgvConsumption` preserves option-looking
+values while refusing real flags alongside the knob. `TestReasoningEnsureRefusals`
+resolves valid on/off/auto entries through the production status resolver and
+asserts exactly one rendered reasoning pair. Invalid/conflicting ensure cases
+retain their typed refusals. Verified weights fixture publications cover a clean
+path, a path containing `..`, and a `.bin` path; contracttest checks these against
+the consumer decoder and actual artifact value validator, including violation
+plants for both originally invalid values.

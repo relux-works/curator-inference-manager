@@ -150,6 +150,7 @@ type sharedResolvedProfile struct {
 	CatalogObservation *EngineCatalogEntry
 	CatalogEntry       bool
 	ExpectedWeightsID  string
+	NoWeightsCache     bool
 	CatalogMode        string
 	NotRunnableCode    string
 	NotRunnableReason  string
@@ -162,6 +163,7 @@ type EngineCatalogKnobs struct {
 	PrefillChunkTokens  string `toml:"-"`
 	KVContextSize       any    `toml:"kv_context_size,omitempty"`
 	PrefillChunkSize    any    `toml:"prefill_chunk_size,omitempty"`
+	Reasoning           string `toml:"reasoning,omitempty"`
 	ReasoningEffort     string `toml:"reasoning_effort,omitempty"`
 	SpeculativeDecoding string `toml:"speculative_decoding,omitempty"`
 }
@@ -302,7 +304,7 @@ var engineCatalogEntryKeys = [...]string{
 	"ssh_target", "remote_executable", "remote_config", "remote_profile", "remote_host", "remote_port",
 	"stress", "supervision", "pinned_distribution", "weights",
 }
-var engineCatalogKnobKeys = [...]string{"kv_context_size", "prefill_chunk_size", "reasoning_effort", "speculative_decoding"}
+var engineCatalogKnobKeys = [...]string{"kv_context_size", "prefill_chunk_size", "reasoning_effort", "reasoning", "speculative_decoding"}
 var engineCatalogStressKeys = [...]string{
 	"prompt_tokens", "max_output_tokens", "startup_timeout_seconds", "request_timeout_seconds", "sample_interval_milliseconds",
 }
@@ -407,6 +409,10 @@ func engineCatalogHasFieldToken(value, expected string) bool {
 }
 
 func validateEngineCatalogExactKeys(data []byte) error {
+	return validateEngineCatalogKeysForSelection(data, "")
+}
+
+func validateEngineCatalogKeysForSelection(data []byte, selected string) error {
 	var rawDocument map[string]any
 	if err := toml.Unmarshal(data, &rawDocument); err != nil {
 		return engineCatalogMalformed("catalog.decode", err)
@@ -450,6 +456,11 @@ func validateEngineCatalogExactKeys(data []byte) error {
 			nestedTable, ok := rawNested.(map[string]any)
 			if !ok {
 				return engineCatalogMalformed("catalog."+nested.name, fmt.Errorf("%s must be a table", nested.name))
+			}
+			if name == selected && nested.name == "knobs" {
+				if raw, present := nestedTable["reasoning"]; present && raw != "on" && raw != "off" && raw != "auto" {
+					return engineCatalogMalformed("entry.knobs.reasoning", errors.New("must equal on, off, or auto"))
+				}
 			}
 			if err := engineCatalogRejectUnknownKeys(nestedTable, "entry "+name+"."+nested.name, nested.keys...); err != nil {
 				return err
@@ -511,7 +522,7 @@ func ReadEngineCatalogEntry(path, name string) (EngineCatalogEntry, EngineCatalo
 		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.size", errors.New("catalog exceeds the 1 MiB schema limit"))
 	}
 
-	if err := validateEngineCatalogExactKeys(data); err != nil {
+	if err := validateEngineCatalogKeysForSelection(data, name); err != nil {
 		return EngineCatalogEntry{}, engineCatalogErrorState(err), err
 	}
 	decoder := toml.NewDecoder(bytes.NewReader(data)).DisallowUnknownFields()
@@ -605,6 +616,18 @@ func validateEngineCatalogEntry(name string, entry EngineCatalogEntry) error {
 		if err := validateEngineCatalogKnobs(entry.Engine, entry.Knobs); err != nil {
 			return err
 		}
+		if entry.Knobs != nil && entry.Knobs.Reasoning != "" {
+			for i := 0; i < len(entry.Argv); i++ {
+				flag, _, inline := strings.Cut(entry.Argv[i], "=")
+				if flag == "--reasoning" || flag == "-rea" {
+					return engineCatalogMalformed("entry.knobs.reasoning.argv", errors.New("reasoning knob conflicts with literal reasoning argv"))
+				}
+				// Share the parser's option arity: option-looking values are data.
+				if spec, known := engineCheckFlags[flag]; known && !spec.mlxOnly && spec.value && !inline && i+1 < len(entry.Argv) {
+					i++
+				}
+			}
+		}
 		if err := validateEngineCatalogStress(entry.Stress); err != nil {
 			return err
 		}
@@ -693,6 +716,9 @@ func validateEngineCatalogKnobs(engine string, knobs *EngineCatalogKnobs) error 
 		if !engineCatalogPositiveInteger(value) {
 			return engineCatalogMalformed("entry.knobs.prefill_chunk_size", errors.New("must be a positive integer"))
 		}
+	}
+	if value := knobs.Reasoning; value != "" && (engine != "llama-cpp" || value != "on" && value != "off" && value != "auto") {
+		return engineCatalogMalformed("entry.knobs.reasoning", errors.New("reasoning requires llama-cpp and on, off, or auto"))
 	}
 	if value := knobs.ReasoningEffort; value != "" && value != "low" && value != "medium" && value != "xhigh" {
 		return engineCatalogMalformed("entry.knobs.reasoning_effort", errors.New("must equal low, medium, or xhigh"))
@@ -896,6 +922,9 @@ func engineCatalogKnobArgv(engine string, knobs *EngineCatalogKnobs) []string {
 		} else {
 			argv = append(argv, "--prefill-step-size", value)
 		}
+	}
+	if value := knobs.Reasoning; value != "" {
+		argv = append(argv, "--reasoning", value)
 	}
 	if value := knobs.ReasoningEffort; value != "" {
 		if engine == "mlx-lm" {

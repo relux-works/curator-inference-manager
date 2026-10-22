@@ -271,7 +271,7 @@ func ResolveSharedRuntimePaths(cacheRoot, runtimeKey string) (SharedRuntimePaths
 		return SharedRuntimePaths{}, sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
 	root := filepath.Join(canonical, sharedRuntimeStateNamespace, sharedRuntimePathVersion, runtimeKey)
-	rv := filepath.Join(canonical, sharedRuntimeStateNamespace, sharedRuntimeRendezvousName, runtimeKey[:32])
+	rv := filepath.Dir(sharedRuntimeSocketPath(canonical, runtimeKey))
 	paths := SharedRuntimePaths{
 		CanonicalCacheRoot: canonical,
 		RuntimeKey:         runtimeKey,
@@ -284,7 +284,7 @@ func ResolveSharedRuntimePaths(cacheRoot, runtimeKey string) (SharedRuntimePaths
 		LeasesDir:          filepath.Join(root, "leases"),
 		RuntimeCWD:         filepath.Join(root, "cwd"),
 		RendezvousDir:      rv,
-		RendezvousSocket:   filepath.Join(rv, "b.sock"),
+		RendezvousSocket:   sharedRuntimeSocketPath(canonical, runtimeKey),
 	}
 	for _, path := range []string{root, rv} {
 		rel, relErr := filepath.Rel(canonical, path)
@@ -292,8 +292,8 @@ func ResolveSharedRuntimePaths(cacheRoot, runtimeKey string) (SharedRuntimePaths
 			return SharedRuntimePaths{}, sharedRuntimeError("shared_runtime_state_path_invalid", errors.New("managed runtime path escaped cache root"))
 		}
 	}
-	if len(paths.RendezvousSocket) > 103 {
-		return SharedRuntimePaths{}, sharedRuntimeError("broker_rendezvous_path_too_long", fmt.Errorf("rendezvous path is %d bytes; limit is 103 bytes", len(paths.RendezvousSocket)))
+	if err := ValidateEngineCacheRoot(canonical); err != nil {
+		return SharedRuntimePaths{}, err
 	}
 	return paths, nil
 }

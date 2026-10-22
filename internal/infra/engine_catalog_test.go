@@ -1027,7 +1027,7 @@ func catalogCaseVariantBaseEntry(table, key string) EngineCatalogEntry {
 		Mode:    "local", Engine: "llama-cpp", Model: "/models/qwen", ServedModelID: "qwen-served",
 		Executable: "/bin/model-server", Argv: []string{"serve", "--host", "{host}", "--port", "{port}"},
 		Knobs: &EngineCatalogKnobs{
-			KVContextTokens: "4096", PrefillChunkTokens: "256", ReasoningEffort: "medium", SpeculativeDecoding: "off",
+			KVContextTokens: "4096", PrefillChunkTokens: "256", Reasoning: "off", ReasoningEffort: "medium", SpeculativeDecoding: "off",
 		},
 		Stress: &EngineCatalogStressPolicy{
 			PromptTokens: 1024, MaxOutputTokens: 64, StartupTimeoutSeconds: 30, RequestTimeoutSeconds: 120,

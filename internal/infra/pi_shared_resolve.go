@@ -27,6 +27,9 @@ func resolveSharedProfileWithCatalog(projectDir, homeDir, cacheRoot, profileName
 	if cacheRoot != "" && !filepath.IsAbs(cacheRoot) {
 		return sharedResolvedProfile{}, sharedRuntimeError("shared_runtime_state_path_invalid", errors.New("cache root must be absolute"))
 	}
+	if err := ValidateEngineCacheRoot(cacheRoot); err != nil {
+		return sharedResolvedProfile{}, err
+	}
 	explicitCatalog := catalogFile != ""
 	project, err := CanonicalProjectDir(projectDir)
 	if err != nil {

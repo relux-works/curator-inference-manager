@@ -30,6 +30,16 @@ func AcquireSharedRuntimeLease(ctx context.Context, options SharedRuntimeOperato
 	if resolved.NotRunnableCode != "" {
 		return nil, engineCatalogNotRunnableError(resolved)
 	}
+	// A cache opt-out also rehashes on attachment to an already-running broker.
+	if resolved.NoWeightsCache {
+		observed, _, err := verifyCatalogWeights(resolved)
+		if err != nil {
+			return nil, err
+		}
+		if err := validateExpectedEngineWeights(resolved, observed); err != nil {
+			return nil, err
+		}
+	}
 	if err := CreateSharedRuntimeTree(resolved.Paths); err != nil {
 		return nil, err
 	}

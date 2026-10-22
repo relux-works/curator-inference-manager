@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -151,6 +152,54 @@ func TestWriteStatusConsumerContractFixtures(t *testing.T) {
 	}
 	requireFailedStatusReadings(t, report, "readings_malformed")
 
+	// Verification may succeed for renamed GGUF bytes. Publish only paths that
+	// satisfy the consumer artifact shape, independently of digest verification.
+	id := "gguf-sha256:" + strings.Repeat("a", 64)
+	for _, tc := range []struct{ name, path, wantPath string }{
+		{"verified-weights", "/models/fixture.gguf", "/models/fixture.gguf"},
+		{"verified-weights-cleaned", "/models/../models/fixture.gguf", "/models/fixture.gguf"},
+		{"verified-weights-bin", "/models/model.bin", ""},
+	} {
+		writeEngineCatalog(t, home, map[string]EngineCatalogEntry{tc.name: {
+			Mode: "local", Engine: "llama-cpp", Model: tc.path, ServedModelID: "fixture-model", Executable: "/bin/echo",
+			Argv: []string{"--host", "{host}", "--port", "{port}"}, Weights: &EngineCatalogWeights{ID: id},
+		}})
+		options.Profile = tc.name
+		resolved, err = resolveSharedProfile(project, home, cache, options.Profile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.Endpoint = resolved.Profile.BaseURL
+		runtime.Weights = &EngineWeightsObservation{ID: id, ObservedAt: now}
+		attested.runtime = runtime
+		message.EffectiveSharing = &resolved.Sharing
+		report = emit(tc.name)
+		if report.Weights.Verification != "verified" {
+			t.Fatal(report.Weights)
+		}
+		found := false
+		for _, row := range report.Readings.Facts {
+			if row.Fact != inferenceengine.FactWeightArtifact {
+				continue
+			}
+			found = true
+			if tc.wantPath == "" {
+				if row.Outcome != inferenceengine.OutcomeNotObserved || row.Cause != inferenceengine.NotObservedUnsupported || row.Value != "" || row.Reason == "" {
+					t.Fatalf("unrepresentable artifact: %+v", row)
+				}
+			} else {
+				var shape struct {
+					ModelPath string `json:"model_path"`
+				}
+				if err := json.Unmarshal([]byte(row.Value), &shape); err != nil || shape.ModelPath != tc.wantPath || row.Outcome != inferenceengine.OutcomeObservedValue || row.Source != "broker-verified-weights" {
+					t.Fatalf("verified artifact: %+v %v", row, err)
+				}
+			}
+		}
+		if !found {
+			t.Fatal("artifact reading missing")
+		}
+	}
 }
 
 func requireFailedStatusReadings(t *testing.T, report SharedRuntimeStatus, code string) {

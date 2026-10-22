@@ -60,6 +60,7 @@ func TestWeightsCatalogRefusalsDoNotStartProcess(t *testing.T) {
 		{"empty", `id = ""`, "engine_catalog_malformed", "entry.weights.id"},
 		{"missing", "", "engine_catalog_malformed", "entry.weights.id"},
 		{"other_prefix", `id = "sha256:` + strings.Repeat("a", 64) + `"`, "engine_catalog_unsupported", "entry.weights.id.unsupported"},
+		{"cache_opt_out", `id = "gguf-sha256:` + strings.Repeat("a", 64) + `"` + "\ncache=false", "engine_catalog_malformed", "catalog.weights.keys"},
 		{"unknown", `id = "gguf-sha256:` + strings.Repeat("a", 64) + `"` + "\nversion=1", "engine_catalog_malformed", "catalog.weights.keys"},
 		{"not_table", `"gguf-sha256:` + strings.Repeat("a", 64) + `"`, "engine_catalog_malformed", "catalog.weights"},
 		{"mlx", `id = "gguf-sha256:` + strings.Repeat("a", 64) + `"`, "engine_catalog_unsupported", "entry.weights.scope"},
@@ -161,6 +162,16 @@ func TestWeightsVerifiedLifecycleAndSharedPin(t *testing.T) {
 	if status.Weights.Verification != "verified" || status.Weights.ID != id || status.Weights.ObservedID != id || status.Weights.ObservedAt == nil || status.Weights.ObservedAt.IsZero() {
 		t.Fatalf("status=%+v", status.Weights)
 	}
+	// Verified broker weights must also appear in the readings envelope.
+	foundArtifact := false
+	for _, row := range status.Readings.Facts {
+		if string(row.Fact) == "weight-artifact" {
+			foundArtifact = row.Outcome == "observed-value" && row.Source == "broker-verified-weights"
+		}
+	}
+	if !foundArtifact {
+		t.Fatal("verified weights missing from readings")
+	}
 	pidBefore, err := os.ReadFile(pidFile)
 	if err != nil {
 		t.Fatal(err)
@@ -247,5 +258,51 @@ func TestWeightsGGUFEnsureRefusalsDoNotStartProcess(t *testing.T) {
 			defer stopCatalogTestBrokers(cache)
 			assertWeightsRefusal(t, []string{"ensure", "--engine", "fixture", "--json"}, tc.code, "", marker)
 		})
+	}
+}
+
+// The CLI opt-out hashes actual bytes even when a same-owner private cache entry
+// has an exact file key and a forged digest matching both pins; no process starts.
+func TestWeightsEnsureNoCacheRejectsForgedEntry(t *testing.T) {
+	dir, entry, actual := weightsFixture(t)
+	entry.Model = filepath.Join(dir, entry.Model)
+	forged := "gguf-sha256:" + strings.Repeat("a", 64)
+	if actual == forged {
+		t.Fatal("fixture must mismatch forged pin")
+	}
+	entry.Weights.ID = forged
+	cache, marker := prepareWeightsEngine(t, entry)
+	path, err := filepath.EvalSymlinks(entry.Model)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat := info.Sys().(*syscall.Stat_t)
+	cached := map[string]any{
+		"Key": map[string]any{"Path": path, "Device": uint64(stat.Dev), "Inode": stat.Ino, "Size": info.Size(), "MTimeNS": stat.Mtimespec.Nano(), "CTimeNS": stat.Ctimespec.Nano()},
+		"ID":  forged,
+	}
+	raw, err := json.Marshal(cached)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cacheDir := filepath.Join(cache, "weights-verification")
+	if err := os.Mkdir(cacheDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	cacheFile := filepath.Join(cacheDir, fmt.Sprintf("%x.json", sha256.Sum256([]byte(path))))
+	if err := os.WriteFile(cacheFile, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	refusal := assertWeightsRefusal(t, []string{"ensure", "--engine", "fixture", "--expected-weights-id", forged, "--no-weights-cache", "--json"}, "engine_weights_mismatch", "", marker)
+	if !strings.Contains(refusal, actual) {
+		t.Fatalf("refusal lacks actual byte hash: %s", refusal)
+	}
+	after, err := os.ReadFile(cacheFile)
+	if err != nil || !bytes.Equal(after, raw) {
+		t.Fatalf("opt-out changed cache: %v", err)
 	}
 }

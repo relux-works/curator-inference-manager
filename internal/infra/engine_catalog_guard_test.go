@@ -61,6 +61,9 @@ func TestEngineCatalogTypedRefusalASTGuard(t *testing.T) {
 		t.Fatal("locate guard source")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(source), "../.."))
+	if !filepath.IsAbs(source) {
+		root, _ = filepath.Abs("../..")
+	}
 	command := exec.Command("go", "run", filepath.Join(root, "scripts", "engine-catalog-mutants.go"), "-inventory")
 	command.Dir = root
 	output, err := command.CombinedOutput()

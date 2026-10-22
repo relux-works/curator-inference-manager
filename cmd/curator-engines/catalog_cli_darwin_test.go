@@ -379,6 +379,9 @@ func TestCuratorEnginesRealLegacyFixturesReachReadinessUsingServedModelID(t *tes
 		t.Fatal("locate real legacy fixtures")
 	}
 	fixturePath := filepath.Join(filepath.Dir(source), "..", "..", "internal", "infra", "testdata", "legacy-model-harness-fixtures.toml")
+	if !filepath.IsAbs(source) {
+		fixturePath = filepath.Join("..", "..", "internal", "infra", "testdata", "legacy-model-harness-fixtures.toml")
+	}
 	data, err := os.ReadFile(fixturePath)
 	if err != nil {
 		t.Fatalf("read real legacy fixture: %v", err)
@@ -438,6 +441,9 @@ func TestCuratorEnginesReadinessPinsResolvedAliasForShortLegacyLlamaFlags(t *tes
 		t.Fatal("locate real legacy model-harness fixture")
 	}
 	fixturePath := filepath.Join(filepath.Dir(source), "..", "..", "internal", "infra", "testdata", "legacy-model-harness-fixtures.toml")
+	if !filepath.IsAbs(source) {
+		fixturePath = filepath.Join("..", "..", "internal", "infra", "testdata", "legacy-model-harness-fixtures.toml")
+	}
 	data, err := os.ReadFile(fixturePath)
 	if err != nil {
 		t.Fatal(err)

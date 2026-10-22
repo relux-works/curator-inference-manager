@@ -610,6 +610,9 @@ func startSharedRuntimeBroker(resolved sharedResolvedProfile, environ []string) 
 	if resolved.ConfigPath != "" {
 		args = append(args, "--config", resolved.ConfigPath)
 	}
+	if resolved.NoWeightsCache {
+		args = append(args, "--no-weights-cache")
+	}
 	command := exec.Command(executable, args...)
 	command.Dir = resolved.Paths.RuntimeCWD
 	command.Stdin = devNull

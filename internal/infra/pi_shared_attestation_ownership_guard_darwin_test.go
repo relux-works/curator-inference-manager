@@ -25,6 +25,9 @@ import (
 func TestAttestationCleanupOwnershipASTGuard(t *testing.T) {
 	_, source, _, _ := runtime.Caller(0)
 	root := filepath.Clean(filepath.Join(filepath.Dir(source), "../.."))
+	if !filepath.IsAbs(source) {
+		root, _ = filepath.Abs("../..")
+	}
 	sites, err := guardAttestationCleanupOwnership(root)
 	if err != nil {
 		t.Fatal(err)

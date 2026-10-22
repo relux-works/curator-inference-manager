@@ -33,6 +33,9 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 		return runInternal(args[1:], stdout, stderr)
 	}
 	command := args[0]
+	if command == "version" {
+		return runVersion(args[1:], stdout, stderr)
+	}
 	if command == "weights" {
 		return runWeights(args[1:], stdout, stderr)
 	}
@@ -63,8 +66,10 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 	cache := flags.String("cache-root", "", "absolute state and cache root directory")
 	jsonOutput := flags.Bool("json", false, "write JSON output")
 	var expectedWeightsID *string
+	var noWeightsCache *bool
 	if command == "ensure" {
 		expectedWeightsID = flags.String("expected-weights-id", "", "required exact weights identity")
+		noWeightsCache = flags.Bool("no-weights-cache", false, "hash weights on every ensure, bypassing the digest cache")
 	}
 	var leaseToken *string
 	var force *bool
@@ -120,6 +125,7 @@ func runWithContext(parent context.Context, args []string, stdout, stderr io.Wri
 		return writeJSON(stdout, result, stderr)
 	case "ensure":
 		options.ExpectedWeightsID = *expectedWeightsID
+		options.NoWeightsCache = *noWeightsCache
 		return runEnsure(parent, options, *jsonOutput, stdout, stderr)
 	case "release":
 		if leaseToken == nil || *leaseToken == "" {
@@ -214,6 +220,7 @@ func runInternal(args []string, stdout, stderr io.Writer) int {
 	home := flags.String("home-dir", "", "")
 	config := flags.String("config", "", "")
 	cache := flags.String("cache-root", "", "")
+	noWeightsCache := flags.Bool("no-weights-cache", false, "")
 	if err := flags.Parse(args[1:]); err != nil {
 		return 2
 	}
@@ -222,7 +229,8 @@ func runInternal(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	options := infra.SharedRuntimeBrokerOptions{
-		RuntimeKey: *runtimeKey, ProfileProject: *project, ProfileName: *profile,
+		NoWeightsCache: *noWeightsCache,
+		RuntimeKey:     *runtimeKey, ProfileProject: *project, ProfileName: *profile,
 		HomeDir: *home, CacheRoot: *cache, ConfigPath: *config, Environ: os.Environ(),
 	}
 	var err error
@@ -288,7 +296,8 @@ func writeUsage(writer io.Writer) {
 	_ = writeLine(writer, "Usage: curator-engines <check|status|ensure|release|stop|quarantine|unquarantine> [--engine NAME] [--json]")
 	_ = writeLine(writer, "  status, ensure, release, stop, quarantine and unquarantine accept --config FILE and --cache-root DIR (absolute paths)")
 	_ = writeLine(writer, "  weights compute requires --config FILE and --engine NAME [--json] (read-only)")
-	_ = writeLine(writer, "  ensure accepts --expected-weights-id ID")
+	_ = writeLine(writer, "  version [--json]")
+	_ = writeLine(writer, "  ensure accepts --expected-weights-id ID and --no-weights-cache")
 	_ = writeLine(writer, "  check requires --config FILE and --engine NAME (read-only)")
 	_ = writeLine(writer, "  import-legacy <preview|apply|resume|rollback> --config FILE [--evidence-root DIR]")
 	_ = writeLine(writer, "  legacy-evidence DIR (read-only)")

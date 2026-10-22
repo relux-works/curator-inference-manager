@@ -9,6 +9,7 @@ import (
 )
 
 type SharedRuntimeBrokerOptions struct {
+	NoWeightsCache bool
 	ConfigPath     string
 	RuntimeKey     string
 	ProfileProject string
@@ -23,6 +24,7 @@ type SharedRuntimeLauncherOptions = SharedRuntimeBrokerOptions
 type SharedRuntimeOperatorOptions struct {
 	ConfigPath        string
 	ExpectedWeightsID string
+	NoWeightsCache    bool
 	ProjectDir        string
 	Profile           string
 	HomeDir           string

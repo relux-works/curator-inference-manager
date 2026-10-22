@@ -20,6 +20,7 @@ import (
 type SharedRuntimeOperatorOptions struct {
 	ConfigPath        string
 	ExpectedWeightsID string
+	NoWeightsCache    bool
 	ProjectDir        string
 	Profile           string
 	HomeDir           string
@@ -183,6 +184,9 @@ func SharedRuntimeStatusReport(options SharedRuntimeOperatorOptions) (SharedRunt
 		if !profileReadingsFailed {
 			if err := observeAttestedEngineReadings(&report.Readings, resolved.Profile.Runtime.ReadinessPath, report.Resources, sharedRuntimeReadingsNow()); err != nil {
 				report.Readings = failedEngineReadings(err)
+			} else if resolved.CatalogObservation != nil {
+				model := engineWeightsModelPath(*resolved.CatalogObservation, resolved.Profile.Source)
+				observeEngineWeightsReadings(&report.Readings, report.Weights, model)
 			}
 		}
 		return report, nil
@@ -283,6 +287,7 @@ func resolveSharedRuntimeOperator(options SharedRuntimeOperatorOptions) (sharedR
 		return sharedResolvedProfile{}, PiStatePaths{}, err
 	}
 	resolved.ExpectedWeightsID = options.ExpectedWeightsID
+	resolved.NoWeightsCache = options.NoWeightsCache
 	state, err := ResolvePiStatePaths(options.CacheRoot, resolved.Project, resolved.ProfileName)
 	if err != nil {
 		return sharedResolvedProfile{}, PiStatePaths{}, err

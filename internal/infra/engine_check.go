@@ -81,7 +81,7 @@ func CheckEngineFile(path, name string) EngineCheckReport {
 			// Preserve weights refusal codes/sites additively; other catalog
 			// failures retain the established check error contract.
 			var refusal *EngineCatalogError
-			if errors.As(err, &refusal) && (refusal.Site == "catalog.weights" || strings.HasPrefix(refusal.Site, "catalog.weights.") || strings.HasPrefix(refusal.Site, "entry.weights.")) {
+			if errors.As(err, &refusal) && (refusal.Site == "catalog.weights" || strings.HasPrefix(refusal.Site, "catalog.weights.") || strings.HasPrefix(refusal.Site, "entry.weights.") || strings.HasPrefix(refusal.Site, "entry.knobs.reasoning")) {
 				report.Failures = append(report.Failures, EngineCheckFailure{Code: "engine_catalog_" + string(refusal.State), Site: refusal.Site, Message: refusal.Err.Error()})
 				return report
 			}
@@ -129,7 +129,9 @@ type engineArgSpec struct {
 }
 
 var engineCheckFlags = map[string]engineArgSpec{
-	"--parallel": {name: "parallel", value: true}, "-np": {name: "parallel", value: true},
+	"--reasoning": {name: "reasoning", value: true}, "-rea": {name: "reasoning", value: true},
+	"--reasoning-budget": {name: "other", value: true},
+	"--parallel":         {name: "parallel", value: true}, "-np": {name: "parallel", value: true},
 	"--kv-unified": {name: "unified", value: false}, "-kvu": {name: "unified", value: false},
 	"--no-kv-unified": {name: "separate", value: false}, "-no-kvu": {name: "separate", value: false},
 	"--cache-ram": {name: "cache_ram", value: true}, "-cram": {name: "cache_ram", value: true},

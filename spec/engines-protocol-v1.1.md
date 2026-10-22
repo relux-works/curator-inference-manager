@@ -35,7 +35,8 @@ consumer's validator, never healthy conformance. `source` states provenance.
 | health | Bounded HTTP model-discovery success against the kernel-attested runtime; this proves liveness only |
 | inference-busy | Timestamped broker `provider-observed` inference state, including explicit provider unknown with reason |
 | readiness, load-state, unload-state | NotObserved: current discovery/resource evidence does not establish resident weights or transitions |
-| weight-artifact, memory-accounting | NotObserved: catalog model identifiers and resource byte counts do not prove artifact shape or artifact-aware accounting |
+| weight-artifact | ObservedValue from broker-verified weights with a representable clean absolute GGUF path for an attested instance; otherwise NotObserved |
+| memory-accounting | NotObserved: resource byte counts do not prove artifact-aware accounting |
 | memory-pressure-sequence | NotObserved: resource pressure state is not an ordered load/unload/busy consultation trace |
 | speculative-decoding, reasoning-stream-field | NotObserved: argv settings do not establish runtime capabilities or streamed field observations |
 
@@ -219,7 +220,7 @@ mismatch. Compute and launch also refuse missing files with
 `engine_weights_file_missing`, unreadable files with `engine_weights_read_failed`,
 and non-regular files with `engine_weights_not_regular`.
 
-At hash time the broker records descriptor device/inode, size and mtime;
+At hash time the broker records descriptor device/inode, size, mtime and ctime;
 identity changes while opening/hashing or after readiness refuse with
 `engine_weights_file_changed`. After a ready-time change it terminates and
 reaps the process it started before returning the refusal, with no lease.
@@ -256,7 +257,19 @@ Unattested/stale process records cannot produce verified status. A cold status
 does not hash large weights. Check JSON adds the same weights shape using its
 read-only observation. Launch verification is an observation at startup, not a
 continuous filesystem watch, and does not claim the engine's resident-memory
-contents or upgrade the separate `weight-artifact` readings fact.
+contents. When the broker verified the instance weights, a successful readings
+envelope publishes `weight-artifact` as `observed-value`, source
+`broker-verified-weights`, with the existing closed-schema JSON string value
+`{"format":"gguf","model_path":"/models/model.gguf"}`. No digest or timestamp
+is added to this closed value; they remain in top-level `weights`. The path is
+cleaned before publication and must be absolute with a `.gguf` extension
+(case-insensitive), as required by `weight-artifact/v1`. A verified file with an
+unrepresentable path (for example `.bin`) leaves this fact `not-observed` with
+cause `unsupported` and an explanatory reason; top-level verification remains
+`verified`. Unverified
+records do not upgrade this fact. A readings-envelope failure still publishes
+only NotObserved facts. This preserves the status self-decode guard and pinned
+consumer decoders without changing contract versions.
 
 ## Status publication compatibility
 
@@ -278,3 +291,77 @@ claims no admissible live broker evidence; it need not imply process death.
 Weights mismatch remains visible in `weights.verification`. Attested states
 still pass strict socket/identity validation before publication. No new broker
 pair or consumer schema change is required.
+
+## Reasoning control
+
+The closed knob table contains `kv_context_size`, `prefill_chunk_size`,
+`reasoning_effort`, `reasoning`, and `speculative_decoding`. For local llama-cpp,
+`reasoning = "on" | "off" | "auto"` renders exactly one `--reasoning VALUE` pair.
+An omitted knob emits no reasoning flag and preserves engine defaults. Other
+values (including explicit empty strings and non-strings) and other engines
+refuse with `engine_catalog_malformed`, site `entry.knobs.reasoning`, in both
+check and ensure. A knob plus literal `--reasoning` or `-rea` (including inline
+`=VALUE`) refuses at `entry.knobs.reasoning.argv`. The check argv table accepts
+separated `--reasoning`/`-rea` and `--reasoning-budget` values. Semantic value and
+conflict validation applies only to the selected entry. The unsafe
+`--chat-template-kwargs` option remains `argv_unsupported`.
+
+## Verification cache trust
+
+Cold pinned launches may reuse a digest under
+`<cache-root>/weights-verification/`. Each atomic JSON entry is `0600` in a
+`0700` directory, both owned by the current user. Its exact key is resolved
+absolute path, device, inode, size, mtime in nanoseconds, and ctime in nanoseconds.
+All fields must match. A miss revalidates GGUF metadata and hashes the entire
+file before replacing the entry. Corrupt, unreadable, foreign-owned,
+non-regular, symlink or incorrectly permissioned entries are ignored; directory
+validation and write failures also fall back to hashing, never verification
+success. Comparing the resulting digest with catalog and operator ids remains
+fail-closed. `weights compute` and offline `check` deliberately keep full hashing.
+
+The cache defends against accidental changes within filesystem metadata
+resolution and against other users through owner, mode and no-symlink checks.
+A same-owner `0600` entry with a matching key is authoritative by design, even
+if its digest was forged to match the catalog/operator pin. This does not defend
+against the same uid: any authentication secret would also be readable by that
+uid, which can edit the catalog pin itself. No digest authentication is claimed.
+
+An unprivileged user cannot set ctime directly; rewrites normally change the key
+even when size and mtime are restored. HFS+ and other filesystems with 1-second
+timestamps can miss a same-size rewrite within the same second. Nanosecond key
+fields do not improve the filesystem's actual resolution. Privileged tampering,
+filesystem rollback, inode reuse with identical metadata and unreliable metadata
+are also outside this guarantee. Descriptor/path checks still run before
+readiness succeeds, but do not prevent changes after the final check, prove
+residency or provide continuous integrity monitoring.
+
+Operators needing byte-exact verification on every ensure can pass
+`ensure --no-weights-cache`. It bypasses cache reads and writes and hashes the
+file for that ensure, including attachment to an existing broker; a cold broker
+also hashes before launch. This may hash twice on a cold ensure. Default sharing
+continues to use the running instance's observation without rehashing. Status
+only reports that observation and does not verify bytes, so has no cache flag.
+`weights compute` and offline `check` always hash. The catalog weights table
+still accepts only `id`; `cache = false` is an unknown key and refuses fail-closed.
+
+## Cache root socket budget
+
+Before state creation, check, ensure and status validate the canonical cache
+root against the 103-byte socket-path budget. Missing descendants are resolved
+through their nearest existing ancestor. The maximum root length is derived
+from the same `curator-engines/r1/<32 hex>/b.sock` path builder used by the broker;
+it is currently 44 bytes, including all canonical root bytes. Maximum passes;
+maximum plus one refuses `broker_rendezvous_path_too_long`, reporting actual
+root/socket lengths and their limits. No state is created on this refusal.
+The existing layout and lease rendezvous identity are unchanged. A shorter
+versioned suffix could increase the budget, but would require coordinated
+rendezvous migration for existing brokers and leases; it is not implemented.
+
+## Build identification
+
+`curator-engines version [--json]` reads `runtime/debug.ReadBuildInfo`. Text and
+JSON expose module version, VCS revision, VCS time, VCS modified, and Go version.
+The JSON keys are `module_version`, `vcs_revision`, `vcs_time`, `vcs_modified`,
+and `go_version`; values are strings, with `unknown` for unavailable fields.
+Scratch directories `.temp/` and `.codex/` are ignored by Git so their presence
+does not change the build's VCS modified setting.

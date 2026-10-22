@@ -215,8 +215,8 @@ func TestEngineCheckMissingPassthroughValues(t *testing.T) {
 		}
 		return false
 	})
-	if len(flags) != 13 {
-		t.Fatalf("documented pass-through subset: want 13 spellings, got %d", len(flags))
+	if len(flags) != 14 {
+		t.Fatalf("documented pass-through subset: want 14 spellings, got %d", len(flags))
 	}
 	sort.Strings(flags)
 	for _, flag := range flags {

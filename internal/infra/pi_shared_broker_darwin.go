@@ -28,6 +28,7 @@ import (
 )
 
 type SharedRuntimeBrokerOptions struct {
+	NoWeightsCache bool
 	ConfigPath     string
 	RuntimeKey     string
 	ProfileProject string
@@ -223,6 +224,7 @@ func RunSharedRuntimeBroker(options SharedRuntimeBrokerOptions) (result error) {
 	if err != nil {
 		return err
 	}
+	resolved.NoWeightsCache = options.NoWeightsCache
 	if resolved.RuntimeKey != options.RuntimeKey {
 		return sharedRuntimeError("shared_runtime_identity_mismatch", errors.New("broker recomputed a different runtime key"))
 	}

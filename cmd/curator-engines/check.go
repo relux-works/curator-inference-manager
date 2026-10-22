@@ -12,6 +12,7 @@ func runCheck(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("curator-engines check", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	config := flags.String("config", "", "explicit engine entry configuration file")
+	cache := flags.String("cache-root", "", "absolute state and cache root directory")
 	engine := flags.String("engine", "", "engine entry name")
 	jsonOutput := flags.Bool("json", false, "write JSON output")
 	if err := flags.Parse(args); err != nil {
@@ -23,6 +24,9 @@ func runCheck(args []string, stdout, stderr io.Writer) int {
 	if flags.NArg() != 0 || *config == "" || *engine == "" {
 		_ = writeLine(stderr, "check requires --config FILE and --engine NAME, with no positional arguments")
 		return 2
+	}
+	if err := infra.ValidateEngineCacheRoot(*cache); err != nil {
+		return reportError(stderr, err)
 	}
 	report := infra.CheckEngineFile(*config, *engine)
 	if *jsonOutput {

@@ -82,7 +82,7 @@ func engineWeightsModelPath(entry EngineCatalogEntry, config string) string {
 	return filepath.Join(filepath.Dir(config), entry.Model)
 }
 
-// engineWeightsFile keeps device/inode (via SameFile), size and mtime from the
+// engineWeightsFile keeps device/inode (via SameFile), size, mtime and ctime from the
 // descriptor used to hash. Rechecking the path also detects atomic replacement.
 type engineWeightsFile struct {
 	path string
@@ -95,12 +95,17 @@ func (file *engineWeightsFile) unchanged() error {
 	}
 	current, err := os.Stat(file.path)
 	if err != nil || !sameEngineWeightsFile(file.info, current) {
-		return sharedRuntimeError("engine_weights_file_changed", errors.New("model file identity, size or mtime changed after hashing"))
+		return sharedRuntimeError("engine_weights_file_changed", errors.New("model file identity, size, mtime or ctime changed after hashing"))
 	}
 	return nil
 }
 func sameEngineWeightsFile(a, b os.FileInfo) bool {
-	return b != nil && b.Mode().IsRegular() && os.SameFile(a, b) && a.Size() == b.Size() && a.ModTime().Equal(b.ModTime())
+	if b == nil || !b.Mode().IsRegular() || !os.SameFile(a, b) || a.Size() != b.Size() || !a.ModTime().Equal(b.ModTime()) {
+		return false
+	}
+	ka, supported := engineWeightsKey("", a)
+	kb, _ := engineWeightsKey("", b)
+	return !supported || ka == kb
 }
 
 func hashEngineWeights(path string) (*EngineWeightsObservation, *engineWeightsFile, error) {
@@ -196,7 +201,11 @@ func verifyCatalogWeights(resolved sharedResolvedProfile) (*EngineWeightsObserva
 	if entry == nil || entry.Weights == nil {
 		return nil, nil, nil
 	}
-	observed, file, err := hashEngineWeights(engineWeightsModelPath(*entry, resolved.Profile.Source))
+	root := engineWeightsCacheRoot(resolved)
+	if resolved.NoWeightsCache {
+		root = ""
+	}
+	observed, file, err := cachedEngineWeights(engineWeightsModelPath(*entry, resolved.Profile.Source), root)
 	if err != nil {
 		return nil, nil, err
 	}
