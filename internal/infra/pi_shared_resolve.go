@@ -62,11 +62,21 @@ func resolveSharedProfileWithCatalog(projectDir, homeDir, cacheRoot, profileName
 			return sharedResolvedProfile{}, err
 		}
 	}
-	entry, state, catalogErr := ReadEngineCatalogEntry(catalogFile, profileName)
+	// Open through the canonical parent so a later symlink retarget cannot
+	// change which catalog path the report attributes to the decoded bytes.
+	catalogReadPath := catalogFile
+	catalogDir, catalogPathErr := filepath.EvalSymlinks(filepath.Dir(catalogFile))
+	if catalogPathErr == nil {
+		catalogReadPath = filepath.Join(catalogDir, filepath.Base(catalogFile))
+	}
+	entry, state, catalogDigest, catalogErr := readEngineCatalogEntryWithDigest(catalogReadPath, profileName)
 	if catalogErr != nil {
 		return sharedResolvedProfile{}, catalogErr
 	}
 	if state == EngineCatalogPresent {
+		if catalogPathErr != nil {
+			return sharedResolvedProfile{}, engineCatalogReadFailed("catalog.selection", catalogPathErr)
+		}
 		legacy, present, profileErr := readPiIdentity(project, homeDir, profileName)
 		if profileErr != nil {
 			return sharedResolvedProfile{}, profileErr
@@ -75,10 +85,19 @@ func resolveSharedProfileWithCatalog(projectDir, homeDir, cacheRoot, profileName
 			return sharedResolvedProfile{}, engineCatalogConflict("resolution.identity_argv", errors.New("catalog and legacy Pi profile disagree on model identity or executable/argv"))
 		}
 		resolved, err := resolveCatalogProfile(project, homeDir, cacheRoot, profileName, entry, catalogFile)
+		if err != nil {
+			return sharedResolvedProfile{}, err
+		}
+		resolved.Provenance = &StatusProvenance{
+			ContractVersion:     StatusProvenanceContractVersion,
+			EnginesConfig:       catalogReadPath,
+			EnginesConfigSHA256: catalogDigest,
+			CacheRoot:           resolved.Paths.CanonicalCacheRoot,
+		}
 		if explicitCatalog {
 			resolved.ConfigPath = catalogFile
 		}
-		return resolved, err
+		return resolved, nil
 	}
 	if explicitCatalog {
 		return sharedResolvedProfile{}, engineCatalogReadFailed("catalog.selection", errors.New("selected catalog file or engine entry is absent"))

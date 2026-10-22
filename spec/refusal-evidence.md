@@ -331,3 +331,22 @@ these controls complement, rather than weaken or bypass, the committed AST censu
 See the [site decisions and limits](engines-protocol-v1.1.md#darwin-broker-code-identity),
 including the deferred configured-runtime FILE contract and internal-only
 identity publication.
+
+## Status provenance evidence
+
+The current full-module census has **767 sites**, previously 766. The catalog
+reader's fifteen refusal sites retain their validations, codes, test mappings
+and witnesses under `readEngineCatalogEntryWithDigest`; the original exported
+reader delegates to it. The resolution census recognizes both reader result
+signatures and tracks the error result rather than the digest. Source-bound
+certificates and shifted resolver ordinals are refreshed together. The added
+canonical-parent refusal has a named negative control and an explicit undecided
+narrowing bound.
+
+`TestStatusProvenanceGuard` pairs valid/absent provenance with malformed version,
+paths, digest, missing/extra keys and duplicate/alias controls.
+`TestStatusProvenancePublication` exercises the actual publication boundary and
+requires `status_contract_violation` with zero stdout for invalid provenance.
+Removing the provenance validation call makes its `wrong-version` control fail
+by publishing the invalid report; the validation call is restored. These are
+bounded guard-removal controls, not claims of certified singleton narrowing.

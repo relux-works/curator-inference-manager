@@ -2,13 +2,26 @@ package infra
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 )
+
+const StatusProvenanceContractVersion = "status-provenance/v1"
+
+// StatusProvenance identifies the catalog bytes and cache used by one status call.
+type StatusProvenance struct {
+	ContractVersion     string `json:"contract_version"`
+	EnginesConfig       string `json:"engines_config"`
+	EnginesConfigSHA256 string `json:"engines_config_sha256"`
+	CacheRoot           string `json:"cache_root"`
+}
 
 // Mirrors skill-agents-management pkg/localruntime/decode.go:51-66.
 // Keep pairs joint: independent state/source vocabularies admit impossible pairs.
@@ -72,7 +85,7 @@ func statusConsumerMember(fields map[string]json.RawMessage, key string, target 
 }
 
 // Consumer pkg/engineobservation/adapter.go:248,270 and strict.go:39-95:
-// reject every outer duplicate and only aliases of the owned readings key.
+// reject every outer duplicate and aliases of readings or provenance.
 // Decode additive values as raw JSON; their nested keys are not checked here.
 func statusOuterObject(data []byte) (map[string]json.RawMessage, error) {
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -97,10 +110,10 @@ func statusOuterObject(data []byte) (map[string]json.RawMessage, error) {
 		if _, duplicate := fields[name]; duplicate {
 			return nil, fmt.Errorf("duplicate JSON member %q", name)
 		}
-		// Consumer pkg/engineobservation/strict.go:64-68: readings aliases
+		// Readings consumer aliases and the producer-owned provenance alias
 		// refuse even when the canonical member is absent.
-		if name != "readings" && strings.EqualFold(name, "readings") {
-			return nil, fmt.Errorf("case-variant JSON member %q shadows readings", name)
+		if name != "readings" && strings.EqualFold(name, "readings") || name != "provenance" && strings.EqualFold(name, "provenance") {
+			return nil, fmt.Errorf("case-variant JSON member %q shadows readings or provenance", name)
 		}
 		var value json.RawMessage
 		if err := decoder.Decode(&value); err != nil {
@@ -129,6 +142,11 @@ func validateStatusDocument(data []byte, expectedEngine string) error {
 	fields, err := statusOuterObject(data)
 	if err != nil {
 		return err
+	}
+	if raw, present := fields["provenance"]; present {
+		if err := validateStatusProvenance(raw); err != nil {
+			return err
+		}
 	}
 	// Consumer decode.go:125-159: integer v1, requested identity, runtime key,
 	// and a present profile_digest (which may be empty).
@@ -332,6 +350,41 @@ func validateStatusReadings(raw json.RawMessage) error {
 		default:
 			return errors.New("unknown status reading outcome")
 		}
+	}
+	return nil
+}
+
+func validateStatusProvenance(raw json.RawMessage) error {
+	spec := &strictJSONSpec{object: map[string]*strictJSONSpec{
+		"contract_version": nil, "engines_config": nil, "engines_config_sha256": nil, "cache_root": nil,
+	}, required: []string{"contract_version", "engines_config", "engines_config_sha256", "cache_root"}}
+	if err := validateStrictJSON(raw, spec, true); err != nil {
+		return err
+	}
+	fields, err := statusObject(raw)
+	if err != nil {
+		return err
+	}
+	var provenance StatusProvenance
+	for key, target := range map[string]*string{
+		"contract_version": &provenance.ContractVersion, "engines_config": &provenance.EnginesConfig,
+		"engines_config_sha256": &provenance.EnginesConfigSHA256, "cache_root": &provenance.CacheRoot,
+	} {
+		if err := statusMember(fields, key, target); err != nil {
+			return err
+		}
+	}
+	if provenance.ContractVersion != StatusProvenanceContractVersion {
+		return errors.New("unsupported status provenance contract_version")
+	}
+	for _, path := range []string{provenance.EnginesConfig, provenance.CacheRoot} {
+		if !filepath.IsAbs(path) || filepath.Clean(path) != path {
+			return errors.New("status provenance path must be absolute and clean")
+		}
+	}
+	digest, err := hex.DecodeString(provenance.EnginesConfigSHA256)
+	if err != nil || len(digest) != sha256.Size || strings.ToLower(provenance.EnginesConfigSHA256) != provenance.EnginesConfigSHA256 {
+		return errors.New("status provenance digest must be lowercase SHA-256 hex")
 	}
 	return nil
 }

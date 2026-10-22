@@ -692,10 +692,12 @@ func catalogReadErrorIdentifiers(body *ast.BlockStmt) map[string]bool {
 			return true
 		}
 		for rhsIndex, right := range assignment.Rhs {
-			if !containsCall(right, "ReadEngineCatalogEntry") {
+			resultIndex := rhsIndex + 2
+			if containsCall(right, "readEngineCatalogEntryWithDigest") {
+				resultIndex = rhsIndex + 3
+			} else if !containsCall(right, "ReadEngineCatalogEntry") {
 				continue
 			}
-			resultIndex := rhsIndex + 2
 			if resultIndex >= len(assignment.Lhs) {
 				continue
 			}

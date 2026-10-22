@@ -46,6 +46,17 @@ func TestGeneratedStatusConsumerContract(t *testing.T) {
 			// Consumer decode.go:254-283 also admits the two historical producer
 			// generations. Derive these by removing only the corresponding cohorts.
 			fields := statusFields(t, raw)
+			// The additive member remains decodable both present and absent.
+			if fields["provenance"] == nil {
+				fields["provenance"] = json.RawMessage(`{"contract_version":"status-provenance/v1","engines_config":"/catalog/engines.toml","engines_config_sha256":"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789","cache_root":"/cache"}`)
+				if err := decodeConsumerStatus(statusBytes(t, fields), engine); err != nil {
+					t.Fatal("status with provenance", err)
+				}
+			}
+			delete(fields, "provenance")
+			if err := decodeConsumerStatus(statusBytes(t, fields), engine); err != nil {
+				t.Fatal("status without provenance", err)
+			}
 			for _, group := range [][]string{{"restart_not_before", "half_open"}, {"restart_count", "quarantined_until", "last_readiness_match", "manual_quarantine"}} {
 				for _, key := range group {
 					delete(fields, key)

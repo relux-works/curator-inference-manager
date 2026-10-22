@@ -52,7 +52,9 @@ root canonicalization. `check`, `ensure`, and `status` reject an excessive root 
 `broker_rendezvous_path_too_long`, reporting the actual length and the limit;
 the socket is never relocated automatically.
 
-Catalog location alone is excluded from runtime/engine identity. Pinned weights
+Catalog location alone is excluded from runtime/engine identity. Catalog-derived
+status adds versioned `provenance` with the canonical catalog path, its same-read
+SHA-256 digest, and the canonical cache root; see [Status provenance](spec/engines-protocol-v1.1.md#status-provenance). Pinned weights
 with a relative model path resolve against the catalog directory; moving such a
 catalog can change the expanded model path and therefore the runtime key.
 

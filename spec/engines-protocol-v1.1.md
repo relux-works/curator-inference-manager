@@ -271,6 +271,38 @@ records do not upgrade this fact. A readings-envelope failure still publishes
 only NotObserved facts. This preserves the status self-decode guard and pinned
 consumer decoders without changing contract versions.
 
+## Status provenance
+
+Catalog-derived `status --json` includes this additive top-level member:
+
+```json
+"provenance": {
+  "contract_version": "status-provenance/v1",
+  "engines_config": "/abs/canonical/engines.toml",
+  "engines_config_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "cache_root": "/abs/canonical"
+}
+```
+
+`engines_config` is the absolute path opened for this status call, with parent
+directories canonicalized by `EvalSymlinks` and the regular, non-symlink leaf
+joined back. `engines_config_sha256` is lowercase SHA-256 of exactly the bytes
+used to decode the selected entry, from the same read. `cache_root` is the
+canonical root used for the rendezvous-length check and broker/state lookup.
+The member is emitted only for `EngineCatalogPresent`; compatibility/legacy
+profile status and paths without a decoded catalog entry omit it entirely.
+It is never null or partial. Engine identity, runtime key, profile digest,
+integer status `contract_version = 1`, readings `observed-process/v3`, and the
+socket `protocol_version` retain their existing semantics.
+
+A consumer binding status to its selected catalog must refuse an absent
+provenance member or an unknown provenance `contract_version`, and compare
+both `engines_config` and `engines_config_sha256` against that selected catalog's
+canonical path and bytes. Compare `cache_root` against the selected canonical
+cache root as well. Catalog location stays outside runtime/engine identity.
+The publication guard requires exactly these four keys, the known version,
+absolute clean paths and a 64-character lowercase hexadecimal digest.
+
 ## Status publication compatibility
 
 The integer status contract remains v1. Before printing JSON, the producer
@@ -278,7 +310,7 @@ checks the eleven joint broker state/source pairs, requested engine identity,
 required runtime key/profile digest/sharing members, nullable runtime
 start-time shape and bounds, complete restart cohorts, and v3 readings
 transcription shape (including typed non-observations), and rejects duplicate
-or case-variant aliases of the top-level members the readings consumer reads.
+or case-variant aliases of the owned top-level readings and provenance members.
 A violation refuses with `status_contract_violation` on stderr and no status
 JSON on stdout. The guard mirrors the consumers exactly: like them, it accepts
 an omitted `max_leases`, an omitted or null `pid`, and `leases: null`.

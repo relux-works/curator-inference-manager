@@ -681,3 +681,22 @@ func TestReadingsRefusalCensusAndGeneratedSingletons(t *testing.T) {
 		t.Fatalf("generated singleton count=%d, want 86; remaining members are declared frozen-grammar bounds", len(selected))
 	}
 }
+
+// Both catalog reader signatures identify only their error result for the
+// propagation census; the digest must not be mistaken for a refusal value.
+func TestCatalogReadErrorIdentifiersWithDigest(t *testing.T) {
+	source := `package fixture
+ func resolve() {
+  entry, state, oldErr := ReadEngineCatalogEntry("catalog", "name")
+  entry, state, digest, newErr := readEngineCatalogEntryWithDigest("catalog", "name")
+  _, _, unrelated := otherReader()
+ }`
+	file, err := parser.ParseFile(token.NewFileSet(), "fixture.go", source, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identifiers := catalogReadErrorIdentifiers(file.Decls[0].(*ast.FuncDecl).Body)
+	if !reflect.DeepEqual(identifiers, map[string]bool{"oldErr": true, "newErr": true}) {
+		t.Fatalf("catalog error identifiers: %v", identifiers)
+	}
+}

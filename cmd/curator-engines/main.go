@@ -272,10 +272,14 @@ func writeStatusJSON(writer io.Writer, status infra.SharedRuntimeStatus, engine 
 	if engine == "" {
 		engine = status.EngineIdentity.Name
 	}
-	if err == nil {
-		err = infra.ValidateSharedRuntimeStatusJSON(data, engine)
-	}
 	if err != nil {
+		return reportError(stderr, err)
+	}
+	return writeStatusJSONDocument(writer, data, engine, stderr)
+}
+
+func writeStatusJSONDocument(writer io.Writer, data []byte, engine string, stderr io.Writer) int {
+	if err := infra.ValidateSharedRuntimeStatusJSON(data, engine); err != nil {
 		return reportError(stderr, err)
 	}
 	if _, err := writer.Write(append(data, '\n')); err != nil {

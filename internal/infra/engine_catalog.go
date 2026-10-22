@@ -137,6 +137,7 @@ type EngineCatalogEntry struct {
 }
 
 type sharedResolvedProfile struct {
+	Provenance         *StatusProvenance
 	ConfigPath         string
 	Project            string
 	HomeDir            string
@@ -486,66 +487,73 @@ func engineCatalogRejectUnknownKeys(table map[string]any, location string, allow
 // ReadEngineCatalogEntry loads one entry. A missing file or missing name is
 // absent; malformed bytes and unreadable paths are separate typed refusals.
 func ReadEngineCatalogEntry(path, name string) (EngineCatalogEntry, EngineCatalogState, error) {
+	entry, state, _, err := readEngineCatalogEntryWithDigest(path, name)
+	return entry, state, err
+}
+
+// readEngineCatalogEntryWithDigest binds a selected entry to the exact decoded
+// bytes. Absent entries and refusals carry no digest.
+func readEngineCatalogEntryWithDigest(path, name string) (EngineCatalogEntry, EngineCatalogState, string, error) {
 	info, err := lstatEngineCatalogFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
-		return EngineCatalogEntry{}, EngineCatalogAbsent, nil
+		return EngineCatalogEntry{}, EngineCatalogAbsent, "", nil
 	}
 	if err != nil {
-		return EngineCatalogEntry{}, EngineCatalogReadFailed, engineCatalogReadFailed("catalog.read", err)
+		return EngineCatalogEntry{}, EngineCatalogReadFailed, "", engineCatalogReadFailed("catalog.read", err)
 	}
 	if !info.Mode().IsRegular() {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.file", errors.New("catalog must be a regular non-symlink file"))
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.file", errors.New("catalog must be a regular non-symlink file"))
 	}
 	if info.Mode().Perm()&0o077 != 0 || info.Mode().Perm()&0o400 == 0 {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.permissions", errors.New("catalog must be readable by its owner and inaccessible to group and other users"))
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.permissions", errors.New("catalog must be readable by its owner and inaccessible to group and other users"))
 	}
 	if info.Size() > engineCatalogMaxFileBytes {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.size", errors.New("catalog exceeds the 1 MiB schema limit"))
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.size", errors.New("catalog exceeds the 1 MiB schema limit"))
 	}
 	file, err := openEngineCatalogFile(path)
 	if err != nil {
-		return EngineCatalogEntry{}, EngineCatalogReadFailed, engineCatalogReadFailed("catalog.read", err)
+		return EngineCatalogEntry{}, EngineCatalogReadFailed, "", engineCatalogReadFailed("catalog.read", err)
 	}
 	defer func() { _ = file.Close() }()
 	opened, err := statEngineCatalogFile(file)
 	if err != nil {
-		return EngineCatalogEntry{}, EngineCatalogReadFailed, engineCatalogReadFailed("catalog.stat", err)
+		return EngineCatalogEntry{}, EngineCatalogReadFailed, "", engineCatalogReadFailed("catalog.stat", err)
 	}
 	if !os.SameFile(info, opened) {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.file", errors.New("catalog changed identity while opening"))
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.file", errors.New("catalog changed identity while opening"))
 	}
 	data, err := readEngineCatalogFile(io.LimitReader(file, engineCatalogMaxFileBytes+1))
 	if err != nil {
-		return EngineCatalogEntry{}, EngineCatalogReadFailed, engineCatalogReadFailed("catalog.read", err)
+		return EngineCatalogEntry{}, EngineCatalogReadFailed, "", engineCatalogReadFailed("catalog.read", err)
 	}
 	if len(data) > engineCatalogMaxFileBytes {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.size", errors.New("catalog exceeds the 1 MiB schema limit"))
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.size", errors.New("catalog exceeds the 1 MiB schema limit"))
 	}
 
 	if err := validateEngineCatalogKeysForSelection(data, name); err != nil {
-		return EngineCatalogEntry{}, engineCatalogErrorState(err), err
+		return EngineCatalogEntry{}, engineCatalogErrorState(err), "", err
 	}
 	decoder := toml.NewDecoder(bytes.NewReader(data)).DisallowUnknownFields()
 	var document EngineCatalogDocument
 	if err := decoder.Decode(&document); err != nil {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.decode", err)
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.decode", err)
 	}
 	if document.SchemaVersion != EngineCatalogSchemaVersion {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.schema_version", fmt.Errorf("schema_version must equal %d", EngineCatalogSchemaVersion))
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.schema_version", fmt.Errorf("schema_version must equal %d", EngineCatalogSchemaVersion))
 	}
 	if document.Engines == nil {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.engines", errors.New("engines table is required"))
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.engines", errors.New("engines table is required"))
 	}
 	for candidateName, candidateEntry := range document.Engines {
 		if !validEngineCatalogName(candidateName) {
-			return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.engine_name", errors.New("engine name is incompatible with the shared catalog reader"))
+			return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.engine_name", errors.New("engine name is incompatible with the shared catalog reader"))
 		}
 		if candidateEntry.Engine == "" || candidateEntry.Engine != strings.TrimSpace(candidateEntry.Engine) {
 			site := "catalog.engine"
 			if candidateName == name {
 				site = "entry.engine"
 			}
-			return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed(site, fmt.Errorf("engine kind for %q must be a non-empty trimmed string", candidateName))
+			return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed(site, fmt.Errorf("engine kind for %q must be a non-empty trimmed string", candidateName))
 		}
 	}
 	// A requested Pi profile name outside the catalog grammar cannot exist as
@@ -553,20 +561,20 @@ func ReadEngineCatalogEntry(path, name string) (EngineCatalogEntry, EngineCatalo
 	// retain legacy profile names; malformed names stored in the catalog above
 	// still refuse the whole document.
 	if !validEngineCatalogName(name) {
-		return EngineCatalogEntry{}, EngineCatalogAbsent, nil
+		return EngineCatalogEntry{}, EngineCatalogAbsent, "", nil
 	}
 	entry, present := document.Engines[name]
 	if !present {
-		return EngineCatalogEntry{}, EngineCatalogAbsent, nil
+		return EngineCatalogEntry{}, EngineCatalogAbsent, "", nil
 	}
 	entry, err = normalizeEngineCatalogEntry(entry)
 	if err != nil {
-		return EngineCatalogEntry{}, EngineCatalogMalformed, engineCatalogMalformed("catalog.knobs", err)
+		return EngineCatalogEntry{}, EngineCatalogMalformed, "", engineCatalogMalformed("catalog.knobs", err)
 	}
 	if err := validateEngineCatalogEntry(name, entry); err != nil {
-		return EngineCatalogEntry{}, engineCatalogErrorState(err), err
+		return EngineCatalogEntry{}, engineCatalogErrorState(err), "", err
 	}
-	return entry, EngineCatalogPresent, nil
+	return entry, EngineCatalogPresent, fmt.Sprintf("%x", sha256.Sum256(data)), nil
 }
 
 func validateEngineCatalogEntry(name string, entry EngineCatalogEntry) error {

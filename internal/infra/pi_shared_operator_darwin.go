@@ -88,6 +88,7 @@ type SharedRuntimeSharingStatus struct {
 }
 
 type SharedRuntimeStatus struct {
+	Provenance               *StatusProvenance           `json:"provenance,omitempty"`
 	Weights                  EngineWeightsStatus         `json:"weights"`
 	Readings                 EngineReadings              `json:"readings"`
 	ContractVersion          int                         `json:"contract_version"`
@@ -297,6 +298,7 @@ func resolveSharedRuntimeOperator(options SharedRuntimeOperatorOptions) (sharedR
 
 func newSharedRuntimeStatus(resolved sharedResolvedProfile) SharedRuntimeStatus {
 	status := SharedRuntimeStatus{
+		Provenance:      resolved.Provenance,
 		Weights:         declaredEngineWeights(resolved.CatalogObservation),
 		ContractVersion: SharedRuntimeStatusContractVersion,
 		EngineIdentity:  resolved.EngineIdentity,
