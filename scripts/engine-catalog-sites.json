@@ -3688,7 +3688,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:1",
     "tests": [
@@ -3707,7 +3707,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:10",
     "tests": [
@@ -3726,7 +3726,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:11",
     "tests": [
@@ -3745,7 +3745,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:12",
     "tests": [
@@ -3764,7 +3764,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "sessionID == 38733",
@@ -3788,7 +3788,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:3",
     "tests": [
@@ -3807,7 +3807,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:4",
     "tests": [
@@ -3826,13 +3826,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:5",
     "tests": []
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "decision.Quarantined == true",
@@ -3856,7 +3856,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:7",
     "tests": [
@@ -3875,7 +3875,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:8",
     "tests": [
@@ -3894,7 +3894,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:RunSharedRuntimeBroker:9",
     "tests": [
@@ -3913,7 +3913,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:cleanupSharedRuntimeState:1",
     "tests": [
@@ -3937,7 +3937,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedBrokerLock:1",
     "tests": [
@@ -3949,7 +3949,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "stat.Nlink == 2",
@@ -3973,7 +3973,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedBrokerLock:3",
     "tests": [
@@ -3992,7 +3992,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedBrokerLock:4",
     "tests": [
@@ -4016,7 +4016,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:openSharedLog:1",
     "tests": [
@@ -4028,7 +4028,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "stat.Nlink == 2",
@@ -4052,7 +4052,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:1",
     "tests": [
@@ -4076,7 +4076,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:2",
     "tests": [
@@ -4095,7 +4095,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:3",
     "tests": [
@@ -4114,7 +4114,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:1",
     "tests": [
@@ -4126,7 +4126,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "observation.UID == 0",
@@ -4150,7 +4150,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:3",
     "tests": [
@@ -4162,7 +4162,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "full.PGID == 0",
@@ -4186,7 +4186,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:5",
     "tests": []
@@ -4199,7 +4199,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:reclaimSharedRuntime:6",
     "tests": []
@@ -4212,7 +4212,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:removeStaleRendezvous:1",
     "tests": [
@@ -4231,7 +4231,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:1",
     "tests": [
@@ -4243,7 +4243,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "resources.State == \"pressured\"",
@@ -4260,7 +4260,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "server.resourceAdmissionGeneration == 2",
@@ -4277,7 +4277,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "server.state == \"draining\"",
@@ -4287,7 +4287,7 @@
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:4",
     "tests": [
       {
-        "body_sha256": "3efd1c875012813b1e9e88013f2bbbfef31d6b97279040686571149ccb3592c0",
+        "body_sha256": "60a373552354846f5999e250d83f0e2af0b7d365209576047f09ecc066ccf6dc",
         "name": "TestSharedBrokerAcquireLeaseRefusesDrainingBeforeGrant",
         "dir": "internal/infra"
       }
@@ -4301,7 +4301,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:5",
     "tests": [
@@ -4320,12 +4320,12 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:6",
     "tests": [
       {
-        "body_sha256": "eb0b360cd91fabbc06c008a0a368e51e54ca2d7147fba014c122ec82b4fe837f",
+        "body_sha256": "53637caaa3167148dbdf2963c068b49f4a1f73fcb72ec3e1434d86a8edb18a48",
         "name": "TestSharedBrokerAcquireLeaseRefusesNonceAndTokenReadFailures",
         "dir": "internal/infra"
       }
@@ -4339,36 +4339,36 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.acquireLease:7",
     "tests": [
       {
-        "body_sha256": "eb0b360cd91fabbc06c008a0a368e51e54ca2d7147fba014c122ec82b4fe837f",
+        "body_sha256": "53637caaa3167148dbdf2963c068b49f4a1f73fcb72ec3e1434d86a8edb18a48",
         "name": "TestSharedBrokerAcquireLeaseRefusesNonceAndTokenReadFailures",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "uid == 0",
-        "member": 1
+        "member": 0
       }
     ],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:1",
     "tests": [
       {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
         "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "hello.ClientPID == 0",
@@ -4378,7 +4378,7 @@
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:2",
     "tests": [
       {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
         "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
@@ -4392,99 +4392,63 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:3",
     "tests": [
       {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
         "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "bounds": [
-      {
-        "kind": "undecided",
-        "reason": "Rework brief 08 frozen singleton equality rule refuses former witness 'err.Error() == \"permission denied\"': narrowing witness must be singleton equality: identical guarded expression == constant literal, or deep equality with a fully specified composite literal. Earlier executions remain historical, not current kill credit; no valid singleton witness for this site has been certified.",
-        "member": -1
-      }
-    ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
-    "witnesses": [],
-    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:4",
-    "tests": [
-      {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
-        "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
-        "dir": "internal/infra"
-      }
-    ]
-  },
-  {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
-    "witnesses": [
-      {
-        "admit": "clientExec.Dev == 8",
-        "member": 0
-      }
-    ],
-    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:5",
-    "tests": [
-      {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
-        "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
-        "dir": "internal/infra"
-      }
-    ]
-  },
-  {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "hello.ProtocolVersion == 6",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:6",
+    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:4",
     "tests": [
       {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
         "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "hello.RuntimeKey == \"\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:7",
+    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:5",
     "tests": [
       {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
         "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "hello.ProfileDigest == \"\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:8",
+    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:6",
     "tests": [
       {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
         "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
@@ -4498,19 +4462,19 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:9",
+    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.attestClient:7",
     "tests": [
       {
-        "body_sha256": "8d79c9b1aeb671c0badf58212fdffbab0e255ed9ed66f84ab4d7338ac845bb11",
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
         "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "decision.Quarantined == true",
@@ -4534,7 +4498,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.serve:2",
     "tests": [
@@ -4553,7 +4517,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.serve:3",
     "tests": [
@@ -4565,7 +4529,7 @@
     ]
   },
   {
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [
       {
         "admit": "runtimeWait.pid == 0",
@@ -4589,7 +4553,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:startUnauthorizedRuntimeWithSystem:1",
     "tests": [
@@ -4608,7 +4572,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:startUnauthorizedRuntimeWithSystem:2",
     "tests": [
@@ -4627,7 +4591,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:startUnauthorizedRuntimeWithSystem:3",
     "tests": [
@@ -4646,7 +4610,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:waitRecordedRuntimeGone:1",
     "tests": [
@@ -4665,7 +4629,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:waitRecordedRuntimeGone:2",
     "tests": []
@@ -4678,7 +4642,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:waitSharedEndpointFree:1",
     "tests": []
@@ -4691,7 +4655,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": [],
     "site": "internal/infra/pi_shared_broker_darwin.go:writeSharedWireMessage:1",
     "tests": [
@@ -4715,7 +4679,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:1",
     "tests": [
@@ -4727,7 +4691,7 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "exitCode == 77",
@@ -4744,7 +4708,7 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "ledger.RestartCount == 0",
@@ -4768,13 +4732,13 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:6",
     "tests": []
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "electionLostSeen == true",
@@ -4798,7 +4762,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:8",
     "tests": []
@@ -4811,7 +4775,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:acquireSharedRuntimeLease:9",
     "tests": []
@@ -4824,7 +4788,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:checkSharedRuntimeModel:1",
     "tests": [
@@ -4836,7 +4800,7 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "response.StatusCode == 500",
@@ -4860,7 +4824,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:checkSharedRuntimeModel:3",
     "tests": [
@@ -4872,7 +4836,7 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "item.ID == \"two\"",
@@ -4889,7 +4853,7 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "servedModel == \"\"",
@@ -4913,12 +4877,12 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:checkSharedRuntimeModel:6",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
@@ -4932,7 +4896,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAcquireSharedRuntimeWithOwnership:1",
     "tests": [
@@ -4951,7 +4915,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAcquireSharedRuntimeWithOwnership:2",
     "tests": [
@@ -4963,7 +4927,7 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "leaseResponse.Type == \"refused\"",
@@ -4987,7 +4951,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAcquireSharedRuntimeWithOwnership:4",
     "tests": [
@@ -5006,27 +4970,10 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:1",
     "tests": []
-  },
-  {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
-    "witnesses": [
-      {
-        "admit": "ownIdentity.Dev == 16777234",
-        "member": 0
-      }
-    ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:10",
-    "tests": [
-      {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
-        "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
-        "dir": "internal/infra"
-      }
-    ]
   },
   {
     "bounds": [
@@ -5036,9 +4983,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:11",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:9",
     "tests": [
       {
         "body_sha256": "50a90967c8adbcfb3c38eb95bb3967be4d3342e7cee8c272e6e953aa13192d8a",
@@ -5060,9 +5007,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:12",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:10",
     "tests": [
       {
         "body_sha256": "a798fc366cb24e13fc5afdf26781a51323d5d8e4637495e0b0454ae5d9d51a37",
@@ -5079,9 +5026,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:13",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:11",
     "tests": [
       {
         "body_sha256": "50a90967c8adbcfb3c38eb95bb3967be4d3342e7cee8c272e6e953aa13192d8a",
@@ -5098,14 +5045,14 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "response.Type == \"refused\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:14",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:12",
     "tests": [
       {
         "body_sha256": "a798fc366cb24e13fc5afdf26781a51323d5d8e4637495e0b0454ae5d9d51a37",
@@ -5122,29 +5069,16 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:15",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:13",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
-  },
-  {
-    "bounds": [
-      {
-        "kind": "undecided",
-        "reason": "No named negative test observed at this exact AST site in the diagnostic run; mapping and rejected member remain unproved. Site kept in census; no mutation claimed executed.",
-        "member": -1
-      }
-    ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
-    "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:16",
-    "tests": []
   },
   {
     "bounds": [
@@ -5154,51 +5088,51 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "response.Broker.PID == 38735",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:17",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:14",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "response.ProtocolVersion == 6",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:18",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:15",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "response.RuntimeKey == \"\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:19",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:16",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
@@ -5212,7 +5146,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:2",
     "tests": []
@@ -5225,51 +5159,51 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "resolved.EngineIdentity.Key == \"1fc1f9350e1b58bdd691bb1c7ff4c34b474118c019d0cba0317216f2c45857c3\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:20",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:17",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "response.ProfileDigest == \"\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:21",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:18",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "response.Runtime.Endpoint == \"\"",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:22",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:19",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
@@ -5283,9 +5217,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:23",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:20",
     "tests": [
       {
         "body_sha256": "151da2a0af5578ca3532aa90addd62c180fa011161f752bc95dab07ef8b4d566",
@@ -5302,9 +5236,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:24",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:21",
     "tests": [
       {
         "body_sha256": "151da2a0af5578ca3532aa90addd62c180fa011161f752bc95dab07ef8b4d566",
@@ -5314,17 +5248,17 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "runtimeProcess.UID == 0",
         "member": 0
       }
     ],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:25",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:22",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
@@ -5338,9 +5272,9 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:26",
+    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:23",
     "tests": []
   },
   {
@@ -5351,7 +5285,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:3",
     "tests": []
@@ -5364,7 +5298,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:4",
     "tests": []
@@ -5377,7 +5311,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:5",
     "tests": [
@@ -5389,17 +5323,17 @@
     ]
   },
   {
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [
       {
         "admit": "uid == 0",
-        "member": 1
+        "member": 0
       }
     ],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:6",
     "tests": [
       {
-        "body_sha256": "ce6b5d3fa42ee7272d45b07151274d845c26e78726e19f58b846a92ad5d46be7",
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
         "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
         "dir": "internal/infra"
       }
@@ -5413,7 +5347,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:7",
     "tests": [
@@ -5432,7 +5366,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:8",
     "tests": [
@@ -5447,30 +5381,11 @@
     "bounds": [
       {
         "kind": "undecided",
-        "reason": "Rework brief 08 frozen singleton equality rule refuses former witness 'err.Error() == \"permission denied\"': narrowing witness must be singleton equality: identical guarded expression == constant literal, or deep equality with a fully specified composite literal. Earlier executions remain historical, not current kill credit; no valid singleton witness for this site has been certified.",
-        "member": -1
-      }
-    ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
-    "witnesses": [],
-    "site": "internal/infra/pi_shared_client_darwin.go:connectAndAttestSharedRuntimeWithOwnership:9",
-    "tests": [
-      {
-        "body_sha256": "151da2a0af5578ca3532aa90addd62c180fa011161f752bc95dab07ef8b4d566",
-        "name": "TestConnectAndAttestSharedRuntimeRefusesEveryIdentityInspectionError",
-        "dir": "internal/infra"
-      }
-    ]
-  },
-  {
-    "bounds": [
-      {
-        "kind": "undecided",
         "reason": "No named negative test observed at this exact AST site in the diagnostic run; mapping and rejected member remain unproved. Site kept in census; no mutation claimed executed.",
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:1",
     "tests": []
@@ -5483,7 +5398,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:2",
     "tests": []
@@ -5496,7 +5411,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:3",
     "tests": []
@@ -5509,7 +5424,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:4",
     "tests": []
@@ -5522,7 +5437,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:sharedRuntimeLeaseClient.monitor:5",
     "tests": []
@@ -5535,7 +5450,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:startSharedRuntimeBroker:1",
     "tests": [
@@ -5554,7 +5469,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:startSharedRuntimeBroker:2",
     "tests": [
@@ -5573,7 +5488,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c",
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03",
     "witnesses": [],
     "site": "internal/infra/pi_shared_client_darwin.go:startSharedRuntimeBroker:3",
     "tests": []
@@ -5895,7 +5810,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "shared.Code == \"broker_election_lost\"",
@@ -5919,7 +5834,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:1",
     "tests": []
@@ -5932,7 +5847,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:2",
     "tests": []
@@ -5945,7 +5860,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:3",
     "tests": []
@@ -5958,7 +5873,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:SharedRuntimeStatusReport:4",
     "tests": []
@@ -5971,7 +5886,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "resolved.CatalogEntry == true",
@@ -5988,7 +5903,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "timeout == 0",
@@ -6012,7 +5927,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:StopSharedRuntime:2",
     "tests": [
@@ -6031,7 +5946,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:StopSharedRuntime:3",
     "tests": [
@@ -6043,7 +5958,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "response.Type == \"refused\"",
@@ -6060,7 +5975,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "response.Type == \"unexpected\"",
@@ -6077,7 +5992,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "remaining == 0",
@@ -6094,7 +6009,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "remaining == 0",
@@ -6111,7 +6026,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "force == false",
@@ -6135,7 +6050,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:forceStopUnreachableSharedRuntime:1",
     "tests": []
@@ -6148,7 +6063,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:probeSharedBrokerLock:1",
     "tests": []
@@ -6161,7 +6076,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:1",
     "tests": []
@@ -6174,7 +6089,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:2",
     "tests": []
@@ -6192,7 +6107,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:readSharedLeaseMirrors:3",
     "tests": [
@@ -6211,7 +6126,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:sharedRuntimeBrokerCandidates:1",
     "tests": [
@@ -6230,7 +6145,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:sharedRuntimeBrokerCandidates:2",
     "tests": [
@@ -6242,7 +6157,7 @@
     ]
   },
   {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [
       {
         "admit": "brokerObservation.UID == 0",
@@ -6252,7 +6167,7 @@
     "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:1",
     "tests": [
       {
-        "body_sha256": "74aa6706ee7e440acb10f4494d5a1b04ed2f9e6520cadc448c7e31db0361b9d3",
+        "body_sha256": "8cb09b64c874137a51020452f831af3ee67e100de4dbe042ea05725e6dd9536c",
         "name": "TestSharedRuntimeForceStopRejectsRecordedBrokerIdentityNarrowingBeforeSignal",
         "dir": "internal/infra"
       }
@@ -6266,29 +6181,12 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:2",
     "tests": [
       {
-        "body_sha256": "74aa6706ee7e440acb10f4494d5a1b04ed2f9e6520cadc448c7e31db0361b9d3",
-        "name": "TestSharedRuntimeForceStopRejectsRecordedBrokerIdentityNarrowingBeforeSignal",
-        "dir": "internal/infra"
-      }
-    ]
-  },
-  {
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
-    "witnesses": [
-      {
-        "admit": "ownIdentity.Dev == 16777234",
-        "member": 1
-      }
-    ],
-    "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:3",
-    "tests": [
-      {
-        "body_sha256": "74aa6706ee7e440acb10f4494d5a1b04ed2f9e6520cadc448c7e31db0361b9d3",
+        "body_sha256": "8cb09b64c874137a51020452f831af3ee67e100de4dbe042ea05725e6dd9536c",
         "name": "TestSharedRuntimeForceStopRejectsRecordedBrokerIdentityNarrowingBeforeSignal",
         "dir": "internal/infra"
       }
@@ -6298,11 +6196,30 @@
     "bounds": [
       {
         "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:3",
+    "tests": [
+      {
+        "body_sha256": "4b52c17527162fbf1ca7d525db478d8928b476b8b261990ef3b79f23a27f1ecb",
+        "name": "TestStopRecordedSharedRuntimeWithDependenciesRefusesEveryIdentityMismatchBeforeSignal",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
         "reason": "Rework brief 08 frozen singleton equality rule refuses former witness 'lock == nil': narrowing witness must be singleton equality: identical guarded expression == constant literal, or deep equality with a fully specified composite literal. Earlier executions remain historical, not current kill credit; no valid singleton witness for this site has been certified.",
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:stopRecordedSharedRuntimeWithDependencies:4",
     "tests": [
@@ -6321,7 +6238,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:waitRecordedBrokerGone:1",
     "tests": [
@@ -6340,7 +6257,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "82994a0293ba48b3330603341393eca78948c85fad21b46cb9104204880a97fb",
+    "source_sha256": "6b6b7bab5a1ab584d7c65305ba2e52056d060302c671d83f5e6925faa3e020be",
     "witnesses": [],
     "site": "internal/infra/pi_shared_operator_darwin.go:waitRecordedBrokerGone:2",
     "tests": []
@@ -12937,7 +12854,7 @@
         "dir": "internal/infra"
       },
       {
-        "body_sha256": "294831cc11a0613c6e6c58669a991ab37efaef3c4e8ba75d20e8715e33d64505",
+        "body_sha256": "ea58e32bbde91913d1e06c61791879bd530e9a7d24dec06a22a89437f074286d",
         "name": "TestSharedRuntimeAcquisitionRetriesExecutableUpgradeHandoff",
         "dir": "internal/infra"
       },
@@ -16493,7 +16410,7 @@
         "member": -1
       }
     ],
-    "source_sha256": "45facdf01a98b6dbda6820ec5fde9b5d22e41b76eb0283ce1331e3794a142db1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
     "witnesses": null,
     "site": "internal/infra/pi_shared_broker_darwin.go:readSharedWireMessage:4",
     "tests": [
@@ -17193,7 +17110,7 @@
         "dir": "cmd/curator-engines"
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c"
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03"
   },
   {
     "bounds": [
@@ -17212,7 +17129,7 @@
         "dir": "cmd/curator-engines"
       }
     ],
-    "source_sha256": "d7461fcd939355c08c5f55b8123c31d1624cc02bcaaf82528e63510dbd31266c"
+    "source_sha256": "95f29ddaef940c5d0c31a2e187f2e5f08cb07675e80f6c7e38cbba244ea2bf03"
   },
   {
     "site": "internal/infra/engine_weights.go:hashEngineWeights:6",
@@ -17447,5 +17364,534 @@
         "reason": "Named behavioral coverage exercises the refusal and its valid control. Guard-removal controls are recorded separately; no singleton narrowing witness under the frozen certificate rule is claimed for this compound or length condition."
       }
     ]
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "Kernel syscall failure/truncation branches have no injected syscall witness in this change; real success and incarnation/stale-token refusals are tested, but these branches remain explicitly unproved.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedObservedCodeIdentity:1",
+    "tests": [
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "Kernel syscall failure/truncation branches have no injected syscall witness in this change; real success and incarnation/stale-token refusals are tested, but these branches remain explicitly unproved.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedObservedCodeIdentity:2",
+    "tests": [
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedObservedCodeIdentity:3",
+    "tests": [
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedPeerIdentityRefusal:1",
+    "tests": [
+      {
+        "body_sha256": "acfee5b3fa40f9586e19fe195fddc4bd1969f87bccfa1f5a460328f7b044d598",
+        "name": "TestSharedCodeIdentityMissingKernelHash",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "07418100dda539e6dcf3e4e413b7bfe4447988fe035af374db195183ac9b54f4",
+        "name": "TestSharedCodeIdentitySocketPair",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedTokenCodeIdentity:1",
+    "tests": [
+      {
+        "body_sha256": "2c75a012a73fa69525674982e56f3a9516bbe6aa826fa40c0266b429de2c9726",
+        "name": "TestSharedCodeIdentityAuditTokenBinding",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "acfee5b3fa40f9586e19fe195fddc4bd1969f87bccfa1f5a460328f7b044d598",
+        "name": "TestSharedCodeIdentityMissingKernelHash",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedTokenCodeIdentity:2",
+    "tests": [
+      {
+        "body_sha256": "2c75a012a73fa69525674982e56f3a9516bbe6aa826fa40c0266b429de2c9726",
+        "name": "TestSharedCodeIdentityAuditTokenBinding",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "acfee5b3fa40f9586e19fe195fddc4bd1969f87bccfa1f5a460328f7b044d598",
+        "name": "TestSharedCodeIdentityMissingKernelHash",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedTokenCodeIdentity:3",
+    "tests": [
+      {
+        "body_sha256": "2c75a012a73fa69525674982e56f3a9516bbe6aa826fa40c0266b429de2c9726",
+        "name": "TestSharedCodeIdentityAuditTokenBinding",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "acfee5b3fa40f9586e19fe195fddc4bd1969f87bccfa1f5a460328f7b044d598",
+        "name": "TestSharedCodeIdentityMissingKernelHash",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:validateSharedCodeHashes:1",
+    "tests": [
+      {
+        "body_sha256": "9ac6911aa80b19dd365b602209304e0dd71ebd53c54383e8b933eccc2b405e08",
+        "name": "TestSharedCodeHashesFailClosed",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "The changed guard is outside the frozen singleton constant-equality grammar; named tests are references, not claimed generated mutant kills.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:validateSharedCodeHashes:2",
+    "tests": [
+      {
+        "body_sha256": "9ac6911aa80b19dd365b602209304e0dd71ebd53c54383e8b933eccc2b405e08",
+        "name": "TestSharedCodeHashesFailClosed",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedProcessIdentityRefusal:1",
+    "tests": [
+      {
+        "body_sha256": "95eb04fffab128cb3a6020f1022186aba0b3c434649b23dbb85f14613a91bb3e",
+        "name": "TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "12c831add9f9bce9550e585576eb2e7b55f42d6753a8e8c0a3ce2850503145cf",
+        "name": "TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedRecheckPeerToken:1",
+    "tests": [
+      {
+        "body_sha256": "6ce562ca7af36f1c194e01c9754d9850917d7ce7dea80f389f0cb7cf9ae618e1",
+        "name": "TestSharedCodeIdentityRequestRecheck",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "1d5a2e7926a655a302d6915ba519cff77fca41a9927c0437df8a81fb93bc3c4c",
+        "name": "TestSharedCodeIdentityEffectRecheck",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "745289aa7dcdc0a4b19a345b776f663186c6f2c963e7ecfda19aaeb1b382cb4d",
+        "name": "TestSharedCodeIdentityExecAfterAuthentication",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedRecheckPeerToken:2",
+    "tests": [
+      {
+        "body_sha256": "6ce562ca7af36f1c194e01c9754d9850917d7ce7dea80f389f0cb7cf9ae618e1",
+        "name": "TestSharedCodeIdentityRequestRecheck",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "1d5a2e7926a655a302d6915ba519cff77fca41a9927c0437df8a81fb93bc3c4c",
+        "name": "TestSharedCodeIdentityEffectRecheck",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "745289aa7dcdc0a4b19a345b776f663186c6f2c963e7ecfda19aaeb1b382cb4d",
+        "name": "TestSharedCodeIdentityExecAfterAuthentication",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedSocketAuditToken:1",
+    "tests": [
+      {
+        "body_sha256": "07418100dda539e6dcf3e4e413b7bfe4447988fe035af374db195183ac9b54f4",
+        "name": "TestSharedCodeIdentitySocketPair",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "745289aa7dcdc0a4b19a345b776f663186c6f2c963e7ecfda19aaeb1b382cb4d",
+        "name": "TestSharedCodeIdentityExecAfterAuthentication",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedSocketAuditToken:2",
+    "tests": [
+      {
+        "body_sha256": "07418100dda539e6dcf3e4e413b7bfe4447988fe035af374db195183ac9b54f4",
+        "name": "TestSharedCodeIdentitySocketPair",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "745289aa7dcdc0a4b19a345b776f663186c6f2c963e7ecfda19aaeb1b382cb4d",
+        "name": "TestSharedCodeIdentityExecAfterAuthentication",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedSocketAuditToken:3",
+    "tests": [
+      {
+        "body_sha256": "07418100dda539e6dcf3e4e413b7bfe4447988fe035af374db195183ac9b54f4",
+        "name": "TestSharedCodeIdentitySocketPair",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "745289aa7dcdc0a4b19a345b776f663186c6f2c963e7ecfda19aaeb1b382cb4d",
+        "name": "TestSharedCodeIdentityExecAfterAuthentication",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedValidatedCodeHash:1",
+    "tests": [
+      {
+        "body_sha256": "cb221ccb7b435671f79f3d73176942343aa9eaca6024a1aab6d2bac68d6b9e26",
+        "name": "TestSharedCodeIdentitySignatureValidity",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedValidatedCodeHash:2",
+    "tests": [
+      {
+        "body_sha256": "cb221ccb7b435671f79f3d73176942343aa9eaca6024a1aab6d2bac68d6b9e26",
+        "name": "TestSharedCodeIdentitySignatureValidity",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedValidatedCodeHash:3",
+    "tests": [
+      {
+        "body_sha256": "cb221ccb7b435671f79f3d73176942343aa9eaca6024a1aab6d2bac68d6b9e26",
+        "name": "TestSharedCodeIdentitySignatureValidity",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedValidatedCodeHash:4",
+    "tests": [
+      {
+        "body_sha256": "cb221ccb7b435671f79f3d73176942343aa9eaca6024a1aab6d2bac68d6b9e26",
+        "name": "TestSharedCodeIdentitySignatureValidity",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "bounds": [
+      {
+        "kind": "undecided",
+        "reason": "This changed guard has direct named behavioral controls but no certified singleton narrowing witness. Syscall failure/truncation branches are not claimed proven by real-kernel success; source-bound undecided coverage remains explicit.",
+        "member": -1
+      }
+    ],
+    "witnesses": [],
+    "site": "internal/infra/pi_shared_code_identity_darwin.go:sharedValidatedCodeHash:5",
+    "tests": [
+      {
+        "body_sha256": "cb221ccb7b435671f79f3d73176942343aa9eaca6024a1aab6d2bac68d6b9e26",
+        "name": "TestSharedCodeIdentitySignatureValidity",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "43b1fc502258c74ee3d352a71a179eb86b01cfc1cce0c7b4e87bc6f3f7633406",
+        "name": "TestSharedCodeIdentityKernelAndFile",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "47f886d35d62057e3d7f00d85368da7f64d31fb847a1db2acdb9c49595e878a7",
+        "name": "TestSharedCodeIdentityKernelRejectsStaleAuditToken",
+        "dir": "internal/infra"
+      }
+    ],
+    "source_sha256": "81f2e51492642339421ff69fe0e128122e5b28024400d1877fc251f0abd21e02"
+  },
+  {
+    "site": "internal/infra/pi_shared_broker_darwin.go:sharedBrokerServer.registerAcknowledgementLocked:1",
+    "source_sha256": "6c5812dd0bb44a3362429ee754aa18b1c5fb627dcfb087e2efb1a9278b2ea92b",
+    "tests": [
+      {
+        "body_sha256": "519f83f9eef70611193af8eeccf0429cbfd74cb82c491fa7eae87d4d43902f38",
+        "name": "TestSharedBrokerLifecycleAcknowledgementRefusesLateEffects",
+        "dir": "internal/infra"
+      },
+      {
+        "body_sha256": "61430e4ba2504b24eab97b5a2aab3ea07e43fae80048bd7078a571e2876273ed",
+        "name": "TestSharedBrokerLifecycleAcknowledgementQueuedEffects",
+        "dir": "internal/infra"
+      }
+    ],
+    "bounds": [
+      {
+        "kind": "undecided",
+        "member": -1,
+        "reason": "Real lifecycle socketpair controls cover typed late-effect refusal, unchanged pending registration and queued-effect reply ordering. Independent singleton narrowing witnesses for each shutdown-state disjunct are not certified."
+      }
+    ],
+    "witnesses": []
   }
 ]

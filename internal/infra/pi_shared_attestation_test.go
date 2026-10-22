@@ -186,6 +186,7 @@ func requireSharedAttestationCode(t *testing.T, err error, code string) {
 	t.Fatalf("error=%v want code=%q", err, code)
 }
 
+// Each rejected attestation input preserves its typed refusal.
 func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *testing.T) {
 	validModelClient := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"object":"list","data":[{"id":"Model"}]}`)), Header: make(http.Header)}, nil
@@ -263,33 +264,26 @@ func TestConnectAndAttestSharedRuntimeRejectsEveryGateDeleteAndNarrowWitness(t *
 			},
 		},
 		{
-			name: "broker executable same inode wrong device", code: "broker_executable_identity_mismatch",
+			name: "broker code identity mismatch", code: "broker_executable_identity_mismatch",
 			mutateSystem: func(system *sharedRuntimeAttestationDependencies, _ sharedAttestationFixture) {
 				original := system.processExecIdentity
 				system.processExecIdentity = func(observation sharedProcessObservation) (FileIdentity, error) {
 					identity, err := original(observation)
-					identity.Dev++
-					return identity, err
+					return identity, errors.Join(err, validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{2}))
 				}
 			},
 		},
 		{
-			name: "broker executable same device wrong inode", code: "broker_executable_identity_mismatch",
+			name: "broker code identity unavailable", code: "broker_identity_unavailable",
 			mutateSystem: func(system *sharedRuntimeAttestationDependencies, _ sharedAttestationFixture) {
 				original := system.processExecIdentity
 				system.processExecIdentity = func(observation sharedProcessObservation) (FileIdentity, error) {
 					identity, err := original(observation)
-					identity.Ino++
-					return identity, err
+					return identity, errors.Join(err, validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{}))
 				}
 			},
 		},
-		{
-			name: "broker build same inode wrong device", code: "broker_build_identity_mismatch",
-			mutateResponse: func(response *sharedWireMessage) {
-				response.Broker.ExecutableIdentity.Dev++
-			},
-		},
+
 		{
 			name: "broker start time zero", code: "broker_identity_mismatch",
 			mutateResponse: func(response *sharedWireMessage) {

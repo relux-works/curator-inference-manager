@@ -489,7 +489,7 @@ func sharedRuntimeBrokerCandidates(resolved sharedResolvedProfile) ([]SharedRunt
 	if err != nil {
 		return nil, sharedRuntimeError("broker_identity_unavailable", err)
 	}
-	_, ownIdentity, err := sharedRuntimeCandidateOwnIdentity()
+	_, _, err = sharedRuntimeCandidateOwnIdentity()
 	if err != nil {
 		return nil, sharedRuntimeError("broker_identity_unavailable", err)
 	}
@@ -503,8 +503,8 @@ func sharedRuntimeBrokerCandidates(resolved sharedResolvedProfile) ([]SharedRunt
 		if err != nil || !observation.live() || !isBrokerArgvForRuntime(observation.Argv, resolved.RuntimeKey) {
 			continue
 		}
-		identity, err := processExecIdentity(observation)
-		if err != nil || identity.Dev != ownIdentity.Dev || identity.Ino != ownIdentity.Ino {
+		_, err = processExecIdentity(observation)
+		if err != nil {
 			continue
 		}
 		result = append(result, SharedRuntimeCandidate{PID: pid, PStat: darwinProcessStateName(observation.PStat), StartTime: observation.StartTime, Argv: append([]string(nil), observation.Argv...)})
@@ -606,15 +606,12 @@ func stopRecordedSharedRuntimeWithDependencies(resolved sharedResolvedProfile, r
 		}
 		return SharedRuntimeStopResult{}, sharedRuntimeError("broker_stop_identity_mismatch", err)
 	}
-	_, ownIdentity, err := system.ownExecutableIdentity()
+	_, _, err = system.ownExecutableIdentity()
 	if err != nil {
 		return SharedRuntimeStopResult{}, sharedRuntimeError("broker_stop_identity_mismatch", err)
 	}
-	brokerIdentity, err := system.processExecIdentity(brokerObservation)
-	if err != nil || brokerIdentity.Dev != ownIdentity.Dev || brokerIdentity.Ino != ownIdentity.Ino {
-		if err == nil {
-			err = errors.New("recorded broker executable differs from caller")
-		}
+	_, err = system.processExecIdentity(brokerObservation)
+	if err != nil {
 		return SharedRuntimeStopResult{}, sharedRuntimeError("broker_stop_identity_mismatch", err)
 	}
 	_ = system.kill(record.Broker.PID, syscall.SIGTERM)

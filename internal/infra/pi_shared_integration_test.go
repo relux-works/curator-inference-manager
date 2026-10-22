@@ -599,6 +599,16 @@ resource_pressure_mode = "disabled"
 	if err := os.WriteFile(oldExecutable, oldBytes, 0o700); err != nil {
 		t.Fatal(err)
 	}
+	// Identity is the running code, so a byte copy is the same executable.
+	// Re-signing under another identifier changes the CodeDirectory and
+	// therefore the cdhash, which models an upgraded executable.
+	codesign, err := exec.LookPath("codesign")
+	if err != nil {
+		t.Skip("codesign is required to give the old executable distinct code")
+	}
+	if output, err := exec.Command(codesign, "--force", "--sign", "-", "--identifier", "old-agents-infra", oldExecutable).CombinedOutput(); err != nil {
+		t.Fatalf("re-sign old executable: %v: %s", err, output)
+	}
 	oldBroker := exec.Command(oldExecutable, "runtime", "broker", "--runtime-key", resolved.RuntimeKey, "--profile-project", project, "--profile", sharedTestProfileName)
 	oldBroker.Env = append(os.Environ(), "HOME="+home)
 	oldBroker.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
@@ -1667,6 +1677,7 @@ func TestSharedRuntimeForceStopRefusesForgedBrokerIdentityWithoutSignal(t *testi
 	}
 }
 
+// Untrusted recorded broker identities never reach either signal dependency.
 func TestSharedRuntimeForceStopRejectsRecordedBrokerIdentityNarrowingBeforeSignal(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -1757,28 +1768,28 @@ func TestSharedRuntimeForceStopRejectsRecordedBrokerIdentityNarrowingBeforeSigna
 			},
 		},
 		{
-			name:         "broker executable same inode wrong device",
+			name:         "broker running code differs",
 			mutateRecord: func(*SharedBrokerIdentity) {},
 			mutateSystem: func(system *sharedRuntimeOperatorDependencies, pid int) {
 				original := system.processExecIdentity
 				system.processExecIdentity = func(observation sharedProcessObservation) (FileIdentity, error) {
 					identity, err := original(observation)
 					if observation.PID == pid {
-						identity.Dev++
+						err = errors.Join(err, validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{2}))
 					}
 					return identity, err
 				}
 			},
 		},
 		{
-			name:         "broker executable same device wrong inode",
+			name:         "broker running code absent",
 			mutateRecord: func(*SharedBrokerIdentity) {},
 			mutateSystem: func(system *sharedRuntimeOperatorDependencies, pid int) {
 				original := system.processExecIdentity
 				system.processExecIdentity = func(observation sharedProcessObservation) (FileIdentity, error) {
 					identity, err := original(observation)
 					if observation.PID == pid {
-						identity.Ino++
+						err = errors.Join(err, validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{}))
 					}
 					return identity, err
 				}
@@ -1843,7 +1854,8 @@ func TestSharedRuntimeForceStopRejectsRecordedBrokerIdentityNarrowingBeforeSigna
 	}
 }
 
-func TestSharedRuntimeBrokerCandidatesRejectSameDeviceWrongInodeAtProductionEntry(t *testing.T) {
+// Candidate discovery includes a byte-identical signed copy despite a different inode.
+func TestSharedRuntimeBrokerCandidatesAdmitSameCodeCopyAtProductionEntry(t *testing.T) {
 	_, _, _, resolved := newSharedIntegrationProfile(t)
 	executable, ownIdentity, err := ownResolvedExecutableIdentity()
 	if err != nil {
@@ -1866,23 +1878,23 @@ func TestSharedRuntimeBrokerCandidatesRejectSameDeviceWrongInodeAtProductionEntr
 	if copyIdentity.Dev != ownIdentity.Dev || copyIdentity.Ino == ownIdentity.Ino {
 		t.Fatalf("candidate fixture identity=%#v want device=%d inode!=%d", copyIdentity, ownIdentity.Dev, ownIdentity.Ino)
 	}
-	wrongInodeCommand, _ := launchSharedBrokerCandidateProcess(t, copyPath, resolved.RuntimeKey)
+	copyCommand, _ := launchSharedBrokerCandidateProcess(t, copyPath, resolved.RuntimeKey)
 
 	candidates, err := sharedRuntimeBrokerCandidates(resolved)
 	if err != nil {
 		t.Fatal(err)
 	}
-	foundValid := false
+	foundValid, foundCopy := false, false
 	for _, candidate := range candidates {
 		if candidate.PID == validCommand.Process.Pid {
 			foundValid = true
 		}
-		if candidate.PID == wrongInodeCommand.Process.Pid {
-			t.Fatalf("sharedRuntimeBrokerCandidates admitted same-device/wrong-inode candidate=%#v", candidate)
+		if candidate.PID == copyCommand.Process.Pid {
+			foundCopy = true
 		}
 	}
-	if !foundValid {
-		t.Fatalf("sharedRuntimeBrokerCandidates did not return exact-executable control pid=%d candidates=%#v", validCommand.Process.Pid, candidates)
+	if !foundValid || !foundCopy {
+		t.Fatalf("sharedRuntimeBrokerCandidates did not return both same-code controls: candidates=%#v", candidates)
 	}
 }
 

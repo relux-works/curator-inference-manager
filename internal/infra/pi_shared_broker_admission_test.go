@@ -71,8 +71,11 @@ func newSharedBrokerAdmissionFixture(t *testing.T) sharedBrokerAdmissionFixture 
 	ledger := newSharedRuntimeRestartLedger(resolved.RuntimeKey, resolved.ProfileDigest)
 	server := newSharedBrokerServer(resolved, record, &ledger, nil)
 	server.admission = sharedBrokerAdmissionDependencies{
-		peerIdentity: func(*net.UnixConn) (uint32, int, error) {
-			return observation.UID, observation.PID, nil
+		peerToken: func(*net.UnixConn) (sharedAuditToken, error) {
+			return sharedAuditToken{5: uint32(observation.PID), 7: 1}, nil
+		},
+		peerIdentity: func(*net.UnixConn) (uint32, int, sharedAuditToken, error) {
+			return observation.UID, observation.PID, sharedAuditToken{5: uint32(observation.PID), 7: 1}, nil
 		},
 		inspectProcess: func(int) (sharedProcessObservation, error) {
 			return observation, nil
@@ -94,6 +97,7 @@ func newSharedBrokerAdmissionFixture(t *testing.T) sharedBrokerAdmissionFixture 
 	}
 }
 
+// A valid hello admits; mutated identity/protocol dependencies refuse with their typed code.
 func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -106,17 +110,17 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 			name: "peer uid root narrowing", code: "broker_peer_untrusted",
 			mutateSystem: func(system *sharedBrokerAdmissionDependencies) {
 				original := system.peerIdentity
-				system.peerIdentity = func(connection *net.UnixConn) (uint32, int, error) {
-					_, pid, err := original(connection)
-					return 0, pid, err
+				system.peerIdentity = func(connection *net.UnixConn) (uint32, int, sharedAuditToken, error) {
+					_, pid, token, err := original(connection)
+					return 0, pid, token, err
 				}
 			},
 		},
 		{
 			name: "peer identity error with valid witness", code: "broker_peer_untrusted",
 			mutateError: func(system *sharedBrokerAdmissionDependencies, fixture sharedBrokerAdmissionFixture) {
-				system.peerIdentity = func(*net.UnixConn) (uint32, int, error) {
-					return uint32(os.Geteuid()), fixture.observation.PID, os.ErrPermission
+				system.peerIdentity = func(*net.UnixConn) (uint32, int, sharedAuditToken, error) {
+					return uint32(os.Geteuid()), fixture.observation.PID, sharedAuditToken{}, os.ErrPermission
 				}
 			},
 		},
@@ -148,24 +152,22 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 			},
 		},
 		{
-			name: "client executable same inode wrong device", code: "broker_executable_identity_mismatch",
+			name: "client code identity mismatch", code: "broker_executable_identity_mismatch",
 			mutateSystem: func(system *sharedBrokerAdmissionDependencies) {
 				original := system.processExecIdentity
 				system.processExecIdentity = func(observation sharedProcessObservation) (FileIdentity, error) {
 					identity, err := original(observation)
-					identity.Dev++
-					return identity, err
+					return identity, errors.Join(err, validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{2}))
 				}
 			},
 		},
 		{
-			name: "client executable same device wrong inode", code: "broker_executable_identity_mismatch",
+			name: "client code identity unavailable", code: "broker_identity_unavailable",
 			mutateSystem: func(system *sharedBrokerAdmissionDependencies) {
 				original := system.processExecIdentity
 				system.processExecIdentity = func(observation sharedProcessObservation) (FileIdentity, error) {
 					identity, err := original(observation)
-					identity.Ino++
-					return identity, err
+					return identity, errors.Join(err, validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{}))
 				}
 			},
 		},
@@ -201,7 +203,7 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 
 	t.Run("exact protocol version control", func(t *testing.T) {
 		fixture := newSharedBrokerAdmissionFixture(t)
-		observation, err := fixture.server.attestClient(nil, fixture.hello)
+		observation, _, err := fixture.server.attestClient(nil, fixture.hello)
 		if err != nil || !reflect.DeepEqual(observation, fixture.observation) {
 			t.Fatalf("valid broker admission observation=%#v err=%v", observation, err)
 		}
@@ -211,7 +213,7 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 		alias := *fixture.hello.EngineIdentity
 		alias.Name = "equivalent-alias"
 		fixture.hello.EngineIdentity = &alias
-		observation, err := fixture.server.attestClient(nil, fixture.hello)
+		observation, _, err := fixture.server.attestClient(nil, fixture.hello)
 		if err != nil || !reflect.DeepEqual(observation, fixture.observation) {
 			t.Fatalf("same-key alias admission observation=%#v err=%v", observation, err)
 		}
@@ -229,7 +231,7 @@ func TestSharedBrokerAttestClientRejectsEveryGateDeleteAndNarrowWitness(t *testi
 			if testCase.mutateHello != nil {
 				testCase.mutateHello(&fixture.hello)
 			}
-			observation, err := fixture.server.attestClient(nil, fixture.hello)
+			observation, _, err := fixture.server.attestClient(nil, fixture.hello)
 			requireSharedAttestationCode(t, err, testCase.code)
 			if !reflect.DeepEqual(observation, sharedProcessObservation{}) {
 				t.Fatalf("refused client returned observation=%#v", observation)
@@ -247,7 +249,7 @@ func TestSharedBrokerAcquireLeaseRefusesDrainingBeforeGrant(t *testing.T) {
 	lease, err := fixture.server.acquireLease(
 		sharedWireMessage{Type: "acquire", ClientKey: "client"},
 		fixture.hello,
-		fixture.observation,
+		fixture.observation, func() error { return nil },
 	)
 	requireSharedAttestationCode(t, err, "shared_runtime_shutting_down")
 	if lease != nil {
@@ -274,7 +276,7 @@ func TestSharedBrokerAcquireLeaseRefusesNonceAndTokenReadFailures(t *testing.T) 
 			lease, err := fixture.server.acquireLease(
 				sharedWireMessage{Type: "acquire", ClientKey: "random-failure"},
 				fixture.hello,
-				fixture.observation,
+				fixture.observation, func() error { return nil },
 			)
 			if sharedRuntimeErrorCode(err) != "shared_runtime_state_path_invalid" {
 				t.Fatalf("random generation failure returned lease=%#v err=%v", lease, err)

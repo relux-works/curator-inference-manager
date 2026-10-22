@@ -365,3 +365,112 @@ The JSON keys are `module_version`, `vcs_revision`, `vcs_time`, `vcs_modified`,
 and `go_version`; values are strings, with `unknown` for unavailable fields.
 Scratch directories `.temp/` and `.codex/` are ignored by Git so their presence
 does not change the build's VCS modified setting.
+
+## Darwin broker code identity
+
+Darwin broker/client authentication compares the 20-byte CodeDirectory hash
+(cdhash) of the code the kernel actually runs. A pathname is only a locator:
+`proc_pidpath`, `EvalSymlinks` and `stat` cannot bind a file to a running image.
+Two copies with the same selected CodeDirectory match even when their device,
+inode or installation path differs. Replacing a pathname after a peer starts
+cannot substitute different running code for the authenticated image.
+
+A connected Unix socket supplies `LOCAL_PEERTOKEN` as well as `LOCAL_PEERPID`
+and `LOCAL_PEERCRED`. The audit token's PID must equal the kernel socket PID;
+admission also requires the hello PID to equal that PID, and the client checks
+the announced broker PID. `csops_audittoken` binds queries to the token's PID and pidversion,
+refusing reuse or exec after that token was observed. Both peer and self use
+status → cdhash → status: `CS_OPS_STATUS` (0) must return `CS_VALID` (0x1)
+before and after `CS_OPS_CDHASH` (5). Every peer query receives the same token;
+self uses `csops(getpid(), ...)`. Bracketing detects invalidation during hash
+retrieval, without claiming an atomic process handle or future validity.
+[`bsd/sys/codesign.h`](https://github.com/apple-oss-distributions/xnu/blob/xnu-12377.1.9/bsd/sys/codesign.h)
+defines the operations and includes
+[`kern/cs_blobs.h`](https://github.com/apple-oss-distributions/xnu/blob/xnu-12377.1.9/osfmk/kern/cs_blobs.h),
+which defines `CS_VALID`. No cgo, entitlement or publisher trust is required. These semantics follow XNU
+[`csops_internal`](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_proc.c)
+and [`audit_token_t`](https://github.com/apple-oss-distributions/xnu/blob/main/osfmk/mach/message.h).
+
+Missing self or peer cdhash, an all-zero hash, invalid signature status, and syscall failures fail closed
+with `broker_identity_unavailable`. A code mismatch is
+`broker_executable_identity_mismatch`; token/socket/hello PID disagreement is
+`broker_identity_mismatch`. Existing UID failures remain
+`broker_peer_untrusted`. There is no unsigned-self compatibility mode: unsigned
+Darwin amd64 executables must be ad-hoc signed before using this broker.
+Go's normal Darwin arm64 linker output is already ad-hoc signed.
+
+The broker saves the exact authenticated token's PID (word 5) and pidversion
+(word 7). On the same connection it re-reads `LOCAL_PEERTOKEN` after each
+subsequent request is decoded, before dispatch, and again at state-changing
+boundaries (resource admission, lease reservation/publication, heartbeat,
+release and stop). A changed PID or pidversion refuses with
+`broker_identity_mismatch`; an unreadable/truncated token refuses with
+`broker_identity_unavailable`. Either refusal closes the connection. Lease
+cleanup on disconnect remains permitted. These rechecks bound observation
+windows; they do not make check and effect atomic.
+
+**Accepted pre-authentication limitation:** `LOCAL_PEERTOKEN` returns the
+current incarnation of the socket's last PID, rather than the incarnation
+that queued a message (XNU
+[`uipc_usrreq.c`, `LOCAL_PEERTOKEN`](https://github.com/apple-oss-distributions/xnu/blob/xnu-12377.1.9/bsd/kern/uipc_usrreq.c)).
+Messages queued before authentication by a process that then execs into the
+trusted executable are attributed to that executable if authentication
+observes the new incarnation. Saving and rechecking pidversion cannot detect
+that earlier exec. This is accepted for now because the attacker has the same
+UID and can already run the genuine client with arbitrary arguments. Closing
+this attribution gap requires a broker challenge (nonce) in hello, binding
+requests to a fresh authenticated exchange. That is a wire protocol change,
+recorded as an [open follow-up](../UNRESOLVED_QUESTIONS.md#broker-hello-challenge);
+this change preserves the existing protocol.
+
+| Site | Previous executable check | Current decision |
+| --- | --- | --- |
+| `ownResolvedExecutableIdentity` (broker startup and broker/runtime launcher selection) | `os.Executable` → resolved file identity | Require self kernel cdhash; retain path/stat only for launch location and metadata |
+| `sharedUnixPeerIdentity` (admission and client attestation) | Socket UID/PID only | Also require audit-token-bound peer cdhash equal to self |
+| `processExecIdentity` | Kernel executable path → resolved device/inode | Require pidversion-bound kernel code equality; retain path/stat as metadata only |
+| `sharedBrokerServer.attestClient` | Client device/inode equal to broker record | Socket code equality plus process incarnation/liveness and hello PID; no inode equality |
+| `connectAndAttestSharedRuntimeWithOwnership` | Peer inode equal to self; announced file identity equal to self | Socket code equality and process recheck; announced file identity does not authenticate code |
+| `sharedRuntimeBrokerCandidates` | Candidate device/inode equal to self | Kernel code equality and existing UID/liveness/argv filters; signed copies qualify |
+| `stopRecordedSharedRuntimeWithDependencies` | Recorded broker device/inode equal to self | Kernel code equality before signaling, retaining UID/start-time/argv checks |
+| Runtime FILE expectation in broker publication/client attestation | Configured executable stat, then file identity equal to runtime record | **Deferred:** retain existing path identity; this is not race-resistant running-code attestation |
+| Runtime reclaim/authorization | Process start time, process group, expected path/argv and exec-plan digest | Retain existing contract; these do not authenticate a broker/client executable |
+
+Non-socket operator inspection acquires the kernel pidversion through
+`PROC_PIDUNIQIDENTIFIERINFO`, rechecks the observed process start time, then
+uses `csops_audittoken`. It does not obtain a transferable process handle:
+signaling still has the existing PID-based check-to-signal limit.
+
+The pure-Go expected-FILE reader supports thin Mach-O and an unambiguous slice
+of the requested CPU architecture. It reads `LC_CODE_SIGNATURE`, SuperBlob and
+CodeDirectory bounds and hashes the complete selected directory. Structural
+checks follow XNU
+[`cs_validate_codedirectory`](https://github.com/apple-oss-distributions/xnu/blob/xnu-12377.1.9/bsd/kern/ubc_subr.c#L340):
+scatter entries require a bounded sentinel and no page-count overflow; team
+strings require a bounded NUL; enabled linkage data must fit. Versioned
+codeLimit64, execSeg, runtime and linkage headers must be complete. Supported
+page shifts are 12 or the host kernel page shift, as in XNU; numeric file
+limits and segment fields are not offsets into the CodeDirectory. Selection
+follows XNU [`cs_validate_csblob` and `hash_rank`](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/ubc_subr.c):
+SHA-384, full SHA-256, truncated SHA-256, then SHA-1, truncating the digest to
+20 bytes. Equal current-best rank, unknown hash/version, malformed bounds,
+missing signature and missing/ambiguous architecture refuse. This reader is
+not wired into runtime FILE checks in this change: arbitrary runtimes may be
+unsigned or interpreted, and exact CPU subtype selection and the entire
+launch/authorization/reclaim policy need a separate contract. It does not
+validate page hashes or certify that a file is executable or publisher-trusted.
+
+Cdhash stays internal. `FileIdentity`, hello/status records, lifecycle evidence,
+status contract v1 and the frozen attestation gate names remain unchanged.
+`broker_build` now records the already checked kernel code equality rather
+than trusting announced file metadata; `broker_build_identity_mismatch` has no
+remaining emission site. The status publication compatibility guard and
+consumer decoders receive no new member. Serialized file metadata describes
+a path observation, not the running image. Linux, Windows and other builds
+retain their existing behavior through Darwin-only build tags.
+
+Ad-hoc signatures prove code identity, not publisher identity. Same-code
+copies are trusted equally, and a same-UID attacker able to cause the broker
+to run attacker-controlled code, inject code, or inherit/pass an authenticated
+socket is outside this comparison's guarantee. This closes the pathname
+replacement race for broker/client authentication; it does not claim to close
+the explicitly deferred runtime FILE checks or PID-based signaling races.

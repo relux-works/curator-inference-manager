@@ -407,10 +407,11 @@ func connectAndAttestSharedRuntimeWithOwnership(resolved sharedResolvedProfile, 
 		return nil, sharedRuntimeError("broker_unreachable", err)
 	}
 	uid, peerPID, err := system.peerIdentity(connection)
-	if err != nil || uid != uint32(os.Geteuid()) {
-		if err == nil {
-			err = errors.New("broker peer uid differs")
-		}
+	if err != nil {
+		return nil, sharedPeerIdentityRefusal(err)
+	}
+	if uid != uint32(os.Geteuid()) {
+		err = errors.New("broker peer uid differs")
 		return nil, sharedRuntimeError("broker_peer_untrusted", err)
 	}
 	passed("peer_uid")
@@ -426,12 +427,9 @@ func connectAndAttestSharedRuntimeWithOwnership(resolved sharedResolvedProfile, 
 	if err != nil {
 		return nil, sharedRuntimeError("broker_identity_unavailable", err)
 	}
-	peerIdentity, err := system.processExecIdentity(peer)
+	_, err = system.processExecIdentity(peer)
 	if err != nil {
-		return nil, sharedRuntimeError("broker_identity_unavailable", err)
-	}
-	if peerIdentity.Dev != ownIdentity.Dev || peerIdentity.Ino != ownIdentity.Ino {
-		return nil, sharedRuntimeError("broker_executable_identity_mismatch", errors.New("broker executable inode differs"))
+		return nil, sharedProcessIdentityRefusal(err)
 	}
 	passed("broker_executable")
 	hello := sharedWireMessage{
@@ -460,9 +458,6 @@ func connectAndAttestSharedRuntimeWithOwnership(resolved sharedResolvedProfile, 
 	}
 	if response.Type != "hello_ok" || response.Broker == nil || response.Runtime == nil || response.EffectiveSharing == nil || response.EngineIdentity == nil {
 		return nil, sharedRuntimeError("protocol_violation", errors.New("broker hello response is incomplete"))
-	}
-	if response.Broker.ExecutableIdentity != ownIdentity {
-		return nil, sharedRuntimeError("broker_build_identity_mismatch", errors.New("broker startup binary identity differs"))
 	}
 	passed("broker_build")
 	if response.Broker.PID != peerPID || response.Broker.StartTime != peer.StartTime {

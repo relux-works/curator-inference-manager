@@ -160,3 +160,32 @@ and rechecks file identity after readiness. Status adds the instance-bound
 weights observation; absent tables remain unpinned, including legacy imports.
 Catalogs use mode `0600`; llama-cpp `knobs.kv_context_size` is a positive TOML
 integer, not a quoted numeric string.
+
+## Darwin executable trust
+
+The adopted broker/client executable identity is **same running code**, using
+kernel cdhash rather than pathname device/inode. Connected peers are bound to
+`LOCAL_PEERTOKEN` with `csops_audittoken`; token PID, socket PID and announced
+PID must agree. Self uses `csops`; missing code identity on either side fails
+closed, including unsigned Darwin amd64 builds. Signed copies of the same code
+match, and rename/replacement of a peer's executable path cannot authenticate
+a different running image. Ad-hoc signing identifies code, not its publisher.
+An attacker who can make the broker execute attacker code is outside this
+boundary. Non-Darwin platforms retain their existing behavior.
+
+The complete call-site decisions, typed refusals and residual limits are in
+[Darwin broker code identity](engines-protocol-v1.1.md#darwin-broker-code-identity).
+Cdhash is internal; existing published file identities remain path metadata,
+and no status/consumer schema changes. Configured runtime FILE checks retain
+their legacy path identity in this scoped change. Integrating signed runtime
+file expectations requires a separate unsigned/interpreter and architecture
+subtype policy; those checks must not be described as race-resistant.
+
+Darwin broker code identity additionally requires `CS_VALID` before and after
+kernel cdhash retrieval. The broker saves the authenticated socket PID and
+pidversion and rechecks requests and state-changing boundaries, closing on a
+typed identity refusal. LOCAL_PEERTOKEN reports the current incarnation;
+pre-authentication queued messages followed by exec into trusted code remain
+attributed to that code. This accepted same-UID limitation and the future
+hello nonce challenge are specified in the
+[identity contract](engines-protocol-v1.1.md#darwin-broker-code-identity).

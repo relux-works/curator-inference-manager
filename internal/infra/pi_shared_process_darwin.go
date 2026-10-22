@@ -148,7 +148,12 @@ func resolvedExecutableIdentity(path string) (string, FileIdentity, error) {
 	return resolved, identity, nil
 }
 
+// ownResolvedExecutableIdentity requires signed running code; its returned
+// FileIdentity describes a path observation and is not running-code evidence.
 func ownResolvedExecutableIdentity() (string, FileIdentity, error) {
+	if _, err := sharedOwnCodeHash(); err != nil {
+		return "", FileIdentity{}, err
+	}
 	executable, err := os.Executable()
 	if err != nil {
 		return "", FileIdentity{}, err
@@ -157,9 +162,14 @@ func ownResolvedExecutableIdentity() (string, FileIdentity, error) {
 }
 
 func sharedUnixPeerIdentity(connection *net.UnixConn) (uint32, int, error) {
+	uid, pid, _, err := sharedUnixPeerIdentityWithToken(connection)
+	return uid, pid, err
+}
+
+func sharedUnixPeerIdentityWithToken(connection *net.UnixConn) (uint32, int, sharedAuditToken, error) {
 	raw, err := connection.SyscallConn()
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, sharedAuditToken{}, err
 	}
 	var uid uint32
 	var pid int
@@ -177,18 +187,30 @@ func sharedUnixPeerIdentity(connection *net.UnixConn) (uint32, int, error) {
 		}
 		uid, pid = credential.Uid, peerPID
 	}); err != nil {
-		return 0, 0, err
+		return 0, 0, sharedAuditToken{}, err
 	}
 	if controlErr != nil {
-		return 0, 0, controlErr
+		return 0, 0, sharedAuditToken{}, controlErr
 	}
 	if pid <= 0 {
-		return 0, 0, fmt.Errorf("invalid peer pid %d", pid)
+		return 0, 0, sharedAuditToken{}, fmt.Errorf("invalid peer pid %d", pid)
 	}
-	return uid, pid, nil
+	token, err := sharedSocketAuditToken(connection)
+	if err != nil {
+		return 0, 0, sharedAuditToken{}, err
+	}
+	if err := sharedTokenCodeIdentity(pid, token, sharedOwnCodeHash, sharedKernelCodeHash); err != nil {
+		return 0, 0, sharedAuditToken{}, err
+	}
+	return uid, pid, token, nil
 }
 
+// processExecIdentity authenticates running code before collecting path metadata.
+// The returned FileIdentity must never be used as proof of the running image.
 func processExecIdentity(observation sharedProcessObservation) (FileIdentity, error) {
+	if err := sharedObservedCodeIdentity(observation); err != nil {
+		return FileIdentity{}, err
+	}
 	path, err := readDarwinProcessExecutablePath(observation.PID)
 	if err != nil {
 		return FileIdentity{}, err

@@ -645,6 +645,74 @@ func cleanupSharedRuntimeState(paths SharedRuntimePaths) error {
 	return nil
 }
 
+// Bound lifecycle waits when a client cannot receive its committed effect's reply.
+const sharedBrokerAcknowledgementTimeout = time.Second
+
+// Entries belong to the broker registry, never to an individual lifecycle event.
+// All registry operations, including adding reply recipients, hold server.mu.
+type sharedBrokerAcknowledgement struct {
+	connections []*net.UnixConn
+}
+
+// registerAcknowledgementLocked reserves reply delivery atomically with a request
+// effect. A request may commit several effects but owns only one registry entry.
+func (server *sharedBrokerServer) registerAcknowledgementLocked(ack *sharedBrokerAcknowledgement) error {
+	if server.shuttingDown || server.state == "draining" {
+		return sharedRuntimeError("shared_runtime_shutting_down", errors.New("broker is draining"))
+	}
+	if ack != nil {
+		if server.acknowledgements == nil {
+			server.acknowledgements = make(map[*sharedBrokerAcknowledgement]bool)
+		}
+		if len(server.acknowledgements) == 0 {
+			server.acknowledgementsDone = make(chan struct{})
+		}
+		server.acknowledgements[ack] = true
+	}
+	return nil
+}
+
+func (server *sharedBrokerServer) completeAcknowledgement(ack *sharedBrokerAcknowledgement) {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	if server.acknowledgements[ack] {
+		delete(server.acknowledgements, ack)
+		if len(server.acknowledgements) == 0 {
+			close(server.acknowledgementsDone)
+		}
+	}
+}
+
+// Seal registration before waiting. The counter cannot grow or be reused after
+// this boundary, and one timer covers every outstanding request and recipient.
+func (server *sharedBrokerServer) waitForAcknowledgements() {
+	server.mu.Lock()
+	server.shuttingDown = true
+	done := server.acknowledgementsDone
+	pending := len(server.acknowledgements)
+	server.mu.Unlock()
+	if pending == 0 {
+		return
+	}
+	timer := time.NewTimer(sharedBrokerAcknowledgementTimeout)
+	defer timer.Stop()
+	select {
+	case <-done:
+	case <-timer.C:
+		server.mu.Lock()
+		var connections []*net.UnixConn
+		for ack := range server.acknowledgements {
+			connections = append(connections, ack.connections...)
+		}
+		server.mu.Unlock()
+		// Raw socket close cancels even a write holding writerMu. Do not wait
+		// again: a stalled handler must not extend the overall shutdown bound.
+		for _, connection := range connections {
+			_ = connection.Close()
+		}
+	}
+}
+
 type sharedBrokerEvent struct {
 	kind               string
 	force              bool
@@ -661,16 +729,21 @@ type sharedBrokerConnection struct {
 	reader     *bufio.Reader
 	writerMu   sync.Mutex
 	leaseID    string
+	beforeSend func(sharedWireMessage) // Optional scheduling hook for connection tests.
 }
 
 func (connection *sharedBrokerConnection) send(message sharedWireMessage) error {
+	if connection.beforeSend != nil {
+		connection.beforeSend(message)
+	}
 	connection.writerMu.Lock()
 	defer connection.writerMu.Unlock()
 	return writeSharedWireMessage(connection.connection, message)
 }
 
 type sharedBrokerAdmissionDependencies struct {
-	peerIdentity        func(*net.UnixConn) (uint32, int, error)
+	peerIdentity        func(*net.UnixConn) (uint32, int, sharedAuditToken, error)
+	peerToken           func(*net.UnixConn) (sharedAuditToken, error)
 	inspectProcess      func(int) (sharedProcessObservation, error)
 	processExecIdentity func(sharedProcessObservation) (FileIdentity, error)
 }
@@ -688,7 +761,8 @@ var sharedBrokerResourceSystem = sharedBrokerResourceDependencies{
 }
 
 var sharedBrokerAdmissionSystem = sharedBrokerAdmissionDependencies{
-	peerIdentity:        sharedUnixPeerIdentity,
+	peerIdentity:        sharedUnixPeerIdentityWithToken,
+	peerToken:           sharedSocketAuditToken,
 	inspectProcess:      inspectSharedProcess,
 	processExecIdentity: processExecIdentity,
 }
@@ -702,9 +776,13 @@ type sharedBrokerServer struct {
 	terminateRuntime            func(int, *piProcessWait, syscall.Signal, time.Duration) error
 	mu                          sync.Mutex
 	state                       string
+	shuttingDown                bool
+	acknowledgements            map[*sharedBrokerAcknowledgement]bool
+	acknowledgementsDone        chan struct{}
 	connections                 map[*sharedBrokerConnection]bool
 	leases                      map[string]*SharedLeaseRecord
 	events                      chan sharedBrokerEvent
+	beforeEvent                 func(sharedBrokerEvent) // Optional lifecycle scheduling hook for tests.
 	hadLease                    bool
 	forced                      bool
 	readyAt                     time.Time
@@ -849,6 +927,9 @@ func (server *sharedBrokerServer) serve(runtimeWait *piProcessWait, signals <-ch
 			server.setDraining()
 			return nil
 		case event := <-server.events:
+			if server.beforeEvent != nil {
+				server.beforeEvent(event)
+			}
 			switch event.kind {
 			case "stop":
 				server.mu.Lock()
@@ -858,6 +939,7 @@ func (server *sharedBrokerServer) serve(runtimeWait *piProcessWait, signals <-ch
 					server.mu.Unlock()
 					break
 				}
+				server.shuttingDown = true
 				server.state = "draining"
 				server.record.State = "draining"
 				server.forced = event.force
@@ -937,6 +1019,12 @@ func (server *sharedBrokerServer) currentState() string {
 
 func (server *sharedBrokerServer) setState(state string) {
 	server.mu.Lock()
+	if server.shuttingDown {
+		state = "draining"
+	}
+	if state == "draining" {
+		server.shuttingDown = true
+	}
 	server.state = state
 	server.record.State = state
 	record := *server.record
@@ -981,14 +1069,15 @@ func (server *sharedBrokerServer) forcedStop() bool {
 }
 
 func (server *sharedBrokerServer) closeConnections(messageType, reason string) {
+	server.waitForAcknowledgements()
 	server.mu.Lock()
-	connections := make([]*sharedBrokerConnection, 0, len(server.connections))
+	connections := make(map[*sharedBrokerConnection]string, len(server.connections))
 	for connection := range server.connections {
-		connections = append(connections, connection)
+		connections[connection] = connection.leaseID
 	}
 	server.mu.Unlock()
-	for _, connection := range connections {
-		_ = connection.send(sharedWireMessage{Type: messageType, LeaseID: connection.leaseID, Reason: reason})
+	for connection, leaseID := range connections {
+		_ = connection.send(sharedWireMessage{Type: messageType, LeaseID: leaseID, Reason: reason})
 		_ = connection.connection.Close()
 	}
 }
@@ -1009,9 +1098,22 @@ func (server *sharedBrokerServer) handleConnection(connection *sharedBrokerConne
 		_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation"})
 		return
 	}
-	clientObservation, refusal := server.attestClient(connection.connection, hello)
+	clientObservation, peerToken, refusal := server.attestClient(connection.connection, hello)
 	if refusal != nil {
 		_ = sendSharedRefusal(connection, refusal)
+		return
+	}
+	recheck := func() error {
+		return sharedRecheckPeerToken(connection.connection, peerToken, server.admission.peerToken)
+	}
+	refuseChangedPeer := func() bool {
+		if err := recheck(); err != nil {
+			_ = sendSharedRefusal(connection, err)
+			return true
+		}
+		return false
+	}
+	if refuseChangedPeer() {
 		return
 	}
 	effective := server.resolved.Sharing
@@ -1031,97 +1133,167 @@ func (server *sharedBrokerServer) handleConnection(connection *sharedBrokerConne
 		if err != nil {
 			return
 		}
-		switch message.Type {
-		case "acquire":
-			if connection.leaseID != "" {
-				_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "duplicate_acquire"})
-				return
-			}
-			lease, refusal := server.acquireLease(message, hello, clientObservation)
-			if refusal != nil {
-				_ = sendSharedRefusal(connection, refusal)
-				return
-			}
-			connection.leaseID = lease.LeaseID
-			leaseCount, _ := server.leaseFacts()
-			if err := writeSharedJSONAtomic(filepath.Join(server.resolved.Paths.LeasesDir, lease.LeaseID+".json"), lease); err != nil {
-				server.releaseConnectionLease(connection)
-				_ = sendSharedRefusal(connection, err)
-				return
-			}
-			server.notify("lease-change", false)
-			if err := connection.send(sharedWireMessage{Type: "lease", Lease: lease, LeaseID: lease.LeaseID, LeaseCount: leaseCount, Runtime: server.record.Runtime}); err != nil {
-				return
-			}
-		case "heartbeat":
-			if message.LeaseID == "" || message.LeaseID != connection.leaseID {
-				_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "lease_identity_mismatch"})
-				return
-			}
-			server.mu.Lock()
-			lease := server.leases[connection.leaseID]
-			if lease != nil {
-				lease.LastHeartbeatAt = time.Now().UTC()
-			}
-			leaseCount := len(server.leases)
-			server.mu.Unlock()
-			if lease != nil {
-				_ = writeSharedJSONAtomic(filepath.Join(server.resolved.Paths.LeasesDir, lease.LeaseID+".json"), lease)
-			}
-			if err := connection.send(sharedWireMessage{Type: "heartbeat_ok", LeaseID: connection.leaseID, LeaseCount: leaseCount}); err != nil {
-				return
-			}
-		case "release":
-			if message.LeaseToken != "" {
-				leaseID, owner, ok := server.releaseLeaseByToken(message.LeaseToken)
-				if !ok {
-					_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "lease_identity_mismatch"})
-					return
-				}
-				_ = os.Remove(filepath.Join(server.resolved.Paths.LeasesDir, leaseID+".json"))
-				server.notify("lease-change", false)
-				if owner != nil && owner != connection {
-					_ = owner.send(sharedWireMessage{Type: "released", LeaseID: leaseID})
-				}
-				_ = connection.send(sharedWireMessage{Type: "released", LeaseID: leaseID})
-				return
-			}
-			if message.LeaseID == "" || message.LeaseID != connection.leaseID {
-				_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "lease_identity_mismatch"})
-				return
-			}
-			server.releaseConnectionLease(connection)
-			_ = connection.send(sharedWireMessage{Type: "released", LeaseID: message.LeaseID})
+		if refuseChangedPeer() {
 			return
-		case "status":
-			resources, _, decision := server.observeResourceStatus(false)
-			if server.resources.beforeStatusPublication != nil {
-				server.resources.beforeStatusPublication(decision)
-			}
-			state, leases, resources := server.resourceStatusSnapshot(resources, decision)
-			if err := connection.send(sharedWireMessage{Type: "status", State: state, Stage: server.record.Stage, Leases: leases, LeaseCount: len(leases), Runtime: server.record.Runtime, Broker: &server.record.Broker, EffectiveSharing: server.record.Sharing, Resources: &resources}); err != nil {
-				return
-			}
-		case "stop":
-			_, leases := server.statusSnapshot()
-			leaseCount := len(leases)
-			if leaseCount > 0 && !message.Force {
-				_ = connection.send(sharedWireMessage{Type: "refused", Code: "shared_runtime_leases_active", LeaseCount: leaseCount, Leases: leases})
-				return
-			}
-			_ = connection.send(sharedWireMessage{Type: "stopping", LeaseCount: leaseCount})
-			server.notify("stop", message.Force)
-			return
-		default:
-			_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "unknown_message"})
+		}
+
+		if !server.handleRequest(connection, message, hello, clientObservation, recheck, refuseChangedPeer) {
 			return
 		}
 	}
 }
 
-func (server *sharedBrokerServer) releaseLeaseByToken(token string) (string, *sharedBrokerConnection, bool) {
+func (server *sharedBrokerServer) handleRequest(connection *sharedBrokerConnection, message, hello sharedWireMessage, clientObservation sharedProcessObservation, recheck func() error, refuseChangedPeer func() bool) bool {
+	acknowledgement := &sharedBrokerAcknowledgement{connections: []*net.UnixConn{connection.connection}}
+	defer server.completeAcknowledgement(acknowledgement)
+	server.mu.Lock()
+	var shutdownErr error
+	if message.Type != "status" {
+		shutdownErr = server.registerAcknowledgementLocked(nil)
+	}
+	connectionLeaseID := connection.leaseID
+	server.mu.Unlock()
+	if shutdownErr != nil {
+		_ = sendSharedRefusal(connection, shutdownErr)
+		return false
+	}
+	switch message.Type {
+	case "acquire":
+		if connectionLeaseID != "" {
+			_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "duplicate_acquire"})
+			return false
+		}
+		lease, refusal := server.acquireLease(message, hello, clientObservation, recheck, acknowledgement)
+		if refusal != nil {
+			_ = sendSharedRefusal(connection, refusal)
+			return false
+		}
+		server.mu.Lock()
+		connection.leaseID = lease.LeaseID
+		server.mu.Unlock()
+		leaseCount, _ := server.leaseFacts()
+		if refuseChangedPeer() {
+			return false
+		}
+		if err := writeSharedJSONAtomic(filepath.Join(server.resolved.Paths.LeasesDir, lease.LeaseID+".json"), lease); err != nil {
+			server.releaseConnectionLease(connection)
+			_ = sendSharedRefusal(connection, err)
+			return false
+		}
+		server.notify("lease-change", false)
+		if err := connection.send(sharedWireMessage{Type: "lease", Lease: lease, LeaseID: lease.LeaseID, LeaseCount: leaseCount, Runtime: server.record.Runtime}); err != nil {
+			return false
+		}
+	case "heartbeat":
+		if message.LeaseID == "" || message.LeaseID != connectionLeaseID {
+			_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "lease_identity_mismatch"})
+			return false
+		}
+		if refuseChangedPeer() {
+			return false
+		}
+		server.mu.Lock()
+		if err := server.registerAcknowledgementLocked(acknowledgement); err != nil {
+			server.mu.Unlock()
+			_ = sendSharedRefusal(connection, err)
+			return false
+		}
+		lease := server.leases[connection.leaseID]
+		if lease != nil {
+			lease.LastHeartbeatAt = time.Now().UTC()
+		}
+		leaseCount := len(server.leases)
+		server.mu.Unlock()
+		if lease != nil {
+			if refuseChangedPeer() {
+				return false
+			}
+			_ = writeSharedJSONAtomic(filepath.Join(server.resolved.Paths.LeasesDir, lease.LeaseID+".json"), lease)
+		}
+		if err := connection.send(sharedWireMessage{Type: "heartbeat_ok", LeaseID: connectionLeaseID, LeaseCount: leaseCount}); err != nil {
+			return false
+		}
+	case "release":
+		if refuseChangedPeer() {
+			return false
+		}
+		if message.LeaseToken != "" {
+			leaseID, owner, ok, err := server.releaseLeaseByToken(message.LeaseToken, acknowledgement)
+			if err != nil {
+				_ = sendSharedRefusal(connection, err)
+				return false
+			}
+			if !ok {
+				_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "lease_identity_mismatch"})
+				return false
+			}
+			_ = os.Remove(filepath.Join(server.resolved.Paths.LeasesDir, leaseID+".json"))
+			server.notify("lease-change", false)
+			if owner != nil && owner != connection {
+				_ = owner.send(sharedWireMessage{Type: "released", LeaseID: leaseID})
+			}
+			_ = connection.send(sharedWireMessage{Type: "released", LeaseID: leaseID})
+			return false
+		}
+		if message.LeaseID == "" || message.LeaseID != connectionLeaseID {
+			_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "lease_identity_mismatch"})
+			return false
+		}
+		if err := server.releaseConnectionLeaseAfterAcknowledgement(connection, acknowledgement); err != nil {
+			_ = sendSharedRefusal(connection, err)
+			return false
+		}
+		_ = connection.send(sharedWireMessage{Type: "released", LeaseID: message.LeaseID})
+		return false
+	case "status":
+		resources, _, decision, identityErr := server.observeResourceStatusChecked(false, recheck, acknowledgement)
+		if identityErr != nil {
+			_ = sendSharedRefusal(connection, identityErr)
+			return false
+		}
+		if server.resources.beforeStatusPublication != nil {
+			server.resources.beforeStatusPublication(decision)
+		}
+		state, leases, resources := server.resourceStatusSnapshot(resources, decision)
+		if refuseChangedPeer() {
+			return false
+		}
+		if err := connection.send(sharedWireMessage{Type: "status", State: state, Stage: server.record.Stage, Leases: leases, LeaseCount: len(leases), Runtime: server.record.Runtime, Broker: &server.record.Broker, EffectiveSharing: server.record.Sharing, Resources: &resources}); err != nil {
+			return false
+		}
+	case "stop":
+		_, leases := server.statusSnapshot()
+		leaseCount := len(leases)
+		if leaseCount > 0 && !message.Force {
+			_ = connection.send(sharedWireMessage{Type: "refused", Code: "shared_runtime_leases_active", LeaseCount: leaseCount, Leases: leases})
+			return false
+		}
+		if refuseChangedPeer() {
+			return false
+		}
+		// Commit the stop before acknowledging it: the client may close
+		// as soon as stopping arrives, making further token reads fail.
+		// Reserve the acknowledgement under the same lock as the stop commit.
+		server.mu.Lock()
+		if err := server.registerAcknowledgementLocked(acknowledgement); err != nil {
+			server.mu.Unlock()
+			_ = sendSharedRefusal(connection, err)
+			return false
+		}
+		server.notify("stop", message.Force)
+		server.mu.Unlock()
+		_ = connection.send(sharedWireMessage{Type: "stopping", LeaseCount: leaseCount})
+		return false
+	default:
+		_ = connection.send(sharedWireMessage{Type: "refused", Code: "protocol_violation", Reason: "unknown_message"})
+		return false
+	}
+	return true
+}
+
+func (server *sharedBrokerServer) releaseLeaseByToken(token string, acknowledgement *sharedBrokerAcknowledgement) (string, *sharedBrokerConnection, bool, error) {
 	if token == "" {
-		return "", nil, false
+		return "", nil, false, nil
 	}
 	server.mu.Lock()
 	defer server.mu.Unlock()
@@ -1137,57 +1309,59 @@ func (server *sharedBrokerServer) releaseLeaseByToken(token string) (string, *sh
 			}
 		}
 		if owner == nil {
-			return "", nil, false
+			return "", nil, false, nil
 		}
+		if err := server.registerAcknowledgementLocked(acknowledgement); err != nil {
+			return "", nil, false, err
+		}
+		acknowledgement.connections = append(acknowledgement.connections, owner.connection)
 		delete(server.leases, leaseID)
 		owner.leaseID = ""
-		return leaseID, owner, true
+		return leaseID, owner, true, nil
 	}
-	return "", nil, false
+	return "", nil, false, nil
 }
 
-func (server *sharedBrokerServer) attestClient(connection *net.UnixConn, hello sharedWireMessage) (sharedProcessObservation, error) {
+func (server *sharedBrokerServer) attestClient(connection *net.UnixConn, hello sharedWireMessage) (sharedProcessObservation, sharedAuditToken, error) {
 	system := server.admission
-	uid, pid, err := system.peerIdentity(connection)
-	if err != nil || uid != uint32(os.Geteuid()) {
-		if err == nil {
-			err = errors.New("peer uid differs")
-		}
-		return sharedProcessObservation{}, sharedRuntimeError("broker_peer_untrusted", err)
+	uid, pid, token, err := system.peerIdentity(connection)
+	if err != nil {
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedPeerIdentityRefusal(err)
+	}
+	if uid != uint32(os.Geteuid()) {
+		err = errors.New("peer uid differs")
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedRuntimeError("broker_peer_untrusted", err)
 	}
 	if hello.ClientPID != pid {
-		return sharedProcessObservation{}, sharedRuntimeError("broker_identity_mismatch", errors.New("hello client pid differs from LOCAL_PEERPID"))
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedRuntimeError("broker_identity_mismatch", errors.New("hello client pid differs from LOCAL_PEERPID"))
 	}
 	observation, err := system.inspectProcess(pid)
 	if err != nil || !observation.live() {
 		if err == nil {
 			err = errors.New("client is a zombie")
 		}
-		return sharedProcessObservation{}, sharedRuntimeError("broker_identity_unavailable", err)
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedRuntimeError("broker_identity_unavailable", err)
 	}
-	clientExec, err := system.processExecIdentity(observation)
+	_, err = system.processExecIdentity(observation)
 	if err != nil {
-		return sharedProcessObservation{}, sharedRuntimeError("broker_identity_unavailable", err)
-	}
-	if clientExec.Dev != server.record.Broker.ExecutableIdentity.Dev || clientExec.Ino != server.record.Broker.ExecutableIdentity.Ino {
-		return sharedProcessObservation{}, sharedRuntimeError("broker_executable_identity_mismatch", errors.New("client executable inode differs"))
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedProcessIdentityRefusal(err)
 	}
 	if hello.ProtocolVersion != SharedRuntimeProtocolVersion {
-		return sharedProcessObservation{}, sharedRuntimeError("broker_protocol_version_mismatch", errors.New("client protocol version differs"))
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedRuntimeError("broker_protocol_version_mismatch", errors.New("client protocol version differs"))
 	}
 	if hello.RuntimeKey != server.resolved.RuntimeKey {
-		return sharedProcessObservation{}, sharedRuntimeError("shared_runtime_identity_mismatch", errors.New("client runtime key differs"))
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedRuntimeError("shared_runtime_identity_mismatch", errors.New("client runtime key differs"))
 	}
 	if hello.ProfileDigest != server.resolved.ProfileDigest {
-		return sharedProcessObservation{}, sharedRuntimeError("shared_runtime_profile_mismatch", errors.New("client profile digest differs"))
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedRuntimeError("shared_runtime_profile_mismatch", errors.New("client profile digest differs"))
 	}
 	if hello.EngineIdentity == nil || hello.EngineIdentity.Key != server.resolved.EngineIdentity.Key {
-		return sharedProcessObservation{}, sharedRuntimeError("shared_runtime_identity_mismatch", errors.New("client engine identity differs"))
+		return sharedProcessObservation{}, sharedAuditToken{}, sharedRuntimeError("shared_runtime_identity_mismatch", errors.New("client engine identity differs"))
 	}
-	return observation, nil
+	return observation, token, nil
 }
 
-func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage, client sharedProcessObservation) (*SharedLeaseRecord, error) {
+func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage, client sharedProcessObservation, recheck func() error, acknowledgements ...*sharedBrokerAcknowledgement) (*SharedLeaseRecord, error) {
 	if !sharedRuntimeResourcePolicyMatches(hello.ConfiguredSharing, server.resolved.Sharing) {
 		details := map[string]any{"effective_sharing": server.resolved.Sharing}
 		if hello.ConfiguredSharing != nil {
@@ -1201,7 +1375,13 @@ func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage,
 			Err:           errors.New("configured resource-pressure policy differs from the live broker policy"),
 		}
 	}
-	resources, transition, decision := server.observeResourceStatus(true)
+	if err := recheck(); err != nil {
+		return nil, err
+	}
+	resources, transition, decision, identityErr := server.observeResourceStatusChecked(true, recheck, acknowledgements...)
+	if identityErr != nil {
+		return nil, identityErr
+	}
 	resourceGeneration := decision.admissionGeneration
 	if resources.Admission == "refused" && resources.State != "draining" {
 		server.notifyResourceTransition(transition, resourceGeneration)
@@ -1213,6 +1393,9 @@ func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage,
 	}
 	if server.resources.beforeLeaseReservation != nil {
 		server.resources.beforeLeaseReservation(resourceGeneration)
+	}
+	if err := recheck(); err != nil {
+		return nil, err
 	}
 	server.mu.Lock()
 	if resourceGeneration != 0 && resourceGeneration != server.resourceAdmissionGeneration {
@@ -1249,6 +1432,10 @@ func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage,
 		server.mu.Unlock()
 		return nil, sharedRuntimeError("shared_runtime_state_path_invalid", err)
 	}
+	if err := recheck(); err != nil {
+		server.mu.Unlock()
+		return nil, err
+	}
 	now := time.Now().UTC()
 	lease := &SharedLeaseRecord{
 		LeaseID: hex.EncodeToString(nonce[:]), LeaseToken: hex.EncodeToString(token[:]),
@@ -1259,6 +1446,10 @@ func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage,
 		Endpoint: server.resolved.Profile.BaseURL, RuntimePID: server.record.Runtime.PID,
 		GrantedAt: now, LastHeartbeatAt: now,
 	}
+	if err := server.registerAcknowledgementLocked(firstSharedAcknowledgement(acknowledgements)); err != nil {
+		server.mu.Unlock()
+		return nil, err
+	}
 	server.leases[lease.LeaseID] = lease
 	server.hadLease = true
 	server.mu.Unlock()
@@ -1266,13 +1457,34 @@ func (server *sharedBrokerServer) acquireLease(message, hello sharedWireMessage,
 	return lease, nil
 }
 
+// Internal lifecycle observations have no requesting peer to recheck.
 func (server *sharedBrokerServer) observeResourceStatus(commitAdmissionState bool) (SharedRuntimeResourceStatus, string, sharedBrokerResourceDecision) {
+	status, transition, decision, _ := server.observeResourceStatusChecked(commitAdmissionState, func() error { return nil })
+	return status, transition, decision
+}
+
+func (server *sharedBrokerServer) observeResourceStatusChecked(commitAdmissionState bool, recheck func() error, acknowledgements ...*sharedBrokerAcknowledgement) (SharedRuntimeResourceStatus, string, sharedBrokerResourceDecision, error) {
 	sharing := server.resolved.Sharing
 	server.mu.Lock()
 	brokerState := server.state
 	if sharing.ResourcePressureMode != "provider" || sharing.ResourcePressure == nil {
 		server.mu.Unlock()
-		return disabledSharedRuntimeResourceStatus(sharing, brokerState, "broker-config"), "", sharedBrokerResourceDecision{}
+		return disabledSharedRuntimeResourceStatus(sharing, brokerState, "broker-config"), "", sharedBrokerResourceDecision{}, nil
+	}
+	// Preserve read-only draining diagnostics without advancing observation
+	// generations or registering any new effect after the shutdown boundary.
+	if !commitAdmissionState && (server.shuttingDown || brokerState == "draining") {
+		status := failedSharedRuntimeResourceStatus(*sharing.ResourcePressure, "draining", "broker_draining")
+		server.mu.Unlock()
+		return status, "", sharedBrokerResourceDecision{}, nil
+	}
+	if err := recheck(); err != nil {
+		server.mu.Unlock()
+		return SharedRuntimeResourceStatus{}, "", sharedBrokerResourceDecision{}, err
+	}
+	if err := server.registerAcknowledgementLocked(firstSharedAcknowledgement(acknowledgements)); err != nil {
+		server.mu.Unlock()
+		return SharedRuntimeResourceStatus{}, "", sharedBrokerResourceDecision{}, err
 	}
 	decision := sharedBrokerResourceDecision{}
 	if commitAdmissionState {
@@ -1292,13 +1504,21 @@ func (server *sharedBrokerServer) observeResourceStatus(commitAdmissionState boo
 	brokerState = server.state
 	if err != nil {
 		server.mu.Unlock()
-		return failedSharedRuntimeResourceStatus(policy, brokerState, "provider_observation_failed"), "", decision
+		return failedSharedRuntimeResourceStatus(policy, brokerState, "provider_observation_failed"), "", decision, nil
 	}
 	admissionStale := commitAdmissionState && decision.admissionGeneration != server.resourceAdmissionGeneration
 	statusStale := !commitAdmissionState && (decision.statusGeneration != server.resourceStatusGeneration || decision.admissionGeneration != server.resourceAdmissionGeneration)
 	if admissionStale || statusStale {
 		server.mu.Unlock()
-		return failedSharedRuntimeResourceStatus(policy, brokerState, "resource_observation_stale"), "", decision
+		return failedSharedRuntimeResourceStatus(policy, brokerState, "resource_observation_stale"), "", decision, nil
+	}
+	if err := recheck(); err != nil {
+		server.mu.Unlock()
+		return SharedRuntimeResourceStatus{}, "", decision, err
+	}
+	if err := server.registerAcknowledgementLocked(firstSharedAcknowledgement(acknowledgements)); err != nil {
+		server.mu.Unlock()
+		return SharedRuntimeResourceStatus{}, "", decision, err
 	}
 	previousPressure := server.pressureLatched
 	status, pressure := classifySharedRuntimeResources(observation, policy, brokerState, previousPressure, server.resources.now())
@@ -1322,7 +1542,7 @@ func (server *sharedBrokerServer) observeResourceStatus(commitAdmissionState boo
 	}
 	server.mu.Unlock()
 	if !commitAdmissionState {
-		return status, "", decision
+		return status, "", decision, nil
 	}
 	transition := ""
 	if !previousPressure && pressure {
@@ -1330,14 +1550,21 @@ func (server *sharedBrokerServer) observeResourceStatus(commitAdmissionState boo
 	} else if previousPressure && !pressure {
 		transition = "recovered"
 	}
-	return status, transition, decision
+	return status, transition, decision, nil
 }
 
 func (server *sharedBrokerServer) releaseConnectionLease(connection *sharedBrokerConnection) {
-	if connection.leaseID == "" {
-		return
-	}
+	server.releaseConnectionLeaseAfterAcknowledgement(connection, nil)
+}
+
+func (server *sharedBrokerServer) releaseConnectionLeaseAfterAcknowledgement(connection *sharedBrokerConnection, acknowledgement *sharedBrokerAcknowledgement) error {
 	server.mu.Lock()
+	if acknowledgement != nil {
+		if err := server.registerAcknowledgementLocked(acknowledgement); err != nil {
+			server.mu.Unlock()
+			return err
+		}
+	}
 	_, present := server.leases[connection.leaseID]
 	delete(server.leases, connection.leaseID)
 	leaseID := connection.leaseID
@@ -1347,6 +1574,14 @@ func (server *sharedBrokerServer) releaseConnectionLease(connection *sharedBroke
 		_ = os.Remove(filepath.Join(server.resolved.Paths.LeasesDir, leaseID+".json"))
 		server.notify("lease-change", false)
 	}
+	return nil
+}
+
+func firstSharedAcknowledgement(acknowledgements []*sharedBrokerAcknowledgement) *sharedBrokerAcknowledgement {
+	if len(acknowledgements) == 0 {
+		return nil
+	}
+	return acknowledgements[0]
 }
 
 func (server *sharedBrokerServer) notify(kind string, force bool) {

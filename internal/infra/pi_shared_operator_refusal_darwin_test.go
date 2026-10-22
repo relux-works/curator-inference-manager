@@ -287,6 +287,7 @@ func TestStopRecordedSharedRuntimeRequiresBrokerLockBeforeCleanup(t *testing.T) 
 	}
 }
 
+// Identity failures, including code mismatch/absence, cannot signal or remove state.
 func TestStopRecordedSharedRuntimeWithDependenciesRefusesEveryIdentityMismatchBeforeSignal(t *testing.T) {
 	tests := []struct {
 		name, site            string
@@ -302,8 +303,8 @@ func TestStopRecordedSharedRuntimeWithDependenciesRefusesEveryIdentityMismatchBe
 		{name: "argv differs", site: "broker_stop_identity_mismatch", mutateObservation: func(observation *sharedProcessObservation) { observation.Argv = append(observation.Argv, "--other") }},
 		{name: "own executable inspection error", site: "broker_stop_identity_mismatch", ownErr: errors.New("own executable inspection failed")},
 		{name: "process executable inspection error", site: "broker_stop_identity_mismatch", processIdentityErr: errors.New("process executable inspection failed")},
-		{name: "executable device differs", site: "broker_stop_identity_mismatch", mutateProcessIdentity: func(identity *FileIdentity) { identity.Dev++ }},
-		{name: "executable inode differs", site: "broker_stop_identity_mismatch", mutateProcessIdentity: func(identity *FileIdentity) { identity.Ino++ }},
+		{name: "code identity differs", site: "broker_stop_identity_mismatch", processIdentityErr: validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{2})},
+		{name: "code identity absent", site: "broker_stop_identity_mismatch", processIdentityErr: validateSharedCodeHashes(sharedCodeHash{1}, sharedCodeHash{})},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {

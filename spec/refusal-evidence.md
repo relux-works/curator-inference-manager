@@ -288,3 +288,46 @@ retain their typed refusals. Verified weights fixture publications cover a clean
 path, a path containing `..`, and a `.bin` path; contracttest checks these against
 the consumer decoder and actual artifact value validator, including violation
 plants for both originally invalid values.
+
+## Darwin kernel code identity refusals
+
+`validateSharedCodeHashes` refuses absent self/peer identity as
+`broker_identity_unavailable` and different nonzero cdhash values as
+`broker_executable_identity_mismatch`. `sharedTokenCodeIdentity` refuses token
+PID disagreement as `broker_identity_mismatch` and syscall errors as
+`broker_identity_unavailable`. `sharedValidatedCodeHash` requires `CS_VALID` before and after the hash for
+both self and peer, with the same peer audit token throughout; invalid status
+or unavailable queries use `broker_identity_unavailable`.
+`sharedRecheckPeerToken` refuses changed PID/pidversion with
+`broker_identity_mismatch` and token read failures with
+`broker_identity_unavailable`. These typed codes propagate through real socket
+admission, client attestation and process rechecks without relabeling.
+Recorded-broker stop retains the operator-specific
+`broker_stop_identity_mismatch` wrapper and never signals after code refusal.
+The old `broker_build_identity_mismatch` emission is retired: peer-announced
+file metadata is not evidence of running code.
+
+Named unit tests cover matching/nonmatching/zero hashes, errors carrying
+matching witnesses, token PID/pidversion binding, real kernel/file identity,
+stale-token ESRCH, real socketpair token/PID agreement, CodeDirectory hash selection, malformed/truncated input
+and foreign architectures. A built Go fixture is compared with `codesign`'s
+independent `CDHash=` display when available. The socket test covers same-code
+copies, different signed code and both directions of post-start pathname
+replacement, plus a mismatched hello PID. A separate real-child process test
+executes both replacement directions without binding a socket. Socket bind denial is unverified
+integration evidence, never a passing negative control.
+
+The cdhash-array comparisons are outside the census tool's frozen singleton
+constant-equality witness grammar. Their source-bound undecided certificates
+name the tests but do not claim generated narrowing-mutant coverage. Bounded
+direct guard-removal controls exercise mismatch, absent hash, CS_VALID and
+post-authentication pidversion checks. Injected status/hash controls accompany
+a real-kernel CS_VALID assertion. A real child creates a socketpair, passes the
+broker endpoint, authenticates, receives status, then re-execs trusted code
+with the inherited fd: its next stop request refuses with client-observed EOF
+and no stop event. Injected request/effect tests cover changed/unreadable
+tokens and failed lease admission without reservation/publication;
+these controls complement, rather than weaken or bypass, the committed AST census.
+See the [site decisions and limits](engines-protocol-v1.1.md#darwin-broker-code-identity),
+including the deferred configured-runtime FILE contract and internal-only
+identity publication.
